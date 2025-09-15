@@ -64,7 +64,7 @@ return [
     */
 
     'logo' => '<b>Admin</b>LTE',
-    'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
+    'logo_img' => 'vendor/adminlte/dist/img/logo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
     'logo_img_xl_class' => 'brand-image-xs',
@@ -86,7 +86,7 @@ return [
     'auth_logo' => [
         'enabled' => false,
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
+            'path' => 'vendor/adminlte/dist/img/logo.png',
             'alt' => 'Auth Logo',
             'class' => '',
             'width' => 50,
@@ -113,7 +113,7 @@ return [
         'enabled' => true,
         'mode' => 'fullscreen',
         'img' => [
-            'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
+            'path' => 'vendor/adminlte/dist/img/logo.png',
             'alt' => 'AdminLTE Preloader Image',
             'effect' => 'animation__shake',
             'width' => 60,
@@ -300,21 +300,21 @@ return [
 
     'menu' => [
         // Navbar items:
-        [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
-        ],
+        // [
+        //     'type' => 'navbar-search',
+        //     'text' => 'search',
+        //     'topnav_right' => true,
+        // ],
         [
             'type' => 'fullscreen-widget',
             'topnav_right' => true,
         ],
 
-        // Sidebar items:
-        [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
+        // // Sidebar items:
+        // [
+        //     'type' => 'sidebar-menu-search',
+        //     'text' => 'search',
+        // ],
         [
             'text' => 'blog',
             'url' => 'admin/blog',
@@ -327,7 +327,7 @@ return [
         //     'label' => 4,
         //     'label_color' => 'success',
         // ],
-        ['header' => 'Admin Panel'],
+        // ['header' => 'Admin Panel'],
         // [
         //     'text' => 'profile',
         //     'url' => 'admin/settings',
@@ -339,30 +339,56 @@ return [
         //     'icon' => 'fas fa-fw fa-lock',
         // ],
         [
-            'text' => 'Management',
-            'icon' => 'fas fa-fw fa-cogs',
-            'submenu' => [
-                [
-                    'text' => 'Vehicle Management',
-                    'url' => '/vehicles',
-                    'icon' => 'fas fa-car', // 🚗 Car icon
-                ],
-                [
-                    'text' => 'Landing page management',
-                    'route' => 'admin.landing-settings.index', // links to GET route
-                    'icon' => 'fas fa-fw fa-images',          // gallery images icon
-                ],
-                [
-                    'text' => 'Add On Inventory',
-'route' => 'inventry.index',
-                    'icon' => 'fas fa-fw fa-boxes',   // inventory/boxes icon
-                ],
+        'text' => 'Vehicles',
+        'url'  => '/vehicles',
+        'icon' => 'fas fa-car fa-lg text-primary', // Big car icon in blue
+    ],
+    [
+        'text' => 'Landing Page',
+        'route' => 'admin.landing-settings.index',
+        'icon' => 'fas fa-image fa-lg text-success', // Large image icon in green
+    ],
+    [
+        'text' => 'Add-On Inventory',
+        'route' => 'inventry.index',
+        'icon' => 'fas fa-box-open fa-lg text-warning', // Open box icon in yellow
+    ],
+    [
+        'text' => 'Customers',
+        'route' => 'customers.index',
+        'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
+    ],
+        // [
+        //     'text' => 'Management',
+        //     'icon' => 'fas fa-fw fa-cogs',
+        //     'submenu' => [
+        //         [
+        //             'text' => 'Vehicle Management',
+        //             'url' => '/vehicles',
+        //             'icon' => 'fas fa-car', // 🚗 Car icon
+        //         ],
+        //         [
+        //             'text' => 'Landing page management',
+        //             'route' => 'admin.landing-settings.index', // links to GET route
+        //             'icon' => 'fas fa-fw fa-images',          // gallery images icon
+        //         ],
+        //         [
+        //             'text' => 'Add On Inventory',
+        //             'route' => 'inventry.index',
+        //             'icon' => 'fas fa-fw fa-boxes',   // inventory/boxes icon
+        //         ],
+
+        //         [
+        //             'text' => 'Customers',
+        //             'route' => 'customers.index',
+        //             'icon' => 'fas fa-user-friends',   // inventory/boxes icon
+        //         ],
 
 
 
 
-            ],
-        ],
+        //     ],
+        // ],
 
         // ['header' => 'labels'],
         // [

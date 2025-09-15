@@ -1,10 +1,13 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
     <div class="container">
         <!-- Logo -->
-        <a class="navbar-brand d-flex align-items-center" href="#">
-            <img src="https://static.vecteezy.com/system/resources/previews/047/656/219/non_2x/abstract-logo-design-for-any-corporate-brand-business-company-vector.jpg"
-                alt="Logo" width="100" height="40" class="me-2">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
+            <img src="{{ asset('vendor/adminlte/dist/img/logo.png') }}" alt="Zelta Cars Logo" width="100" height="40"
+                class="me-2">
+            <span class="fw-bold text-dark">Zelta Cars</span>
         </a>
+
+
 
         <!-- Toggler -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive"

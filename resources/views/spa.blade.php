@@ -7,11 +7,11 @@
     {{-- @yield('content') --}}
 
 
-@php
-    $heroBg = $settings && $settings->hero_image_path
-        ? Storage::url($settings->hero_image_path)
-        : asset('images/bg.jpg');
-@endphp
+    @php
+        $heroBg = $settings && $settings->hero_image_path
+            ? Storage::url($settings->hero_image_path)
+            : asset('images/bg.jpg');
+    @endphp
 
 
     <section class="hero d-flex mt-5 align-items-center text-center text-white"
@@ -144,7 +144,7 @@
 
                                 <!-- Button -->
                                 <div class="mt-auto">
-                                    <a href="{{ route('fleet.show', $vehicle->id) }}"
+                                    <a href="{{ route('fleet.view', $vehicle->id) }}"
                                         class="btn btn-dark w-100 d-flex align-items-center justify-content-center">
                                         <i class="bi bi-eye me-2"></i> View Details
                                     </a>
@@ -162,6 +162,11 @@
             </div>
         </div>
     </section>
+
+
+
+
+
 
 
 

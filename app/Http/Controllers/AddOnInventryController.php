@@ -58,4 +58,14 @@ class AddOnInventryController extends Controller
         return redirect()->route('inventry.index')
             ->with('success', 'Add-On updated successfully!');
     }
+
+
+    public function destroy(AddOn $addon)
+{
+    $addon->delete();
+
+    return redirect()->route('inventry.index')
+        ->with('success', 'Add-On deleted successfully!');
+}
+
 }

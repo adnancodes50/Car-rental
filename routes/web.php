@@ -3,6 +3,7 @@
 use App\Http\Controllers\AddOnInventryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LandingSettingController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -14,7 +15,7 @@ use App\Http\Controllers\VehicleController;
 
 Route::get('/', [VehicleController::class, 'frontendIndex'])->name('home');
 Route::get('/fleet/{vehicle}', [VehicleController::class, 'view'])
-    ->name('fleet.show');
+    ->name('fleet.view');
 
 Route::get('/home', function () {
     return redirect()->route('admin.dashboard.index');
@@ -66,7 +67,20 @@ Route::group([
     Route::get('/{addon}/edit', [AddOnInventryController::class, 'edit'])->name('edit');
     Route::put('/{addon}', [AddOnInventryController::class, 'update'])->name('update');
     // Route::get('/{vehicle}', [AddOnInventryController::class, 'show'])->name('show');
-    // Route::delete('/{vehicle}', [AddOnInventryController::class, 'destroy'])->name('destroy');
+Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy');
+});
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'customers',
+    'as' => 'customers.'
+], function () {
+
+    // Customer Dashboard/List
+    // Blade icon example: <i class="ri-user-line"></i>
+    Route::get('/', [CustomerController::class, 'index'])->name('index');
+
 });
 
 
@@ -79,6 +93,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('/landing-settings', [LandingSettingController::class, 'update'])
         ->name('landing-settings.update');
 });
+
+
 
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
 

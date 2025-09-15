@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Landing;
 use App\Models\Vehicles;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class VehicleController extends Controller
@@ -13,9 +15,13 @@ class VehicleController extends Controller
     {
         $vehicles = Vehicles::latest()->get();
         $addOns = \App\Models\AddOn::all();
-        $settings = Landing::first(); 
-        return view('spa', compact('vehicles', 'addOns', 'settings')); // ✅ correct
+        $settings = Landing::first();
+
+
+        // Pass bookedDates to the view
+        return view('spa', compact('vehicles', 'addOns', 'settings'));
     }
+
 
     public function index()
     {
@@ -140,8 +146,20 @@ class VehicleController extends Controller
 
     public function view(Vehicles $vehicle)
     {
-        $addOns = \App\Models\AddOn::all(); // ✅ Fetch add-ons
-        return view('view', compact('vehicle', 'addOns'));
+        $addOns = \App\Models\AddOn::all();
+
+        // Get all bookings for this vehicle
+        $bookedRanges = Booking::where('vehicle_id', $vehicle->id)
+            ->where('status', '!=', 'cancelled') // exclude cancelled bookings
+            ->get(['start_date', 'end_date'])
+            ->map(function ($b) {
+                return [
+                    'from' => $b->start_date,
+                    'to' => $b->end_date,
+                ];
+            });
+
+        return view('view', compact('vehicle', 'addOns', 'bookedRanges'));
     }
 
 
@@ -151,6 +169,17 @@ class VehicleController extends Controller
     {
         return view('admin.vehicles.show', compact('vehicle'));
     }
+
+
+
+    public function destroy(Vehicles $vehicle)
+    {
+        $vehicle->delete();
+
+        return redirect()->route('vehicles.index')
+            ->with('success', 'Vehicle deleted successfully!');
+    }
+
 
 
 

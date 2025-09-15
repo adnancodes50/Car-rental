@@ -41,10 +41,11 @@ class Vehicles extends Model
         return $this->hasMany(VehicleImage::class, 'vehicle_id'); // explicit foreign key
     }
 
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
+   public function bookings()
+{
+    return $this->hasMany(Booking::class, 'vehicle_id');
+}
+
 
     /**
      * Get the main image (fallback to first gallery image).
