@@ -1,0 +1,35 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+       Schema::create('add_ons', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->text('description')->nullable();
+    $table->string('image_url')->nullable();
+    $table->unsignedInteger('qty_total')->default(0);
+    $table->unsignedBigInteger('price_day')->nullable();
+    $table->unsignedBigInteger('price_week')->nullable();
+    $table->unsignedBigInteger('price_month')->nullable();
+    $table->timestamps();
+});
+
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('add_ons');
+    }
+};
