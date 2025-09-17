@@ -19,6 +19,7 @@ class Booking extends Model
         'reference',
         'notes',
         'total_price',
+        'extra_days', // <-- new column added
     ];
 
     /**

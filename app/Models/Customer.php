@@ -24,4 +24,26 @@ class Customer extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
+    public function hasActiveBooking()
+    {
+        return $this->bookings->whereIn('status', ['pending', 'confirmed'])->count() > 0;
+    }
+
+    public function activeBookingCount()
+    {
+        if ($this->relationLoaded('bookings')) {
+            return $this->bookings->whereIn('status', ['pending', 'active','completed'])->count();
+        }
+
+        return $this->bookings()->whereIn('status', ['pending', 'active', 'completed'])->count();
+    }
+
+
+
 }

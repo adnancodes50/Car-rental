@@ -14,23 +14,9 @@
         <div class="card-header">
             <h3 class="card-title">Hero Background Image</h3>
 
-            {{-- Show Validation Errors --}}
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
-            {{-- Show Success Message --}}
-            @if (session('success'))
-                <div class="alert alert-success">
-                    {{ session('success') }}
-                </div>
-            @endif
+
+
         </div>
         <div class="card-body">
             <form action="{{ route('admin.landing-settings.update') }}" method="POST" enctype="multipart/form-data">
@@ -40,17 +26,20 @@
                 <div class="form-group">
                     <label>Current Background Image</label>
                     <div class="position-relative w-100 mb-3" style="height: 250px;">
-                        @php
-                            $preview = $settings && $settings->hero_image_path
-                                ? Storage::url($settings->hero_image_path)
-                                : asset('images/bg.jpg');
-                        @endphp
+
+    @php
+        $preview = $settings && $settings->hero_image_path
+            ? Storage::url($settings->hero_image_path)
+            : asset('images/bg.jpg');
+    @endphp
+
+
                         <img id="hero_preview" src="{{ $preview }}" class="w-100 h-100 object-fit-cover rounded" alt="Hero">
 
-                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-dark bg-opacity-50 text-center text-white rounded">
+                        {{-- <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-dark bg-opacity-50 text-center text-white rounded">
                             <h2 class="mb-1" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Built for where</h2>
                             <span class="fw-bold text-warning" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">adventure was born</span>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
 
@@ -153,16 +142,48 @@
 @stop
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.getElementById('hero_image')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+document.addEventListener('DOMContentLoaded', function() {
+    // ===== Preview Hero Image =====
+    const heroInput = document.getElementById('hero_image');
+    const heroPreview = document.getElementById('hero_preview');
 
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        document.getElementById('hero_preview').src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+    if (heroInput && heroPreview) {
+        heroInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                heroPreview.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ===== SweetAlert Success Message =====
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: @json(session('success')),
+        timer: 2500,
+        showConfirmButton: false
+    });
+    @endif
+
+    // ===== SweetAlert Error Message =====
+    @if($errors->any())
+    let errorMessages = @json($errors->all());
+    Swal.fire({
+        icon: 'error',
+        title: 'Oops! Something went wrong',
+        html: errorMessages.map(msg => `<p>${msg}</p>`).join(''),
+        confirmButtonText: 'OK',
+    });
+    @endif
 });
 </script>
 @stop
+

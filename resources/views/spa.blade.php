@@ -5,69 +5,72 @@
 {{-- Main SPA mount point --}}
 <div id="app">
     {{-- @yield('content') --}}
-
-
+ <div>
     @php
-        $heroBg = $settings && $settings->hero_image_path
-            ? Storage::url($settings->hero_image_path)
-            : asset('images/bg.jpg');
-    @endphp
+    $heroBg = $settings && $settings->hero_image_path
+        ? Storage::url($settings->hero_image_path)
+        : asset('images/bg.jpg');
+@endphp
 
+<section class="hero d-flex  align-items-center text-center text-white position-relative" id="home-section"
+    style="background: url('{{ $heroBg }}') center center/cover no-repeat; min-height: 100vh;">
 
-    <section class="hero d-flex mt-5 align-items-center text-center text-white"
-        style="background: url('{{ $heroBg }}') center center/cover no-repeat; min-height: 100vh;">
-        <div class="container mt-5">
-            <h1 class="display-3 fw-bold mb-4">
-                Built for where <br>
-                <span class="text-warning">adventure was born</span>
-            </h1>
+    <!-- Black Overlay -->
+    <div class="position-absolute top-0 start-0 w-100 h-100"
+         style="background-color: rgba(0,0,0,0.5); z-index: 1;"></div>
 
-            <p class="lead text-light mb-5 mx-auto" style="max-width: 700px;">
-                Meticulously restored vintage Land Rovers...
-            </p>
+    <div class="container mt-5 position-relative" style="z-index: 2;">
+        <h1 class="display-3 fw-bold mb-4">
+            Built for where <br>
+            <span class="text-warning">adventure was born</span>
+        </h1>
 
-            <div class="d-flex justify-content-center mb-5">
-                <a href="#vehicles" class="btn btn-warning btn-lg fw-bold px-4 py-3">
-                    Explore Vehicles <i class="bi bi-arrow-right ms-2"></i>
-                </a>
-            </div>
+        <p class="lead text-light mb-5 mx-auto" style="max-width: 700px;">
+            Meticulously restored vintage Land Rovers...
+        </p>
 
-            <!-- Features ... -->
-            <div class="row justify-content-center g-4 px-3 px-lg-5">
-                <div class="col-12 col-md-4">
-                    <div class="d-flex flex-column align-items-center text-center">
-                        <i class="bi bi-triangle text-warning display-4 mb-3"></i>
-                        <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
-                        <p class="text-light">Every Land Rover restored to original specifications with modern
-                            reliability</p>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-4">
-                    <div class="d-flex flex-column align-items-center text-center">
-                        <i class="bi bi-compass text-warning display-4 mb-3"></i>
-                        <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
-                        <p class="text-light">Equipped for multi-day expeditions with premium overland accessories</p>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-4">
-                    <div class="d-flex flex-column align-items-center text-center">
-                        <i class="bi bi-arrow-right-circle text-warning display-4 mb-3"></i>
-                        <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
-                        <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase</p>
-                    </div>
-                </div>
-            </div>
-
+        <div class="d-flex justify-content-center mb-5">
+            <a href="#vehicles" class="btn btn-warning btn-lg fw-bold px-4 py-3">
+                Explore Vehicles <i class="bi bi-arrow-right ms-2"></i>
+            </a>
         </div>
-    </section>
 
+        <!-- Features ... -->
+        <div class="row justify-content-center g-4 px-3 px-lg-5">
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column align-items-center text-center">
+                    <i class="bi bi-shield-lock text-warning display-4 mb-3"></i>
+                    <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
+                    <p class="text-light">Every Land Rover restored to original specifications with modern
+                        reliability</p>
+                </div>
+            </div>
 
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column align-items-center text-center">
+                    <i class="bi bi-compass text-warning display-4 mb-3"></i>
+                    <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
+                    <p class="text-light">Equipped for multi-day expeditions with premium overland accessories</p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column align-items-center text-center">
+                    <i class="bi bi-arrow-right-circle text-warning display-4 mb-3"></i>
+                    <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
+                    <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+ </div>
     <!-- Features -->
 
 
-    <section class="bg-light mt-5 py-5">
+    <section class="bg-light mt-5 py-5" id="vehicles-section">
         <div class="container">
             <!-- Header -->
             <div class="text-center mb-5">
@@ -127,20 +130,22 @@
                                 </div>
 
                                 <!-- Pricing -->
-                                <div class="mb-3">
-                                    @if($vehicle->rental_price_week)
-                                        <div class="text-muted small">From</div>
-                                        <p class="mb-1"><strong>R{{ number_format($vehicle->rental_price_week) }}/week</strong>
-                                        </p>
-                                    @endif
+                               <div class="mb-3 d-flex justify-content-between">
+    @if($vehicle->rental_price_week)
+        <div>
+            <div class="text-muted small">From</div>
+            <p class="mb-1"><strong>R{{ number_format($vehicle->rental_price_week) }}/week</strong></p>
+        </div>
+    @endif
 
-                                    @if($vehicle->purchase_price)
-                                        <div class="text-muted small">Purchase from</div>
-                                        <p class="fw-bold h5 text-dark mb-0">
-                                            R{{ number_format($vehicle->purchase_price) }}
-                                        </p>
-                                    @endif
-                                </div>
+    @if($vehicle->purchase_price)
+        <div class="text-end">
+            <div class="text-muted small">Purchase from</div>
+            <p class="h5 text-dark mb-0">R{{ number_format($vehicle->purchase_price) }}</p>
+        </div>
+    @endif
+</div>
+
 
                                 <!-- Button -->
                                 <div class="mt-auto">

@@ -10,44 +10,58 @@
 <div class="container-fluid">
     <!-- Card -->
     <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white border-0">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
             <h3 class="card-title mb-0 fw-bold">All Customers</h3>
         </div>
 
-        <div class="card-body">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
+        <hr>
 
-            <!-- Modern Responsive Table -->
+        <div class="card-body">
+            <!-- Responsive Table -->
             <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle text-sm border rounded-3">
+                <table id="customersTable" class="table table-striped table-hover align-middle text-sm w-100">
                     <thead class="table-light text-uppercase text-muted">
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Country</th>
-                            <th>Actions</th>
+                            <th>Active Booking</th>
+                            <th class="text-center" style="width:80px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($customers as $customer)
-                            <tr class="fw-normal">
+                            <tr>
                                 <td class="fw-semibold">{{ $customer->name }}</td>
                                 <td>{{ $customer->email }}</td>
                                 <td>{{ $customer->phone }}</td>
                                 <td>{{ $customer->country }}</td>
-    <td class="text-center d-flex align-items-center justify-content-center" style="height: 40px;">
-    <a href="#" class="text-info" style="font-size: 22px;">
-        <i class="fas fa-eye"></i>
-    </a>
-</td>
+                                <td class="text-center">
+                                    @if($customer->activeBookingCount() > 0)
+                                        <span class="badge py-1 text-white"
+                                            style="background-color: rgb(18, 158, 151); font-size: 0.9rem;">
+                                            <i class="fas fa-calendar-check me-1"></i>
+                                            {{ $customer->activeBookingCount() }}
+                                            booking{{ $customer->activeBookingCount() > 1 ? 's' : '' }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-calendar-alt me-1"></i> 0
+                                        </span>
+                                    @endif
+                                </td>
 
 
+
+
+
+                                <td class="text-center">
+                                    <a href="{{ route('customers.details', $customer->id) }}"
+                                        class="btn btn-outline-info btn-sm action-btn" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -57,27 +71,69 @@
                     </tbody>
                 </table>
             </div>
-
         </div>
     </div>
 </div>
 
 <style>
-    /* Optional modern hover effect for rows */
     table.table-hover tbody tr:hover {
-        background-color: rgba(255, 193, 7, 0.1); /* subtle yellow */
+        background-color: rgba(255, 193, 7, 0.1);
         transition: background-color 0.2s ease-in-out;
     }
 
-    /* Rounded table headers */
-    table thead th {
-        border-top-left-radius: 0.5rem;
-        border-top-right-radius: 0.5rem;
+    /* Action button styling */
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        padding: 0;
     }
 
-    /* Optional striped effect */
-    table.table-striped tbody tr:nth-of-type(odd) {
-        background-color: #f8f9fa;
+    .action-btn:hover {
+        background-color: #fff !important;
+    }
+
+    .btn-outline-info:hover i {
+        color: #0dcaf0;
+    }
+
+    .action-btn i {
+        font-size: 16px;
     }
 </style>
+@stop
+
+@section('css')
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+@stop
+
+@section('js')
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('#customersTable').DataTable({
+            responsive: true,
+            autoWidth: false,
+            pageLength: 10,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [4] },
+                { searchable: false, targets: [4] },
+                { targets: 0, responsivePriority: 1 },
+                { targets: 4, responsivePriority: 2 }
+            ],
+        });
+    });
+</script>
 @stop

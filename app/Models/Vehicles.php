@@ -31,6 +31,12 @@ class Vehicles extends Model
         'purchase_price',
         'deposit_amount',
         'status',
+        'features', // ✅ Add the JSON column here
+
+    ];
+
+     protected $casts = [
+        'features' => 'array', // <-- this converts JSON to array automatically
     ];
 
     /**
@@ -41,10 +47,19 @@ class Vehicles extends Model
         return $this->hasMany(VehicleImage::class, 'vehicle_id'); // explicit foreign key
     }
 
-   public function bookings()
-{
-    return $this->hasMany(Booking::class, 'vehicle_id');
-}
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'vehicle_id');
+    }
+
+
+    // app/Models/Vehicle.php
+
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
 
 
     /**

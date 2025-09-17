@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VehicleController;
 
@@ -80,6 +81,8 @@ Route::group([
     // Customer Dashboard/List
     // Blade icon example: <i class="ri-user-line"></i>
     Route::get('/', [CustomerController::class, 'index'])->name('index');
+    Route::get('/{id}', [CustomerController::class, 'getCustomerDetails'])->name('details');
+    Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
 
 });
 
@@ -95,8 +98,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 });
 
 
-
+//frontend booking and purchase routes
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+Route::post('/purchase', [PurchaseController::class, 'store'])->name('purchase.store');
+
 
 
 

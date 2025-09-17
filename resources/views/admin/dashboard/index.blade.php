@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="container">
-        <h1>Dashboard</h1>
+        <h1 class="text-success">Dashboard</h1>
         <p>Welcome back, {{ auth()->user()->name }}!</p>
     </div>
 @endsection

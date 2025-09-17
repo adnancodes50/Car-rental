@@ -3,18 +3,14 @@
 @section('title', 'Add Vehicle')
 
 @section('content_header')
-    <h1>Add New Vehicle</h1>
+    {{-- <h1>Add New Vehicle</h1> --}}
 
-    @if ($errors->any())
-        <div class="alert alert-danger mt-3">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    @section('css')
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 @stop
+
+
 
 @section('content')
 <form action="{{ route('vehicles.store') }}" method="POST" enctype="multipart/form-data">
@@ -209,17 +205,32 @@
     </div>
 </div>
 
-<div class="form-group mb-2">
-    <label class="mb-1 d-block">Is For Sale?</label>
-    <div class="custom-control custom-radio d-inline mr-3">
-        <input class="custom-control-input" type="radio" id="forSaleNo" name="is_for_sale" value="0"
-               {{ old('is_for_sale', 0) == 0 ? 'checked' : '' }}>
-        <label for="forSaleNo" class="custom-control-label">No</label>
+ <!-- Vehicle Features (for Create) -->
+<div class="container card card-white bg-white my-3">
+    <div class="card-header py-2 text-center">
+        <h3 class="mb-0">Vehicle Features</h3>
     </div>
-    <div class="custom-control custom-radio d-inline">
-        <input class="custom-control-input" type="radio" id="forSaleYes" name="is_for_sale" value="1"
-               {{ old('is_for_sale') == 1 ? 'checked' : '' }}>
-        <label for="forSaleYes" class="custom-control-label">Yes</label>
+    <div class="card-body p-3">
+        <div id="features-container">
+            <div class="form-group mb-2 feature-item d-flex">
+                <input type="text" name="features[]" class="form-control form-control-sm mr-2" placeholder="Enter a feature">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn">×</button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-success" id="addFeatureBtn">Add Feature</button>
+    </div>
+</div>
+
+
+
+<div class="form-group  container">
+    <label class="mb-1 d-block">Is For Sale?</label>
+
+    <!-- Toggle Switch -->
+    <div class="custom-control custom-switch">
+        <input type="checkbox" class="custom-control-input" id="forSaleToggle" name="is_for_sale"
+               value="1" {{ old('is_for_sale', 0) == 1 ? 'checked' : '' }}>
+        <label class="custom-control-label" for="forSaleToggle">For Sale</label>
     </div>
 
     <!-- Sale fields (hidden by default) -->
@@ -241,50 +252,109 @@
 
 
 
+
     <!-- Submit -->
-    <div class="card-footer py-2">
-        <button type="submit" class="btn btn-sm btn-primary">
-            <i class="fas fa-save"></i> Save
-        </button>
-        <a href="{{ route('vehicles.index') }}" class="btn btn-sm btn-secondary">Cancel</a>
-    </div>
+<div class="card-footer py-2 container d-flex justify-content-end">
+    <button type="submit" class="btn btn-sm btn-primary mr-2">
+        <i class="fas fa-save"></i> Save
+    </button>
+    <a href="{{ route('vehicles.index') }}" class="btn btn-sm btn-secondary">Cancel</a>
+</div>
+
 </form>
 @stop
 
 @section('js')
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if(session('success'))
 <script>
-    // Show/hide sale fields
-    function toggleSaleFields() {
-        let sale = document.querySelector('input[name="is_for_sale"]:checked').value;
-        document.getElementById('sale-fields').style.display = (sale == '1') ? 'block' : 'none';
+    Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: @json(session('success')), // safe escaping for JS
+        timer: 2500,
+        showConfirmButton: false
+    });
+</script>
+@endif
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // ===== Sale fields toggle (supports toggle switch or radio buttons) =====
+    const toggle = document.getElementById('forSaleToggle');
+    const saleFields = document.getElementById('sale-fields');
+
+    if (toggle) {
+        // Show/hide on page load
+        saleFields.style.display = toggle.checked ? 'flex' : 'none';
+
+        // Add change listener
+        toggle.addEventListener('change', function() {
+            saleFields.style.display = this.checked ? 'flex' : 'none';
+        });
+    } else {
+        // Fallback for old radio buttons
+        const saleYes = document.getElementById("forSaleYes");
+        const saleNo = document.getElementById("forSaleNo");
+
+        function toggleSaleFields() {
+            saleFields.style.display = saleYes.checked ? "flex" : "none";
+        }
+
+        toggleSaleFields(); // initial check
+        saleYes.addEventListener("change", toggleSaleFields);
+        saleNo.addEventListener("change", toggleSaleFields);
     }
 
-    toggleSaleFields();
-    document.querySelectorAll('input[name="is_for_sale"]').forEach(radio => {
-        radio.addEventListener('change', toggleSaleFields);
+    // ===== Add multiple image inputs dynamically =====
+    const addImageBtn = document.getElementById("addImageBtn");
+    const imageContainer = document.getElementById("image-container");
+
+    if (addImageBtn) {
+        addImageBtn.addEventListener("click", function() {
+            const newInput = document.createElement("input");
+            newInput.type = "file";
+            newInput.name = "images[]"; // array for multiple files
+            newInput.className = "form-control form-control-sm mb-2";
+            imageContainer.appendChild(newInput);
+        });
+    }
+
+    // ===== Dynamic Features =====
+    const addFeatureBtn = document.getElementById("addFeatureBtn");
+    const featuresContainer = document.getElementById("features-container");
+
+    function addFeatureInput(value = "") {
+        const featureDiv = document.createElement("div");
+        featureDiv.className = "form-group mb-2 feature-item d-flex";
+        featureDiv.innerHTML = `
+            <input type="text" name="features[]" class="form-control form-control-sm mr-2" placeholder="Enter a feature" value="${value}">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn">×</button>
+        `;
+        featuresContainer.appendChild(featureDiv);
+
+        // Remove listener
+        featureDiv.querySelector(".remove-feature-btn").addEventListener("click", function() {
+            featureDiv.remove();
+        });
+    }
+
+    if (addFeatureBtn) {
+        addFeatureBtn.addEventListener("click", function() {
+            addFeatureInput();
+        });
+    }
+
+    // Attach remove functionality to any existing feature inputs
+    featuresContainer.querySelectorAll(".remove-feature-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+            btn.closest(".feature-item").remove();
+        });
     });
 
-   document.addEventListener("DOMContentLoaded", function () {
-    const saleYes = document.getElementById("forSaleYes");
-    const saleNo = document.getElementById("forSaleNo");
-    const saleFields = document.getElementById("sale-fields");
-
-    function toggleSaleFields() {
-        if (saleYes.checked) {
-            saleFields.style.display = "flex"; // show fields as row
-        } else {
-            saleFields.style.display = "none"; // hide fields
-        }
-    }
-
-    // Run on page load (useful for old() values)
-    toggleSaleFields();
-
-    // Add event listeners
-    saleYes.addEventListener("change", toggleSaleFields);
-    saleNo.addEventListener("change", toggleSaleFields);
 });
-
-
 </script>
 @stop
