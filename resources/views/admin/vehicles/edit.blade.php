@@ -3,7 +3,7 @@
 @section('title', 'Edit Vehicle')
 
 @section('content_header')
-    <h1>Edit Vehicle</h1>
+    <h1 class="container">Edit Vehicle</h1>
 
     @if ($errors->any())
         <div class="alert alert-danger mt-3">
@@ -22,8 +22,7 @@
     @method('PUT')
 
     <!-- Basic Info -->
-    <div class="container my-3">
-        <div class="card card-white bg-white shadow-sm">
+    <div class="container  card card-white bg-white my-3">
             <div class="card-header py-2 text-center">
                 <h3 class="mb-0">Basic Information</h3>
             </div>
@@ -64,7 +63,6 @@
                     </div>
                 </div>
             </div>
-        </div>
     </div>
 
     <!-- Technical Specs -->
@@ -156,7 +154,7 @@
 
     <!-- Pricing -->
     <div class="container card bg-white my-3">
-        <div class="card-header py-2 text-center bg-warning">
+        <div class="card-header py-2 text-center">
             <h3 class="mb-0">Rental Pricing</h3>
         </div>
         <div class="card-body p-3">
@@ -229,33 +227,7 @@
     </div>
 </div>
 
-<!-- JS for dynamic features (updated for 2-column layout) -->
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const addFeatureBtn = document.getElementById("addFeatureBtn");
-    const featuresContainer = document.getElementById("features-container");
 
-    function addFeatureInput(value = "") {
-        const colDiv = document.createElement("div");
-        colDiv.className = "col-md-6 mb-2 feature-item";
-        colDiv.innerHTML = `
-            <div class="d-flex">
-                <input type="text" name="features[]" class="form-control form-control-sm mr-2" placeholder="Enter a feature" value="${value}">
-                <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn">×</button>
-            </div>
-        `;
-        featuresContainer.appendChild(colDiv);
-        colDiv.querySelector(".remove-feature-btn").addEventListener("click", () => colDiv.remove());
-    }
-
-    addFeatureBtn.addEventListener("click", () => addFeatureInput());
-
-    // Attach remove to existing buttons
-    document.querySelectorAll(".remove-feature-btn").forEach(btn => {
-        btn.addEventListener("click", () => btn.closest(".feature-item").remove());
-    });
-});
-</script>
 
 
     <!-- Sale Fields -->
@@ -287,11 +259,26 @@ document.addEventListener("DOMContentLoaded", function() {
 
 <!-- Submit -->
 <div class="card-footer py-2 d-flex justify-content-end">
-    <button type="submit" class="btn btn-sm btn-primary mr-2"><i class="fas fa-save"></i> Update</button>
-    <a href="{{ route('vehicles.index') }}" class="btn btn-sm btn-secondary">Cancel</a>
+        <a href="{{ route('vehicles.index') }}" class="btn btn-sm btn-secondary mr-1">Cancel</a>
+
+    <button type="submit" class="btn btn-sm btn-dark mr-2"><i class="fas fa-save"></i> Update</button>
 </div>
 </form>
 @stop
+
+
+
+@section('css')
+<style>
+    .custom-control-input:checked ~ .custom-control-label::before {
+        background-color: #000 !important;
+        border-color: #000 !important;
+    }
+    .custom-control-label::after {
+        background-color: #fff !important;
+    }
+</style>
+@endsection
 
 
 

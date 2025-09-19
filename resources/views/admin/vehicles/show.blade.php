@@ -3,7 +3,7 @@
 @section('title', 'View Vehicle - Calendar Management')
 
 @section('content_header')
-    <h1>Vehicle Details - Calendar Management</h1>
+<h1>Vehicle Details - Calendar Management</h1>
 @stop
 
 @section('content')
@@ -38,7 +38,8 @@
                         </p>
                         <p><strong>Daily Price:</strong> ${{ number_format($vehicle->rental_price_day ?? 0, 2) }}</p>
                         <p><strong>Weekly Price:</strong> ${{ number_format($vehicle->rental_price_week ?? 0, 2) }}</p>
-                        <p><strong>Monthly Price:</strong> ${{ number_format($vehicle->rental_price_month ?? 0, 2) }}</p>
+                        <p><strong>Monthly Price:</strong> ${{ number_format($vehicle->rental_price_month ?? 0, 2) }}
+                        </p>
                         @if($vehicle->is_for_sale)
                             <p><strong>For Sale:</strong> <span class="badge badge-success">Yes</span></p>
                             <p><strong>Purchase Price:</strong> ${{ number_format($vehicle->purchase_price ?? 0, 2) }}</p>
@@ -68,98 +69,17 @@
     </div>
 
     <div class="col-md-7">
-        <!-- Calendar Management Section -->
         <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">Calendar Management</h3>
-                    <button class="btn btn-primary" data-toggle="modal" data-target="#bookingModal">
-                        <i class="fas fa-plus mr-2"></i>Add Booking/Block
-                    </button>
-                </div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Calendar Management</h3>
+                <!-- Button to open Booking Modal -->
+                <button class="btn btn-dark ml-auto" data-toggle="modal" data-target="#bookingModal">
+                    <i class="fas fa-plus mr-2"></i> Add Booking/Block
+                </button>
             </div>
+
             <div class="card-body">
-                <!-- Calendar Navigation -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <button class="btn btn-outline-secondary">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <h4 class="mb-0">September 2025</h4>
-                    <button class="btn btn-outline-secondary">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-
-                <!-- Calendar -->
-                <div class="calendar">
-                    <div class="row calendar-header">
-                        <div class="col text-center p-2">Sun</div>
-                        <div class="col text-center p-2">Mon</div>
-                        <div class="col text-center p-2">Tue</div>
-                        <div class="col text-center p-2">Wed</div>
-                        <div class="col text-center p-2">Thu</div>
-                        <div class="col text-center p-2">Fri</div>
-                        <div class="col text-center p-2">Sat</div>
-                    </div>
-
-                    <!-- Calendar weeks -->
-                    <div class="row calendar-week">
-                        <div class="col day outside-month text-center p-2 text-muted">31</div>
-                        <div class="col day text-center p-2">1</div>
-                        <div class="col day text-center p-2">2</div>
-                        <div class="col day booked text-center p-2">3</div>
-                        <div class="col day booked text-center p-2">4</div>
-                        <div class="col day booked text-center p-2">5</div>
-                        <div class="col day booked text-center p-2">6</div>
-                    </div>
-
-                    <div class="row calendar-week">
-                        <div class="col day booked text-center p-2">7</div>
-                        <div class="col day booked text-center p-2">8</div>
-                        <div class="col day booked text-center p-2">9</div>
-                        <div class="col day booked text-center p-2">10</div>
-                        <div class="col day today booked text-center p-2">11</div>
-                        <div class="col day booked text-center p-2">12</div>
-                        <div class="col day booked text-center p-2">13</div>
-                    </div>
-
-                    <div class="row calendar-week">
-                        <div class="col day booked text-center p-2">14</div>
-                        <div class="col day booked text-center p-2">15</div>
-                        <div class="col day booked text-center p-2">16</div>
-                        <div class="col day booked text-center p-2">17</div>
-                        <div class="col day booked text-center p-2">18</div>
-                        <div class="col day text-center p-2">19</div>
-                        <div class="col day text-center p-2">20</div>
-                    </div>
-
-                    <div class="row calendar-week">
-                        <div class="col day text-center p-2">21</div>
-                        <div class="col day text-center p-2">22</div>
-                        <div class="col day text-center p-2">23</div>
-                        <div class="col day text-center p-2">24</div>
-                        <div class="col day text-center p-2">25</div>
-                        <div class="col day text-center p-2">26</div>
-                        <div class="col day text-center p-2">27</div>
-                    </div>
-
-                    <div class="row calendar-week">
-                        <div class="col day text-center p-2">28</div>
-                        <div class="col day text-center p-2">29</div>
-                        <div class="col day text-center p-2">30</div>
-                        <div class="col day outside-month text-center p-2 text-muted">1</div>
-                        <div class="col day outside-month text-center p-2 text-muted">2</div>
-                        <div class="col day outside-month text-center p-2 text-muted">3</div>
-                        <div class="col day outside-month text-center p-2 text-muted">4</div>
-                    </div>
-                </div>
-
-                <div class="mt-4">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="bg-danger mr-2" style="width: 20px; height: 20px; border-radius: 3px;"></div>
-                        <span>Booked/Blocked dates</span>
-                    </div>
-                </div>
+                <div id="calendar"></div>
             </div>
         </div>
 
@@ -170,60 +90,52 @@
             </div>
             <div class="card-body">
                 <div class="booking-list">
-                    <!-- Booking Item -->
-                    <div class="border rounded p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge badge-primary">rental</span>
-                            <button class="btn btn-sm btn-link text-danger p-0">Remove</button>
-                        </div>
-                        <div class="text-sm">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="fas fa-calendar-alt mr-2 text-muted"></i>
-                                <span>Jun 15 - Jun 22, 2024</span>
-                            </div>
-                            <div class="text-muted">John Smith</div>
-                        </div>
-                    </div>
-
-                    <!-- Booking Item -->
-                    <div class="border rounded p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge badge-danger">maintenance</span>
-                            <button class="btn btn-sm btn-link text-danger p-0">Remove</button>
-                        </div>
-                        <div class="text-sm">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="fas fa-calendar-alt mr-2 text-muted"></i>
-                                <span>Sep 18 - Sep 02, 2025</span>
-                            </div>
-                            <div class="text-muted">this</div>
-                            <div class="text-muted small">jbdsuj</div>
-                        </div>
-                    </div>
-
-                    <!-- Booking Item -->
-                    <div class="border rounded p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge badge-warning">internal</span>
-                            <button class="btn btn-sm btn-link text-danger p-0">Remove</button>
-                        </div>
-                        <div class="text-sm">
-                            <div class="d-flex align-items-center mb-1">
-                                <i class="fas fa-calendar-alt mr-2 text-muted"></i>
-                                <span>Sep 11 - Sep 13, 2025</span>
-                            </div>
-                            <div class="text-muted">this</div>
-                            <div class="text-muted small">thisb</div>
-                        </div>
-                    </div>
+                    @forelse($bookings as $booking)
+                                    <div class="border rounded p-3 mb-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="badge
+                                                {{ $booking->type === 'maintenance' ? 'badge-danger' :
+                        ($booking->type === 'internal' ? 'badge-warning' : 'badge-primary') }}">
+                                                {{ $booking->type }}
+                                            </span>
+                                            <form method="POST"
+                                                action="{{ route('vehicles.bookings.destroy', [$vehicle->id, $booking->id]) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">Remove</button>
+                                            </form>
+                                        </div>
+                                        <div class="text-sm">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <i class="fas fa-calendar-alt mr-2 text-muted"></i>
+                                                <span>
+                                                    {{ \Carbon\Carbon::parse($booking->start_date)->format('M d, Y') }}
+                                                    -
+                                                    {{ \Carbon\Carbon::parse($booking->end_date)->format('M d, Y') }}
+                                                </span>
+                                            </div>
+                                            @if($booking->customer_reference)
+                                                <div class="text-muted">{{ $booking->customer_reference }}</div>
+                                            @endif
+                                            @if($booking->notes)
+                                                <div class="text-muted small">{{ $booking->notes }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                    @empty
+                        <p class="text-muted">No bookings found for this vehicle.</p>
+                    @endforelse
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
-<!-- Booking Modal -->
-<div class="modal fade" id="bookingModal" tabindex="-1" role="dialog" aria-labelledby="bookingModalLabel" aria-hidden="true">
+{{-- Booking Modal --}}
+{{-- Booking Modal --}}
+<div class="modal fade rounded-5" id="bookingModal" tabindex="-1" role="dialog" aria-labelledby="bookingModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -233,111 +145,168 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form>
-                    <div class="form-group">
-                        <label for="bookingType">Type</label>
-                        <select class="form-control" id="bookingType">
-                            <option value="rental">Rental</option>
-                            <option value="maintenance">Maintenance</option>
-                            <option value="internal">Internal Use</option>
-                            <option value="blocked">Blocked</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerName">Customer Name</label>
-                        <input type="text" class="form-control" id="customerName" placeholder="Enter customer name">
-                    </div>
-                    <div class="form-group">
-                        <label for="dateRange">Date Range</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="dateRange" placeholder="Select date range">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                            </div>
+                <form method="POST" action="{{ route('vehicles.bookings.store', $vehicle->id) }}">
+                    @csrf
+
+                    <!-- Row 1: Start & End Date -->
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="startDate">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="start_date" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="endDate">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="end_date" required>
                         </div>
                     </div>
+
+                    <!-- Row 2: Type -->
+                    <div class="form-group">
+                        <label for="bookingType">Type</label>
+                        <select class="form-control" id="bookingType" name="type" required>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="internal">Internal Use</option>
+                            <option value="purchaser">Marked as Purchaser</option>
+                        </select>
+                    </div>
+
+                    <!-- Row 3: Customer Reference (Optional) -->
+                    <div class="form-group">
+                        <label for="customerReference">Customer Reference <small
+                                class="text-muted">(optional)</small></label>
+                        <input type="text" class="form-control" id="customerReference" name="customer_reference"
+                            placeholder="Enter reference">
+                    </div>
+
+                    <!-- Row 4: Notes -->
                     <div class="form-group">
                         <label for="notes">Notes</label>
-                        <textarea class="form-control" id="notes" rows="3" placeholder="Add any notes here"></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"
+                            placeholder="Add any notes here"></textarea>
+                    </div>
+
+                    <!-- ✅ Move buttons inside the form -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Booking</button>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary">Save Booking</button>
             </div>
         </div>
     </div>
 </div>
+
 @stop
 
+{{-- ✅ CSS --}}
 @section('css')
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet" />
 <style>
-    .calendar {
-        border: 1px solid #dee2e6;
-        border-radius: 0.375rem;
-    }
-
-    .calendar-header {
-        background-color: #f8f9fa;
-        font-weight: bold;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .calendar-week {
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .calendar-week:last-child {
-        border-bottom: none;
-    }
-
-    .day {
-        padding: 0.5rem;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .day:hover {
-        background-color: #f8f9fa;
-    }
-
-    .today {
-        background-color: #e9ecef;
-        font-weight: bold;
-    }
-
-    .booked {
-        background-color: #fee2e2;
-        color: #991b1b;
-    }
-
-    .outside-month {
-        color: #6c757d;
-    }
-
-    .booking-list .badge {
-        font-size: 0.75rem;
+    #calendar {
+        max-width: 100%;
+        margin: 0 auto;
+        background: #fff;
+        padding: 10px;
+        border-radius: 8px;
+        height: 120px;
     }
 </style>
 @stop
 
+
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
 <script>
-    $(document).ready(function() {
-        // Initialize date range picker
-        $('#dateRange').daterangepicker({
-            opens: 'left',
-            drops: 'auto'
+    document.addEventListener('DOMContentLoaded', function () {
+        let calendarEl = document.getElementById('calendar');
+
+        // Parse booked dates from Blade
+        const bookedDates = @json($bookedDates);
+
+        // Generate array of all booked dates
+        let disabledDates = [];
+        bookedDates.forEach(b => {
+            let start = new Date(b.start);
+            let end = new Date(b.end);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                disabledDates.push(new Date(d).toISOString().split('T')[0]);
+            }
         });
 
-        // Handle booking removal
-        $('.booking-list .btn-link').on('click', function() {
-            if (confirm('Are you sure you want to remove this booking/block?')) {
-                $(this).closest('.border').fadeOut(300, function() {
-                    $(this).remove();
+        // Initialize FullCalendar
+        if (calendarEl) {
+            let calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 600,
+                events: bookedDates.map(b => ({
+                    start: b.start,
+                    end: b.end,
+                    display: 'background',
+                    color: '#ff9f89'
+                }))
+            });
+            calendar.render();
+        }
+
+        // Disable booked dates in modal date inputs
+        const startInput = document.getElementById('startDate');
+        const endInput = document.getElementById('endDate');
+
+        function disableBookedDates(input) {
+            input.addEventListener('input', function () {
+                if (disabledDates.includes(this.value)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Date not available',
+                        text: 'This date is already booked!',
+                    });
+                    this.value = '';
+                }
+            });
+        }
+
+        disableBookedDates(startInput);
+        disableBookedDates(endInput);
+
+        // SweetAlert flash messages
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: "{{ session('success') }}",
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
+
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: "{{ session('error') }}",
+                timer: 3000,
+                showConfirmButton: true
+            });
+        @endif
+
+        // Delete confirmation
+        document.querySelectorAll('form[action*="destroy"]').forEach(form => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This booking/block will be permanently removed!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) form.submit();
                 });
-            }
+            });
         });
     });
 </script>

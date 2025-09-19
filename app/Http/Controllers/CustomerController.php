@@ -18,32 +18,24 @@ public function index()
 
 public function getCustomerDetails($id)
 {
-    $customer = Customer::withCount(['bookings', 'purchases'])->findOrFail($id);
+    $customer = Customer::withCount(['bookings', 'purchases'])
+        ->withSum('purchases as total_purchase_deposit', 'deposit_paid')
+        ->withSum('purchases as total_purchase_price', 'total_price')
+        ->findOrFail($id);
 
-    // Fetch all bookings
-    $bookings = $customer->bookings()->latest()->get();
-
-    // Fetch all completed purchases
+    $bookings  = $customer->bookings()->latest()->get();
     $purchases = $customer->purchases()->latest()->get();
 
-    // Total price from completed bookings
     $customer->total_booking_price = $customer->bookings()
         ->where('status', 'completed')
         ->sum('total_price');
 
-    // Total price from purchases
-    $customer->total_purchase_price = $customer->purchases()
-        ->sum('total_price');
-
-    // Total deposit paid from purchases
-    $customer->total_purchase_deposit = $customer->purchases()
-        ->sum('deposit_paid');
-
-    // Grand total spent
-    $customer->grand_total_spent = $customer->total_booking_price + $customer->total_purchase_price;
+    $customer->grand_total_spent =
+        ($customer->total_booking_price ?? 0) + ($customer->total_purchase_price ?? 0);
 
     return view('admin.customer.customerDetails', compact('customer', 'bookings', 'purchases'));
 }
+
 
 
     public function destroy($id)

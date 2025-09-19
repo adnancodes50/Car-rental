@@ -1,9 +1,11 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-            <img src="{{ asset('vendor/adminlte/dist/img/logo.png') }}" alt="Zelta Cars Logo" width="100" height="40" class="me-2">
-            <span class="fw-bold text-dark">Zelta Cars</span>
+            <img src="{{ asset('vendor/adminlte/dist/img/logo.png') }}" alt="Rental Logo" class="me-2 img-fluid"
+                style="height:40px; width:auto; object-fit:contain;">
+            <span class="fw-bold text-dark"></span>
         </a>
+
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive"
             aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,7 +30,7 @@
 
 <!-- Inline style to force active link white -->
 <style>
-.navbar-dark .navbar-nav .nav-link.active {
-    color: #fff !important;
-}
+    .navbar-dark .navbar-nav .nav-link.active {
+        color: #fff !important;
+    }
 </style>

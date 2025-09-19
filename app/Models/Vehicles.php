@@ -82,6 +82,14 @@ class Vehicles extends Model
         ]);
     }
 
+  // In Vehicle.php
+public function adminBookings()
+{
+    return $this->hasMany(AdminBooking::class, 'vehicle_id'); // ✅ correct
+}
+
+
+
     /**
      * Remove all images for the vehicle.
      */

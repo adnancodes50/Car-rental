@@ -3,23 +3,18 @@
 @section('title', 'Add Vehicle')
 
 @section('content_header')
-    {{-- <h1>Add New Vehicle</h1> --}}
-
-    @section('css')
-    <!-- SweetAlert2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-@stop
 
 
 
 @section('content')
+    <h1 class="container">Add New Vehicle</h1>
+
 <form action="{{ route('vehicles.store') }}" method="POST" enctype="multipart/form-data">
     @csrf
 
     <!-- Basic Info -->
  <!-- Basic Info -->
-<div class="container my-3">
-    <div class="card card-white bg-white shadow-sm">
+<div class="container card card-white my-3">
         <div class="card-header py-2 text-center">
     <h3 class="mb-0">Basic Information</h3>
 </div>
@@ -68,15 +63,13 @@
 
 
         </div>
-    </div>
 </div>
 
 
-   <!-- Technical Specs -->
 <!-- Technical Specs -->
-<div class="container card card-white bg-white my-3">
-    <div class="card-header py-2 d-flex justify-content-center">
-        <h3 class="card-title mb-0 w-100 text-center">Technical Specs</h3>
+<div class="container card card-white my-3">
+    <div class="card-header py-2 text-center">
+        <h3 class="mb-0">Technical Specs</h3>
     </div>
     <div class="card-body p-3">
         <div class="row">
@@ -162,7 +155,7 @@
 
   <!-- Pricing -->
 <div class="container card bg-white my-3">
-    <div class="card-header py-2 d-flex justify-content-center bg-warning">
+    <div class="card-header py-2 d-flex justify-content-center ">
         <h3 class="card-title mb-0 w-100 text-center">Rental Pricing</h3>
     </div>
     <div class="card-body p-3">
@@ -205,21 +198,23 @@
     </div>
 </div>
 
- <!-- Vehicle Features (for Create) -->
 <div class="container card card-white bg-white my-3">
     <div class="card-header py-2 text-center">
         <h3 class="mb-0">Vehicle Features</h3>
     </div>
     <div class="card-body p-3">
-        <div id="features-container">
-            <div class="form-group mb-2 feature-item d-flex">
-                <input type="text" name="features[]" class="form-control form-control-sm mr-2" placeholder="Enter a feature">
-                <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn">×</button>
+        <div id="features-container" class="row">
+            <div class="col-md-6 feature-item mb-2">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="features[]" class="form-control" placeholder="Enter a feature">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn ml-1">×</button>
+                </div>
             </div>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-success" id="addFeatureBtn">Add Feature</button>
+        <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addFeatureBtn">Add Feature</button>
     </div>
 </div>
+
 
 
 
@@ -228,10 +223,11 @@
 
     <!-- Toggle Switch -->
     <div class="custom-control custom-switch">
-        <input type="checkbox" class="custom-control-input" id="forSaleToggle" name="is_for_sale"
-               value="1" {{ old('is_for_sale', 0) == 1 ? 'checked' : '' }}>
-        <label class="custom-control-label" for="forSaleToggle">For Sale</label>
-    </div>
+    <input type="checkbox" class="custom-control-input" id="forSaleToggle" name="is_for_sale"
+           value="1" {{ old('is_for_sale', 0) == 1 ? 'checked' : '' }}>
+    <label class="custom-control-label" for="forSaleToggle">For Sale</label>
+</div>
+
 
     <!-- Sale fields (hidden by default) -->
     <div id="sale-fields" class="row mt-2" style="display: none;">
@@ -255,14 +251,32 @@
 
     <!-- Submit -->
 <div class="card-footer py-2 container d-flex justify-content-end">
-    <button type="submit" class="btn btn-sm btn-primary mr-2">
+        <a href="{{ route('vehicles.index') }}" class="btn btn-sm btn-secondary mr-1 py-2 text-center">Cancel</a>
+
+    <button type="submit" class="btn btn-dark btn-sm btn-hover-dark mr-1 py-2 text-center">
         <i class="fas fa-save"></i> Save
     </button>
-    <a href="{{ route('vehicles.index') }}" class="btn btn-sm btn-secondary">Cancel</a>
 </div>
 
 </form>
 @stop
+
+
+
+
+@section('css')
+<style>
+    .custom-control-input:checked ~ .custom-control-label::before {
+        background-color: #000 !important;
+        border-color: #000 !important;
+    }
+    .custom-control-label::after {
+        background-color: #fff !important;
+    }
+</style>
+@endsection
+
+
 
 @section('js')
 <!-- SweetAlert2 JS -->
@@ -273,7 +287,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success!',
-        text: @json(session('success')), // safe escaping for JS
+        text: @json(session('success')),
         timer: 2500,
         showConfirmButton: false
     });
@@ -283,20 +297,16 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // ===== Sale fields toggle (supports toggle switch or radio buttons) =====
+    // ===== Sale fields toggle =====
     const toggle = document.getElementById('forSaleToggle');
     const saleFields = document.getElementById('sale-fields');
 
     if (toggle) {
-        // Show/hide on page load
         saleFields.style.display = toggle.checked ? 'flex' : 'none';
-
-        // Add change listener
         toggle.addEventListener('change', function() {
             saleFields.style.display = this.checked ? 'flex' : 'none';
         });
     } else {
-        // Fallback for old radio buttons
         const saleYes = document.getElementById("forSaleYes");
         const saleNo = document.getElementById("forSaleNo");
 
@@ -304,12 +314,12 @@ document.addEventListener("DOMContentLoaded", function () {
             saleFields.style.display = saleYes.checked ? "flex" : "none";
         }
 
-        toggleSaleFields(); // initial check
+        toggleSaleFields();
         saleYes.addEventListener("change", toggleSaleFields);
         saleNo.addEventListener("change", toggleSaleFields);
     }
 
-    // ===== Add multiple image inputs dynamically =====
+    // ===== Add multiple image inputs =====
     const addImageBtn = document.getElementById("addImageBtn");
     const imageContainer = document.getElementById("image-container");
 
@@ -317,29 +327,33 @@ document.addEventListener("DOMContentLoaded", function () {
         addImageBtn.addEventListener("click", function() {
             const newInput = document.createElement("input");
             newInput.type = "file";
-            newInput.name = "images[]"; // array for multiple files
+            newInput.name = "images[]";
             newInput.className = "form-control form-control-sm mb-2";
             imageContainer.appendChild(newInput);
         });
     }
 
-    // ===== Dynamic Features =====
+    // ===== Dynamic Features (2-column layout) =====
     const addFeatureBtn = document.getElementById("addFeatureBtn");
     const featuresContainer = document.getElementById("features-container");
 
     function addFeatureInput(value = "") {
-        const featureDiv = document.createElement("div");
-        featureDiv.className = "form-group mb-2 feature-item d-flex";
-        featureDiv.innerHTML = `
-            <input type="text" name="features[]" class="form-control form-control-sm mr-2" placeholder="Enter a feature" value="${value}">
-            <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn">×</button>
+        const colDiv = document.createElement("div");
+        colDiv.className = "col-md-6 feature-item mb-2";
+
+        colDiv.innerHTML = `
+            <div class="input-group input-group-sm">
+                <input type="text" name="features[]" class="form-control" placeholder="Enter a feature" value="${value}">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn ml-1">×</button>
+            </div>
         `;
-        featuresContainer.appendChild(featureDiv);
 
         // Remove listener
-        featureDiv.querySelector(".remove-feature-btn").addEventListener("click", function() {
-            featureDiv.remove();
+        colDiv.querySelector(".remove-feature-btn").addEventListener("click", function() {
+            colDiv.remove();
         });
+
+        featuresContainer.appendChild(colDiv);
     }
 
     if (addFeatureBtn) {
@@ -348,7 +362,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Attach remove functionality to any existing feature inputs
+    // Attach remove functionality to any preloaded features
     featuresContainer.querySelectorAll(".remove-feature-btn").forEach(btn => {
         btn.addEventListener("click", function() {
             btn.closest(".feature-item").remove();

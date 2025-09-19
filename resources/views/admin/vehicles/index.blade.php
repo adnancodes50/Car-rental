@@ -17,7 +17,7 @@
                 <a href="{{ url('/') }}" target="_blank" class="btn btn-outline-secondary mr-1 btn-sm">
                     <i class="fas fa-globe me-1"></i> Site
                 </a>
-                <a href="{{ route('vehicles.create') }}" class="btn btn-primary btn-sm">
+                <a href="{{ route('vehicles.create') }}" class="btn btn-dark btn-sm btn-hover-dark">
                     <i class="fas fa-plus me-1"></i> Add
                 </a>
             </div>
@@ -41,64 +41,64 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($vehicles as $vehicle)
-                            <tr>
-                                <td>{{ $vehicle->id }}</td>
-                                <td>
-                                    <img src="{{ asset($vehicle->mainImage()) }}" alt="{{ $vehicle->name }}"
-                                        class="img-thumbnail rounded" style="width:50px; height:50px; object-fit:cover;">
-                                </td>
-                                <td class="fw-semibold">{{ $vehicle->name }}</td>
-                                <td>{{ $vehicle->model ?? '-' }}</td>
-                                <td>{{ $vehicle->year ?? '-' }}</td>
-                                <td>{{ $vehicle->type ?? '-' }}</td>
-                                <td>
-                                    @if($vehicle->is_for_sale)
-                                        <span class="badge bg-success">Yes</span>
-                                    @else
-                                        <span class="badge bg-dark">No</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge
-                                                @if($vehicle->status === 'available') bg-success
-                                                @elseif($vehicle->status === 'rented') bg-warning
-                                                @elseif($vehicle->status === 'maintenance') bg-info
-                                                @else bg-danger @endif">
-                                        {{ ucfirst($vehicle->status) }}
-                                    </span>
-                                </td>
+    @forelse($vehicles as $vehicle)
+        <tr>
+            <td>{{ $vehicle->id }}</td>
+            <td>
+                <img src="{{ asset($vehicle->mainImage()) }}" alt="{{ $vehicle->name }}"
+                     class="img-thumbnail rounded" style="width:50px; height:50px; object-fit:cover;">
+            </td>
+            <td class="fw-semibold">{{ $vehicle->name }}</td>
+            <td>{{ $vehicle->model ?? '-' }}</td>
+            <td>{{ $vehicle->year ?? '-' }}</td>
+            <td>{{ $vehicle->type ?? '-' }}</td>
+            <td>
+                @if($vehicle->is_for_sale)
+                    <span class="badge bg-success">Yes</span>
+                @else
+                    <span class="badge bg-dark">No</span>
+                @endif
+            </td>
+            <td>
+                <span class="badge
+                    @if($vehicle->status === 'available') bg-success
+                    @elseif($vehicle->status === 'rented') bg-warning
+                    @elseif($vehicle->status === 'maintenance') bg-info
+                    @else bg-danger @endif">
+                    {{ ucfirst($vehicle->status) }}
+                </span>
+            </td>
+            <td class="text-center">
+                <div class="d-flex justify-content-center gap-2">
+                    <!-- Actions -->
+                    <a href="{{ route('vehicles.show', $vehicle->id) }}"
+                       class="btn btn-outline-info btn-sm action-btn mr-1" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{{ route('vehicles.edit', $vehicle->id) }}"
+                       class="btn btn-outline-warning btn-sm action-btn mr-1" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <form action="{{ route('vehicles.destroy', $vehicle->id) }}" method="POST"
+                          class="delete-form d-inline-block">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-outline-danger btn-sm action-btn" title="Delete">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+    @empty
+    @endforelse
+</tbody>
 
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center ">
-                                        <!-- View -->
-                                        <a href="{{ route('vehicles.show', $vehicle->id) }}"
-                                            class="btn btn-outline-info btn-sm action-btn mr-1 " title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
+@if($vehicles->isEmpty())
 
-                                        <!-- Edit -->
-                                        <a href="{{ route('vehicles.edit', $vehicle->id) }}"
-                                            class="btn btn-outline-warning btn-sm action-btn mr-1" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+@endif
 
-                                        <!-- Delete -->
-                                        <form action="{{ route('vehicles.destroy', $vehicle->id) }}" method="POST"
-                                            class="delete-form d-inline-block">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger btn-sm action-btn mr-1"
-                                                title="Delete">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
 
-                            </tr>
-                        @endforeach
-                    </tbody>
                 </table>
             </div>
         </div>
@@ -184,11 +184,12 @@
             pageLength: 10,
             order: [[0, 'desc']], // order by ID
             columnDefs: [
-                { orderable: false, targets: [1, 7] },
-                { searchable: false, targets: [1, 7] },
-                { targets: 2, responsivePriority: 1 }, // name priority
-                { targets: 7, responsivePriority: 2 }  // actions priority
+                { orderable: false, targets: [1, 8] },
+                { searchable: false, targets: [1, 8] },
+                { targets: 2, responsivePriority: 1 }, // Name
+                { targets: 8, responsivePriority: 2 }  // Actions
             ],
+
 
         });
 

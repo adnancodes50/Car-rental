@@ -5,72 +5,76 @@
 {{-- Main SPA mount point --}}
 <div id="app">
     {{-- @yield('content') --}}
- <div>
-    @php
-    $heroBg = $settings && $settings->hero_image_path
-        ? Storage::url($settings->hero_image_path)
-        : asset('images/bg.jpg');
+    <div>
+       @php
+$heroBg = $settings && $settings->hero_image_path
+    ? asset($settings->hero_image_path)
+    : asset('images/bg.jpg');
 @endphp
 
-<section class="hero d-flex  align-items-center text-center text-white position-relative" id="home-section"
-    style="background: url('{{ $heroBg }}') center center/cover no-repeat; min-height: 100vh;">
 
-    <!-- Black Overlay -->
-    <div class="position-absolute top-0 start-0 w-100 h-100"
-         style="background-color: rgba(0,0,0,0.5); z-index: 1;"></div>
 
-    <div class="container mt-5 position-relative" style="z-index: 2;">
-        <h1 class="display-3 fw-bold mb-4">
-            Built for where <br>
-            <span class="text-warning">adventure was born</span>
-        </h1>
 
-        <p class="lead text-light mb-5 mx-auto" style="max-width: 700px;">
-            Meticulously restored vintage Land Rovers...
-        </p>
+        <section class="hero d-flex  align-items-center text-center text-white position-relative" id="home-section"
+            style="background: url('{{ $heroBg }}') center center/cover no-repeat; min-height: 100vh;">
 
-        <div class="d-flex justify-content-center mb-5">
-            <a href="#vehicles" class="btn btn-warning btn-lg fw-bold px-4 py-3">
-                Explore Vehicles <i class="bi bi-arrow-right ms-2"></i>
-            </a>
-        </div>
+            <!-- Black Overlay -->
+            <div class="position-absolute top-0 start-0 w-100 h-100"
+                style="background-color: rgba(0,0,0,0.5); z-index: 1;"></div>
 
-        <!-- Features ... -->
-        <div class="row justify-content-center g-4 px-3 px-lg-5">
-            <div class="col-12 col-md-4">
-                <div class="d-flex flex-column align-items-center text-center">
-                    <i class="bi bi-shield-lock text-warning display-4 mb-3"></i>
-                    <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
-                    <p class="text-light">Every Land Rover restored to original specifications with modern
-                        reliability</p>
+            <div class="container mt-5 position-relative" style="z-index: 2;">
+                <h1 class="display-3 fw-bold mb-4">
+                    Built for where <br>
+                    <span class="text-warning">adventure was born</span>
+                </h1>
+
+                <p class="lead text-light mb-5 mx-auto" style="max-width: 700px;">
+                    Meticulously restored vintage Land Rovers...
+                </p>
+
+                <div class="d-flex justify-content-center mb-5">
+                    <a href="#vehicles" class="btn btn-warning btn-lg fw-bold px-4 py-3">
+                        Explore Vehicles <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-4">
-                <div class="d-flex flex-column align-items-center text-center">
-                    <i class="bi bi-compass text-warning display-4 mb-3"></i>
-                    <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
-                    <p class="text-light">Equipped for multi-day expeditions with premium overland accessories</p>
-                </div>
-            </div>
+                <!-- Features ... -->
+                <div class="row justify-content-center g-4 px-3 px-lg-5">
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <i class="bi bi-shield-lock text-warning display-4 mb-3"></i>
+                            <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
+                            <p class="text-light">Every Land Rover restored to original specifications with modern
+                                reliability</p>
+                        </div>
+                    </div>
 
-            <div class="col-12 col-md-4">
-                <div class="d-flex flex-column align-items-center text-center">
-                    <i class="bi bi-arrow-right-circle text-warning display-4 mb-3"></i>
-                    <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
-                    <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase</p>
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <i class="bi bi-compass text-warning display-4 mb-3"></i>
+                            <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
+                            <p class="text-light">Equipped for multi-day expeditions with premium overland accessories
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <i class="bi bi-arrow-right-circle text-warning display-4 mb-3"></i>
+                            <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
+                            <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase</p>
+                        </div>
+                    </div>
                 </div>
+
             </div>
-        </div>
+        </section>
 
     </div>
-</section>
-
- </div>
     <!-- Features -->
 
 
-    <section class="bg-light mt-5 py-5" id="vehicles-section">
+    <section class="bg-light py-5" id="vehicles-section">
         <div class="container">
             <!-- Header -->
             <div class="text-center mb-5">
@@ -82,11 +86,11 @@
             </div>
 
             <!-- Fleet Grid -->
+            <!-- Fleet Grid -->
             <div class="row g-4">
                 @forelse($vehicles as $vehicle)
                     <div class="col-md-6 col-lg-4">
                         <div class="card shadow-sm border-0 h-100 rounded-4 overflow-hidden">
-
                             <!-- Vehicle Image with overlays -->
                             <div class="position-relative">
                                 <img src="{{ $vehicle->mainImage() }}" class="card-img-top" alt="{{ $vehicle->model }}"
@@ -114,47 +118,59 @@
                                 </p>
 
                                 <!-- Specs -->
-                                <div class="d-flex flex-wrap small text-muted mb-3">
+                                <div class="row small text-muted mb-3">
                                     @if($vehicle->seats)
-                                        <div class="me-3 mb-2"><i class="bi bi-people-fill me-1"></i>{{ $vehicle->seats }} seats
+                                        <div class="col-6 mb-2">
+                                            <i class="bi bi-people-fill me-1"></i>{{ $vehicle->seats }} seats
                                         </div>
                                     @endif
+
                                     @if($vehicle->fuel_type)
-                                        <div class="me-3 mb-2"><i
-                                                class="bi bi-fuel-pump-fill me-1"></i>{{ $vehicle->fuel_type }}</div>
+                                        <div class="col-6 mb-2">
+                                            <i class="bi bi-fuel-pump-fill me-1"></i>{{ $vehicle->fuel_type }}
+                                        </div>
                                     @endif
+
                                     @if($vehicle->location)
-                                        <div class="me-3 mb-2"><i class="bi bi-geo-alt-fill me-1"></i>{{ $vehicle->location }}
+                                        <div class="col-6 mb-2">
+                                            <i class="bi bi-geo-alt-fill me-1"></i>{{ $vehicle->location }}
+                                        </div>
+                                    @endif
+
+                                    @if($vehicle->status)
+                                        <div class="col-6 mb-2">
+                                            <i class="bi bi-gear-fill me-1"></i>{{ $vehicle->transmission }}
                                         </div>
                                     @endif
                                 </div>
 
+                                <hr>
+
                                 <!-- Pricing -->
-                               <div class="mb-3 d-flex justify-content-between">
-    @if($vehicle->rental_price_week)
-        <div>
-            <div class="text-muted small">From</div>
-            <p class="mb-1"><strong>R{{ number_format($vehicle->rental_price_week) }}/week</strong></p>
-        </div>
-    @endif
+                                <div class="mb-3 d-flex justify-content-between">
+                                    @if($vehicle->rental_price_week)
+                                        <div>
+                                            <div class="text-muted small">From</div>
+                                            <p class="h5 text-dark mb-0 ">
+                                                <strong>R{{ number_format($vehicle->rental_price_week) }}/week</strong>
+                                            </p>
+                                        </div>
+                                    @endif
 
-    @if($vehicle->purchase_price)
-        <div class="text-end">
-            <div class="text-muted small">Purchase from</div>
-            <p class="h5 text-dark mb-0">R{{ number_format($vehicle->purchase_price) }}</p>
-        </div>
-    @endif
-</div>
-
+                                    @if($vehicle->purchase_price)
+                                        <div class="text-end">
+                                            <div class="text-muted small">Purchase from</div>
+                                            <p class="h5 text-dark mb-0">R{{ number_format($vehicle->purchase_price) }}</p>
+                                        </div>
+                                    @endif
+                                </div>
 
                                 <!-- Button -->
                                 <div class="mt-auto">
                                     <a href="{{ route('fleet.view', $vehicle->id) }}"
-                                        class="btn btn-dark w-100 d-flex align-items-center justify-content-center">
+                                        class="btn btn-dark w-100 d-flex align-items-center py-3 justify-content-center">
                                         <i class="bi bi-eye me-2"></i> View Details
                                     </a>
-
-
                                 </div>
                             </div>
                         </div>
@@ -165,6 +181,7 @@
                     </div>
                 @endforelse
             </div>
+
         </div>
     </section>
 

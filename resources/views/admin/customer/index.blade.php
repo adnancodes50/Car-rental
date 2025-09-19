@@ -31,13 +31,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($customers as $customer)
+                        @foreach($customers as $customer)
                             <tr>
-                                <td class="fw-semibold">{{ $customer->name }}</td>
+                                <td>{{ $customer->name }}</td>
                                 <td>{{ $customer->email }}</td>
                                 <td>{{ $customer->phone }}</td>
                                 <td>{{ $customer->country }}</td>
-                                <td class="text-center">
+
+                                <!-- Active Booking Column -->
+                                <td class="text-center align-middle">
                                     @if($customer->activeBookingCount() > 0)
                                         <span class="badge py-1 text-white"
                                             style="background-color: rgb(18, 158, 151); font-size: 0.9rem;">
@@ -53,9 +55,7 @@
                                 </td>
 
 
-
-
-
+                                <!-- Actions Column -->
                                 <td class="text-center">
                                     <a href="{{ route('customers.details', $customer->id) }}"
                                         class="btn btn-outline-info btn-sm action-btn" title="View">
@@ -63,11 +63,7 @@
                                     </a>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-3">No customers found.</td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
@@ -103,6 +99,11 @@
     .action-btn i {
         font-size: 16px;
     }
+
+    /* Fix alignment issue */
+    /* Keep vertical alignment consistent */
+
+
 </style>
 @stop
 
@@ -128,10 +129,10 @@
             pageLength: 10,
             order: [[0, 'asc']],
             columnDefs: [
-                { orderable: false, targets: [4] },
-                { searchable: false, targets: [4] },
+                { orderable: false, targets: [5] },   // Disable ordering on Actions
+                { searchable: false, targets: [5] },  // Disable search on Actions
                 { targets: 0, responsivePriority: 1 },
-                { targets: 4, responsivePriority: 2 }
+                { targets: 4, responsivePriority: 2 } // Keep Active Booking high priority
             ],
         });
     });

@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'logo' => '<b>Admin</b>LTE',
+    'logo' => '<b>Admin</b>',
     'logo_img' => 'vendor/adminlte/dist/img/logo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
@@ -133,7 +133,7 @@ return [
     |
     */
 
-    'usermenu_enabled' => true,
+    'usermenu_enabled' => false,
     'usermenu_header' => false,
     'usermenu_header_class' => 'bg-primary',
     'usermenu_image' => false,
@@ -256,6 +256,9 @@ return [
     |
     */
 
+
+
+
     'use_route_url' => false,
     'dashboard_url' => 'home',
     'logout_url' => 'logout',
@@ -310,16 +313,24 @@ return [
             'topnav_right' => true,
         ],
 
+    //     [
+    //     'text' => 'Logout',
+    //     'icon' => 'fas fa-sign-out-alt',
+    //     'topnav_right' => true,
+    //     'url' => 'logout',
+    //     'method' => 'post',
+    // ],
+
         // // Sidebar items:
         // [
         //     'type' => 'sidebar-menu-search',
         //     'text' => 'search',
         // ],
-        [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
-        ],
+        // [
+        //     'text' => 'blog',
+        //     'url' => 'admin/blog',
+        //     'can' => 'manage-blog',
+        // ],
         // [
         //     'text' => 'pages',
         //     'url' => 'admin/pages',

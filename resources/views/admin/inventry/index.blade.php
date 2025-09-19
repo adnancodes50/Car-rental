@@ -10,10 +10,10 @@
 <div class="container-fluid">
     <!-- Card -->
     <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <div class="card-header border-0 d-flex justify-content-between align-items-center">
             <h3 class="card-title mb-0 fw-bold">Manage Add-Ons</h3>
-            <a href="{{ route('inventry.create') }}" class="btn btn-primary btn-sm" style="margin-left: 880px;">
-                <i class="fas fa-plus-circle me-1"></i> Add-On
+            <a href="{{ route('inventry.create') }}" class="btn btn-dark text-white btn-sm" style="margin-left: 880px;">
+                <i class="fas fa-plus-circle me-1 text-white"></i> Add-On
             </a>
 
         </div>
@@ -35,40 +35,31 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($addOns as $addOn)
-                            <tr>
-                                <td class="fw-semibold">{{ $addOn->name }}</td>
-                                <td>{{ Str::limit($addOn->description, 50) }}</td>
-                                <td>{{ $addOn->qty_total }}</td>
-                                <td>R{{ number_format($addOn->price_day, 2) }}</td>
-                                <td>R{{ number_format($addOn->price_week, 2) }}</td>
-                                <td>R{{ number_format($addOn->price_month, 2) }}</td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <!-- Edit -->
-                                        <a href="{{ route('inventry.edit', $addOn->id) }}"
-                                            class="btn btn-outline-warning btn-sm action-btn" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                      @foreach($addOns as $addOn)
+   <tr>
+      <td class="fw-semibold">{{ $addOn->name }}</td>
+      <td>{{ Str::limit($addOn->description, 50) }}</td>
+      <td>{{ $addOn->qty_total }}</td>
+      <td>R{{ number_format($addOn->price_day, 2) }}</td>
+      <td>R{{ number_format($addOn->price_week, 2) }}</td>
+      <td>R{{ number_format($addOn->price_month, 2) }}</td>
+      <td class="text-center">
+         <div class="d-flex justify-content-center gap-2">
+            <a href="{{ route('inventry.edit', $addOn->id) }}" class="btn btn-outline-warning btn-sm action-btn mr-1" title="Edit">
+               <i class="fas fa-edit"></i>
+            </a>
+            <form action="{{ route('inventry.destroy', $addOn->id) }}" method="POST" class="delete-form d-inline-block">
+               @csrf
+               @method('DELETE')
+               <button type="submit" class="btn btn-outline-danger btn-sm action-btn" title="Delete">
+                  <i class="fas fa-trash-alt"></i>
+               </button>
+            </form>
+         </div>
+      </td>
+   </tr>
+@endforeach
 
-                                        <!-- Delete -->
-                                        <form action="{{ route('inventry.destroy', $addOn->id) }}" method="POST"
-                                            class="delete-form d-inline-block">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger btn-sm action-btn"
-                                                title="Delete">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-3">No add-ons found.</td>
-                            </tr>
-                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -138,18 +129,22 @@
 <script>
     $(document).ready(function () {
         // Init DataTable
-        $('#addonsTable').DataTable({
-            responsive: true,
-            autoWidth: false,
-            pageLength: 10,
-            order: [[0, 'asc']],
-            columnDefs: [
-                { orderable: false, targets: [6] },
-                { searchable: false, targets: [6] },
-                { targets: 0, responsivePriority: 1 },
-                { targets: 6, responsivePriority: 2 }
-            ],
-        });
+      $('#addonsTable').DataTable({
+    responsive: true,
+    autoWidth: false,
+    pageLength: 10,
+    order: [[0, 'asc']],
+    columnDefs: [
+        { orderable: false, targets: [6] },
+        { searchable: false, targets: [6] },
+        { targets: 0, responsivePriority: 1 },
+        { targets: 6, responsivePriority: 2 }
+    ],
+    language: {
+        emptyTable: "No add-ons found." // ✅ handles empty table gracefully
+    }
+});
+
 
         // Success / Error Alerts
         @if(session('success'))

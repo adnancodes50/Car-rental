@@ -14,11 +14,11 @@ Route::middleware('guest')->group(function () {
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
-    // 🔹 Register (NEW)
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
+    // // 🔹 Register (NEW)
+    // Route::get('register', [RegisteredUserController::class, 'create'])
+    //     ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // Route::post('register', [RegisteredUserController::class, 'store']);
 
     // 🔹 Forgot Password
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])

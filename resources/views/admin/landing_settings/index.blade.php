@@ -3,7 +3,7 @@
 @section('title', 'Landing Page Settings')
 
 @section('content_header')
-    <h1>Landing Page Management</h1>
+<h1 class="container">Landing Page Management</h1>
 @stop
 
 @section('content')
@@ -26,19 +26,24 @@
                 <div class="form-group">
                     <label>Current Background Image</label>
                     <div class="position-relative w-100 mb-3" style="height: 250px;">
+@php
+    $preview = $settings && $settings->hero_image_path
+        ? asset($settings->hero_image_path)   // Already stores '/storage/hero-section/filename.jpg'
+        : asset('images/bg.jpg');
+@endphp
 
-    @php
-        $preview = $settings && $settings->hero_image_path
-            ? Storage::url($settings->hero_image_path)
-            : asset('images/bg.jpg');
-    @endphp
 
 
-                        <img id="hero_preview" src="{{ $preview }}" class="w-100 h-100 object-fit-cover rounded" alt="Hero">
 
-                        {{-- <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-dark bg-opacity-50 text-center text-white rounded">
+
+                        <img id="hero_preview" src="{{ $preview }}" class="w-100 h-100 object-fit-cover rounded"
+                            alt="Hero">
+
+                        {{-- <div
+                            class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-dark bg-opacity-50 text-center text-white rounded">
                             <h2 class="mb-1" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Built for where</h2>
-                            <span class="fw-bold text-warning" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">adventure was born</span>
+                            <span class="fw-bold text-warning"
+                                style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">adventure was born</span>
                         </div> --}}
                     </div>
                 </div>
@@ -119,9 +124,12 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-success mt-3">
-                    <i class="fas fa-save"></i> Save Settings
-                </button>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-dark btn-md">
+                        <i class="fas fa-save me-1"></i> Save Settings
+                    </button>
+                </div>
+
             </form>
         </div>
     </div>
@@ -130,60 +138,82 @@
 
 @section('css')
 <style>
-.object-fit-cover { object-fit: cover; }
-.position-relative { position: relative; }
-.position-absolute { position: absolute; }
-.top-0 { top: 0; }
-.start-0 { left: 0; }
-.w-100 { width: 100%; }
-.h-100 { height: 100%; }
-.bg-opacity-50 { background-color: rgba(0,0,0,0.5); }
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .position-relative {
+        position: relative;
+    }
+
+    .position-absolute {
+        position: absolute;
+    }
+
+    .top-0 {
+        top: 0;
+    }
+
+    .start-0 {
+        left: 0;
+    }
+
+    .w-100 {
+        width: 100%;
+    }
+
+    .h-100 {
+        height: 100%;
+    }
+
+    .bg-opacity-50 {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
 </style>
 @stop
 
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // ===== Preview Hero Image =====
-    const heroInput = document.getElementById('hero_image');
-    const heroPreview = document.getElementById('hero_preview');
+    document.addEventListener('DOMContentLoaded', function () {
+        // ===== Preview Hero Image =====
+        const heroInput = document.getElementById('hero_image');
+        const heroPreview = document.getElementById('hero_preview');
 
-    if (heroInput && heroPreview) {
-        heroInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        if (heroInput && heroPreview) {
+            heroInput.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                heroPreview.src = ev.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-    }
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    heroPreview.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
-    // ===== SweetAlert Success Message =====
-    @if(session('success'))
-    Swal.fire({
-        icon: 'success',
-        title: 'Success!',
-        text: @json(session('success')),
-        timer: 2500,
-        showConfirmButton: false
-    });
-    @endif
+        // ===== SweetAlert Success Message =====
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: @json(session('success')),
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
 
-    // ===== SweetAlert Error Message =====
-    @if($errors->any())
-    let errorMessages = @json($errors->all());
-    Swal.fire({
-        icon: 'error',
-        title: 'Oops! Something went wrong',
-        html: errorMessages.map(msg => `<p>${msg}</p>`).join(''),
-        confirmButtonText: 'OK',
-    });
-    @endif
+            // ===== SweetAlert Error Message =====
+            @if($errors->any())
+                let errorMessages = @json($errors->all());
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops! Something went wrong',
+                    html: errorMessages.map(msg => `<p>${msg}</p>`).join(''),
+                    confirmButtonText: 'OK',
+                });
+            @endif
 });
 </script>
 @stop
-

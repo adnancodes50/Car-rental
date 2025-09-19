@@ -57,28 +57,30 @@
                                 </div>
                             </div>
                             <div class="col-6">
-    <div class="p-3 text-center text-white rounded" style="background-color: #1f2eb4">
-        <h6 class="mb-1">Total Paid (Bookings)</h6>
-        <h4 class="fw-bold">
-            R{{ number_format($customer->total_booking_price ?? 0, 2) }}
-        </h4>
-    </div>
-</div>
+                                <div class="p-3 text-center text-white rounded" style="background-color: #1f2eb4">
+                                    <h6 class="mb-1">Total Paid (Bookings)</h6>
+                                    <h4 class="fw-bold">
+                                        R{{ number_format($customer->total_booking_price ?? 0, 2) }}
+                                    </h4>
+                                </div>
+                            </div>
 
                             <div class="col-6">
                                 <div class="p-3 text-center bg-warning text-dark rounded">
-                                    <h6 class="mb-1">Deposit</h6>
-                                    <h4 class="fw-bold">R{{ number_format($customer->total_deposit ?? 0, 2) }}</h4>
+                                    <h6 class="mb-1">Total Deposits</h6>
+                                    <h4 class="fw-bold">
+                                        R{{ number_format(($customer->total_purchase_deposit ?? 0), 2) }}
+                                    </h4>
                                 </div>
                             </div>
                             <div class="col-6">
-    <div class="p-3 text-center bg-success text-white rounded">
-        <h6 class="mb-1">Total Paid (Purchases)</h6>
-        <h4 class="fw-bold">
-            R{{ number_format($customer->total_purchase_price ?? 0, 2) }}
-        </h4>
-    </div>
-</div>
+                                <div class="p-3 text-center bg-success text-white rounded">
+                                    <h6 class="mb-1">Total Payable (Purchases)</h6>
+                                    <h4 class="fw-bold">
+                                        R{{ number_format($customer->total_purchase_price ?? 0, 2) }}
+                                    </h4>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -94,35 +96,35 @@
             <div class="card-body">
                 <div class="row g-4">
                     @forelse($bookings as $booking)
-                            <div class="col-md-12">
-                                <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <!-- Vehicle Name -->
-                                        <h6 class="text-bold text-black mb-0">
-                                            {{ $booking->vehicle->name ?? 'N/A' }}
-                                        </h6>
+                        <div class="col-md-12">
+                            <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <!-- Vehicle Name -->
+                                    <h6 class="text-bold text-black mb-0">
+                                        {{ $booking->vehicle->name ?? 'N/A' }}
+                                    </h6>
 
-                                        <!-- Status Badge -->
-                                        <span class="badge
-                            @if($booking->status == 'completed') bg-success
-                            @elseif($booking->status == 'pending') bg-warning text-dark
-                            @elseif($booking->status == 'canceled') bg-danger
-                            @else bg-info
-                            @endif
-                        ">
-                                            {{ ucfirst($booking->status) }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Booking Info -->
-                                    <p class="mb-1 text-muted"><strong>Start Date:</strong> {{ $booking->start_date }}</p>
-                                    <p class="mb-1 text-muted"><strong>End Date:</strong> {{ $booking->end_date }}</p>
-                                    <p class="mb-1 text-muted"><strong>Booked On:</strong>
-                                        {{ $booking->created_at->format('Y-m-d') }}</p>
-                                    <p class="mb-0 text-muted"><strong>Total Price:</strong>
-                                        R{{ number_format($booking->total_price, 2) }}</p>
+                                    <!-- Status Badge -->
+                                    <span class="badge
+                                    @if($booking->status == 'completed') bg-success
+                                    @elseif($booking->status == 'pending') bg-warning text-dark
+                                    @elseif($booking->status == 'canceled') bg-danger
+                                    @else bg-info
+                                    @endif
+                                ">
+                                        {{ ucfirst($booking->status) }}
+                                    </span>
                                 </div>
+
+                                <!-- Booking Info -->
+                                <p class="mb-1 text-muted"><strong>Start Date:</strong> {{ $booking->start_date }}</p>
+                                <p class="mb-1 text-muted"><strong>End Date:</strong> {{ $booking->end_date }}</p>
+                                <p class="mb-1 text-muted"><strong>Booked On:</strong>
+                                    {{ $booking->created_at->format('Y-m-d') }}</p>
+                                <p class="mb-0 text-muted"><strong>Total Price:</strong>
+                                    R{{ number_format($booking->total_price, 2) }}</p>
                             </div>
+                        </div>
                     @empty
                         <div class="col-12 text-center text-muted">
                             No booking history available.
@@ -137,46 +139,46 @@
 
 
 
-   <div class="container mt-4">
-    <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white border-0">
-            <h3 class="card-title text-bold">Purchase History</h3>
-        </div>
-        <div class="card-body">
-            <div class="row g-4">
-                @forelse($purchases as $purchase)
-                    <div class="col-md-12">
-                        <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <!-- Vehicle Name -->
-                                <h6 class=" text-bold text-black mb-0">
-                                    {{ $purchase->vehicle->name ?? 'N/A' }}
-                                </h6>
+    <div class="container mt-4">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white border-0">
+                <h3 class="card-title text-bold">Purchase History</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    @forelse($purchases as $purchase)
+                        <div class="col-md-12">
+                            <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <!-- Vehicle Name -->
+                                    <h6 class=" text-bold text-black mb-0">
+                                        {{ $purchase->vehicle->name ?? 'N/A' }}
+                                    </h6>
 
-                                <!-- Always Purchase Badge -->
-                                <span class="badge bg-primary">Purchase</span>
+                                    <!-- Always Purchase Badge -->
+                                    <span class="badge bg-primary">Purchase</span>
+                                </div>
+
+                                <!-- Purchase Info -->
+                                <p class="mb-1 text-muted"><strong>Purchased On:</strong>
+                                    {{ $purchase->created_at->format('Y-m-d') }}</p>
+                                <p class="mb-1 text-muted"><strong>Total Price:</strong>
+                                    R{{ number_format($purchase->total_price, 2) }}</p>
+                                <p class="mb-1 text-muted"><strong>Deposit Paid:</strong>
+                                    R{{ number_format($purchase->deposit_paid ?? 0, 2) }}</p>
+                                <p class="mb-0 text-muted"><strong>Payment Method:</strong>
+                                    {{ ucfirst($purchase->payment_method ?? 'N/A') }}</p>
                             </div>
-
-                            <!-- Purchase Info -->
-                            <p class="mb-1 text-muted"><strong>Purchased On:</strong>
-                                {{ $purchase->created_at->format('Y-m-d') }}</p>
-                            <p class="mb-1 text-muted"><strong>Total Price:</strong>
-                                R{{ number_format($purchase->total_price, 2) }}</p>
-                            <p class="mb-1 text-muted"><strong>Deposit Paid:</strong>
-                                R{{ number_format($purchase->deposit_paid ?? 0, 2) }}</p>
-                            <p class="mb-0 text-muted"><strong>Payment Method:</strong>
-                                {{ ucfirst($purchase->payment_method ?? 'N/A') }}</p>
                         </div>
-                    </div>
-                @empty
-                    <div class="col-12 text-center text-muted">
-                        No purchase history available.
-                    </div>
-                @endforelse
+                    @empty
+                        <div class="col-12 text-center text-muted">
+                            No purchase history available.
+                        </div>
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 
 </body>

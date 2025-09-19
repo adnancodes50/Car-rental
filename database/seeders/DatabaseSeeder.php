@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -13,18 +12,29 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            \App\Models\User::create([
+            // Create default admin user
+            $user = \App\Models\User::create([
                 'name' => 'Administrator',
                 'email' => 'admin@local.test',
-                'password' => Hash::make('password'),
-                'email_verified_at' => Carbon::now()
+                'password' => Hash::make('password'), // 🔑 change later for security
+                'email_verified_at' => Carbon::now(),
             ]);
 
-            \App\Models\Role::create([
-                'name' => 'administrator'
+            // Create administrator role
+            $role = \App\Models\Role::create([
+                'name' => 'administrator',
             ]);
+
+            // ✅ Attach role to user (if you have user-role relation)
+            if (method_exists($user, 'roles')) {
+                $user->roles()->attach($role->id);
+            }
         });
 
+        // Run permissions seeder (if it exists)
         $this->call(PermissionSeeder::class);
+
+        // ✅ Run vehicles seeder
+        $this->call(VehicleSeeder::class);
     }
 }

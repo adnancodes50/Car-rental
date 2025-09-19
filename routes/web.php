@@ -25,10 +25,8 @@ Route::get('/home', function () {
 Route::group(['middleware' => ['auth']], function () {
 
     Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
-        Route::resource('roles', RoleController::class)->except(['show']);
-        Route::resource('permissions', PermissionController::class)->except(['show']);
-        Route::resource('users', UserController::class);
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
+
     });
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -52,6 +50,10 @@ Route::group([
     Route::put('/{vehicle}', [VehicleController::class, 'update'])->name('update');
     Route::get('/{vehicle}', [VehicleController::class, 'show'])->name('show');
     Route::delete('/{vehicle}', [VehicleController::class, 'destroy'])->name('destroy');
+Route::post('/{vehicle}/bookings', [VehicleController::class, 'storeBooking'])->name('bookings.store');
+Route::delete('/{vehicle}/bookings/{booking}', [VehicleController::class, 'destroyBooking'])
+    ->name('bookings.destroy');
+
 });
 
 
@@ -100,9 +102,27 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
 //frontend booking and purchase routes
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+Route::post('/bookings/{booking}/pay-with-stripe', [BookingController::class, 'payWithStripe'])
+    ->name('bookings.pay.stripe');
+
 Route::post('/purchase', [PurchaseController::class, 'store'])->name('purchase.store');
+Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 'payWithStripe'])
+    ->name('purchase.pay.stripe');
+
 
 
 
 
 require __DIR__ . '/auth.php';
+
+
+
+
+
+
+
+
+
+
+
+

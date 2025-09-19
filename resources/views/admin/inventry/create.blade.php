@@ -58,14 +58,16 @@
                 </div>
 
                 <!-- Buttons -->
-                <div class="d-flex justify-content-start">
-                    <button type="submit" class="btn btn-success me-2">
-                        <i class="fas fa-save"></i> Create Add-On
-                    </button>
-                    <a href="{{ route('inventry.index') }}" class="btn btn-secondary">
-                        Cancel
-                    </a>
-                </div>
+                <!-- Buttons -->
+<div class="d-flex justify-content-end">
+    <a href="{{ route('inventry.index') }}" class="btn btn-secondary me-2 mr-1">
+        Cancel
+    </a>
+    <button type="submit" class="btn btn-dark">
+        <i class="fas fa-save"></i> Create Add-On
+    </button>
+</div>
+
             </form>
         </div>
     </div>
