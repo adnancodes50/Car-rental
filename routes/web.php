@@ -78,40 +78,6 @@ Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('de
 
 
 
-// Route::get('/pay', function () {
-//     $data = [
-//         'merchant_id' => config('payfast.merchant_id'),
-//         'merchant_key' => config('payfast.merchant_key'),
-//         'return_url' => url('/payment/success'),
-//         'cancel_url' => url('/payment/cancel'),
-//         'notify_url' => url('/payment/notify'),
-
-//         'amount' => number_format(100, 2, '.', ''), // Example amount
-//         'item_name' => 'Test Car Rental Payment',
-//     ];
-
-//     // Generate signature
-//     $query = http_build_query($data);
-//     if (config('payfast.passphrase')) {
-//         $query .= '&passphrase=' . urlencode(config('payfast.passphrase'));
-//     }
-//     $data['signature'] = md5($query);
-
-//     // PayFast sandbox URL
-//     $payfastUrl = config('payfast.testmode')
-//         ? 'https://sandbox.payfast.co.za/eng/process'
-//         : 'https://www.payfast.co.za/eng/process';
-
-//     return view('payfast.checkout', compact('data', 'payfastUrl'));
-// });
-
-// Route::get('/payment/success', fn() => '✅ Payment Successful');
-// Route::get('/payment/cancel', fn() => '❌ Payment Cancelled');
-// Route::post('/payment/notify', function () {
-//     return response('OK');
-// });
-
-
 
 Route::group([
     'middleware' => ['auth'],
@@ -152,7 +118,54 @@ Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 
 
 
 
+
+
+    Route::get('/pay', function () {
+    $data = [
+        'merchant_id' => config('payfast.merchant_id'),
+        'merchant_key' => config('payfast.merchant_key'),
+        'return_url' => url('/payment/success'),
+        'cancel_url' => url('/payment/cancel'),
+        'notify_url' => url('/payment/notify'),
+
+        'amount' => number_format(100, 2, '.', ''), // Example amount
+        'item_name' => 'Test Car Rental Payment',
+    ];
+
+    // Generate signature
+    $query = http_build_query($data);
+    if (config('payfast.passphrase')) {
+        $query .= '&passphrase=' . urlencode(config('payfast.passphrase'));
+    }
+    $data['signature'] = md5($query);
+
+    // PayFast sandbox URL
+    $payfastUrl = config('payfast.testmode')
+        ? 'https://sandbox.payfast.co.za/eng/process'
+        : 'https://www.payfast.co.za/eng/process';
+
+    return view('payfast.checkout', compact('data', 'payfastUrl'));
+});
+
+Route::get('/payment/success', fn() => '✅ Payment Successful');
+Route::get('/payment/cancel', fn() => '❌ Payment Cancelled');
+Route::post('/payment/notify', function () {
+    return response('OK');
+});
+
+
+
+
+
 require __DIR__ . '/auth.php';
+
+
+
+
+
+
+
+
 
 
 
