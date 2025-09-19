@@ -343,117 +343,180 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Stripe Payment</h5>
+                    <h5 class="modal-title fw-bold">Stripe payment and Vehicle Summary</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3 align-items-stretch">
-                        <!-- LEFT: Purchase Summary -->
-                        <div class="col-12 col-lg-5">
-                            <div class="border rounded-3 p-3 h-100 d-flex flex-column">
-                                <h5 class="fw-bold text-center mb-3">Purchase Summary</h5>
+               <div class="modal-body">
+  <div class="container-fluid">
 
-                                {{-- Vehicle --}}
-                                <div class="d-flex align-items-center gap-3 mb-3">
-                                    <img src="{{ $vehicle->mainImage() }}" alt="{{ $vehicle->name }}" class="rounded"
-                                        style="width:72px;height:72px;object-fit:cover;">
-                                    <div>
-                                        <div class="fw-semibold">{{ $vehicle->name }}</div>
-                                        <small class="text-muted">{{ $vehicle->year }} {{ $vehicle->model }}</small>
-                                    </div>
-                                </div>
+    {{-- ROW 1: Vehicle header --}}
+    <div class="row g-3 align-items-center mb-3">
+      <div class="col-12 d-flex align-items-center gap-3">
+        <img
+          src="{{ $vehicle->mainImage() }}"
+          alt="{{ $vehicle->name }}"
+          class="rounded shadow-sm"
+          style="width:88px;height:88px;object-fit:cover;"
+        >
+        <div class="flex-grow-1">
+          <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div>
+              <h5 class="mb-1">{{ $vehicle->name }}</h5>
+              <small class="text-muted">{{ $vehicle->year }} {{ $vehicle->model }}</small>
+            </div>
+            {{-- Price summary (deposit + totals) --}}
+            @php
+              $vehiclePrice = (float) ($vehicle->purchase_price ?? 0);
+              $deposit      = (float) ($vehicle->deposit_amount ?? 0);
+              $remaining    = max($vehiclePrice - $deposit, 0);
+            @endphp
+            <div class="text-end">
+              <div class="small text-muted">Vehicle Price</div>
+              <div class="fw-semibold">R{{ number_format($vehiclePrice, 2) }}</div>
+            </div>
+          </div>
 
-                                {{-- Key facts (fill what you have) --}}
-                                <ul class="list-unstyled small text-muted mb-3">
-                                    @if($vehicle->engine)
-                                        <li><i class="bi bi-gear-fill me-1"></i>Engine: {{ $vehicle->engine }}</li>
-                                    @endif
-                                    @if($vehicle->transmission)
-                                        <li><i class="bi bi-gear-wide-connected me-1"></i>Transmission:
-                                            {{ $vehicle->transmission }}</li>
-                                    @endif
-                                    @if($vehicle->mileage)
-                                        <li><i class="bi bi-speedometer2 me-1"></i>Mileage:
-                                            {{ number_format($vehicle->mileage) }} km</li>
-                                    @endif
-                                    @if($vehicle->location)
-                                        <li><i class="bi bi-geo-alt me-1"></i>Location: {{ $vehicle->location }}</li>
-                                    @endif
-                                </ul>
+          {{-- quick facts --}}
+          <ul class="list-inline small text-muted mb-0 mt-2">
+            @if($vehicle->engine)
+              <li class="list-inline-item me-3"><i class="bi bi-gear-fill me-1"></i>Engine: {{ $vehicle->engine }}</li>
+            @endif
+            @if($vehicle->transmission)
+              <li class="list-inline-item me-3"><i class="bi bi-gear-wide-connected me-1"></i>{{ $vehicle->transmission }}</li>
+            @endif
+            @if($vehicle->mileage)
+              <li class="list-inline-item me-3"><i class="bi bi-speedometer2 me-1"></i>{{ number_format($vehicle->mileage) }} km</li>
+            @endif
+            @if($vehicle->location)
+              <li class="list-inline-item"><i class="bi bi-geo-alt me-1"></i>{{ $vehicle->location }}</li>
+            @endif
+          </ul>
+        </div>
+      </div>
+    </div>
 
-                                {{-- Prices --}}
-                                <div class="bg-light rounded p-2 mb-2">
-                                    <div class="small text-muted mb-1">Price Details</div>
-                                    <div class="d-flex justify-content-between small">
-                                        <span>Vehicle Price</span>
-                                        <span id="purchaseSummaryVehiclePrice">
-                                            @if($vehicle->purchase_price)
-                                            R{{ number_format($vehicle->purchase_price, 2) }} @endif
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small">
-                                        <span>Deposit</span>
-                                        <span id="purchaseSummaryDeposit">
-                                            {{-- If you store per-vehicle deposit amount --}}
-                                            @php $deposit = $vehicle->deposit_amount ?? null; @endphp
-                                            {{ $deposit ? 'R' . number_format($deposit, 2) : '—' }}
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="fw-semibold">Total</span>
-                                        <span class="fw-bold text-success" id="purchaseSummaryTotal">
-                                            {{-- If you charge just the deposit now, show it here. Otherwise show full
-                                            price --}}
-                                            {{ $deposit ? 'R' . number_format($deposit, 2) : ($vehicle->purchase_price ? 'R' . number_format($vehicle->purchase_price, 2) : '') }}
-                                        </span>
-                                    </div>
-                                </div>
+    {{-- Optional mini price band --}}
+    @php
+  $vehiclePrice = (float) ($vehicle->purchase_price ?? 0);
+  $deposit      = (float) ($vehicle->deposit_amount ?? 0);
 
-                                {{-- Customer (optional — fill via JS if you have a form before) --}}
-                                <div class="border-top pt-2 mt-2 small">
-                                    <div class="text-muted mb-1">Customer</div>
-                                    <div id="purchaseSummaryCustomerName"><!-- JS fill --></div>
-                                    <div class="text-muted" id="purchaseSummaryCustomerEmail"><!-- JS fill --></div>
-                                </div>
+  // keep values sane
+  $deposit   = max(0, min($deposit, $vehiclePrice));
+  $remaining = max($vehiclePrice - $deposit, 0);
+@endphp
 
-                                {{-- Owner / contact (optional if you have landing settings) --}}
-                                @if(isset($landing) && (($landing->phone_link ?? null) || ($landing->phone_btn_text ?? null)))
-                                                            <div class="border-top pt-2 mt-2">
-                                                                <div class="small text-muted mb-1">Owner / Contact</div>
-                                                                <a href="{{ $landing->phone_link ?? '#' }}"
-                                                                    class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                                                    <i class="bi bi-telephone"></i>
-                                                                    <span>
-                                                                        {{ $landing->phone_btn_text
-                                    ?? (isset($landing->phone_link) ? preg_replace('/^tel:/', '', $landing->phone_link) : 'Contact') }}
-                                                                    </span>
-                                                                </a>
-                                                            </div>
-                                @endif
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="bg-light rounded-3 p-2 px-3">
+      <div class="d-flex justify-content-between small">
+        <span>Vehicle Price</span>
+        <span>R{{ number_format($vehiclePrice, 2) }}</span>
+      </div>
 
-                                <div class="mt-auto"></div>
-                            </div>
-                        </div>
+      <div class="d-flex justify-content-between small">
+        <span>Deposit (Due Now)</span>
+        <span>R{{ number_format($deposit, 2) }}</span>
+      </div>
 
-                        <!-- RIGHT: Stripe card inputs -->
-                        <div class="col-12 col-lg-7">
-                            <div id="card-element">
-                                <div id="card-number" class="form-control mb-3"></div>
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <div id="card-expiry" class="form-control"></div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div id="card-cvc" class="form-control"></div>
-                                    </div>
-                                </div>
-                                <div id="card-errors" class="text-danger mt-2"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      {{-- <div class="d-flex justify-content-between small">
+        <span>Payable After Deposit</span>
+        <span>R{{ number_format($remaining, 2) }}</span>
+      </div> --}}
 
-                <div class="modal-footer">
+      <div class="border-top mt-2 pt-2 d-flex justify-content-between">
+        <span class="fw-semibold">Total Due Now</span>
+        <span class="fw-bold text-success">R{{ number_format($deposit, 2) }}</span>
+      </div>
+
+      <div class="d-flex justify-content-between mt-1">
+        <span class="fw-semibold text-muted">Total Payable Later</span>
+        <span class="fw-bold text-muted">R{{ number_format($remaining, 2) }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{{-- ROW 2: Owner / Contact (modern, simple, icons only) --}}
+@if(isset($landing) && (
+  ($landing->phone_link ?? null) ||
+  ($landing->whatsapp_link ?? null) ||
+  ($landing->email_link ?? null)
+))
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="owner-contact-box">
+        <div class="small text-muted mb-2">Owner / Contact us For More Information</div>
+
+        <div class="contact-grid">
+          {{-- Phone (left) --}}
+          <div class="contact-item text-start">
+            @if(!empty($landing->phone_link))
+              <a href="{{ $landing->phone_link }}"
+                 class="contact-btn contact-phone"
+                 title="{{ $landing->phone_btn_text ?? preg_replace('/^tel:/i', '', $landing->phone_link) }}"
+                 aria-label="Call">
+                <i class="bi bi-telephone"></i>
+              </a>
+            @endif
+          </div>
+
+          {{-- WhatsApp (center) --}}
+          <div class="contact-item text-center">
+            @if(!empty($landing->whatsapp_link))
+              @php
+                $waTitle = $landing->whatsapp_btn_text
+                  ?? preg_replace(['/^https?:\/\/wa\.me\//i','/^whatsapp:\/\/send\?phone=/i'], '', $landing->whatsapp_link);
+                $waTitle = $waTitle ?: 'WhatsApp';
+              @endphp
+              <a href="{{ $landing->whatsapp_link }}"
+                 class="contact-btn contact-wa"
+                 target="_blank" rel="noopener"
+                 title="{{ $waTitle }}" aria-label="WhatsApp">
+                <i class="bi bi-whatsapp"></i>
+              </a>
+            @endif
+          </div>
+
+          {{-- Email (right) --}}
+          <div class="contact-item text-end">
+            @if(!empty($landing->email_link))
+              <a href="{{ $landing->email_link }}"
+                 class="contact-btn contact-mail"
+                 title="{{ $landing->email_btn_text ?? preg_replace('/^mailto:/i', '', $landing->email_link) }}"
+                 aria-label="Email">
+                <i class="bi bi-envelope"></i>
+              </a>
+            @endif
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+@endif
+
+
+    {{-- ROW 3: Stripe card inputs --}}
+    <div class="row g-2">
+      <div class="col-12">
+        <div id="card-number" class="form-control stripe-input mb-2"></div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div id="card-expiry" class="form-control stripe-input"></div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div id="card-cvc" class="form-control stripe-input"></div>
+      </div>
+      <div class="col-12">
+        <div id="card-errors" class="text-danger mt-2 small"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+                <div class="modal-footer container">
                     <button type="button" class="btn btn-outline-secondary me-auto" data-bs-target="#purchaseCustomer"
                         data-bs-toggle="modal">Back</button>
                     <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Pay with Stripe</button>
@@ -466,12 +529,35 @@
     <div class="modal fade" id="purchaseThankYou" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow text-center p-4 border-0">
-                <div class="modal-body">
-                    <h4 class="fw-bold mb-2 text-success">Thank You!</h4>
-                    <p class="text-muted mb-4">Your purchase has been successfully completed.</p>
-                    <button type="button" class="btn btn-success fw-bold px-4 rounded-pill"
-                        data-bs-dismiss="modal">Close</button>
-                </div>
+               <div class="modal-body text-center py-5">
+
+  <!-- Success icon badge -->
+  <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3"
+       style="width:84px;height:84px;">
+    <i class="bi bi-check2-circle fs-1"></i>
+  </div>
+
+  <!-- Title & copy -->
+  <h4 class="fw-bold mb-2">Thank you!</h4>
+  <p class="text-secondary mb-4">
+    Your purchase has been successfully completed.
+  </p>
+
+   {{-- (Optional) mini summary line; remove if you don't have these values --> --}}
+   <div class="d-inline-flex align-items-center gap-2 small text-muted mb-4">
+    {{-- <span class="badge text-bg-light">Ref: <span id="purchaseRef">#12345</span></span> --}}
+    {{-- <span>•</span> --}}
+    <span>Amount: <span id="purchaseAmount">R 5,000.00</span></span>
+  </div>
+
+  <!-- Close button -->
+  <button type="button"
+          class="btn btn-success fw-semibold px-4 rounded-pill"
+          data-bs-dismiss="modal">
+    Close
+  </button>
+</div>
+
             </div>
         </div>
     </div>
@@ -527,7 +613,57 @@
     }
 
 
-    
+/* Wrapper card */
+.owner-contact-box{
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+/* 3 fixed slots (left/center/right) and nice spacing */
+.contact-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+}
+
+/* Center content inside each cell */
+.contact-item{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Circular icon buttons */
+.contact-btn{
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+  font-size: 1.15rem;
+}
+
+/* Brand tints (subtle) */
+.contact-phone{ border-color:#dee2e6; }
+.contact-wa{    border-color:#19875433; background: #1987540d; }
+.contact-mail{  border-color:#0d6efd33; background: #0d6efd0d; }
+
+/* Hover feel */
+.contact-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 .25rem .75rem rgba(0,0,0,.06);
+  background: #ffffff;
+}
+
+/* Optional: slightly larger icons on hover */
+.contact-btn:hover i{ transform: scale(1.05); }
+
 
     /* Force a single row on md+; stacks on xs for responsiveness */
     @media (min-width: 768px) {
@@ -637,4 +773,12 @@
 
     });
 
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.bootstrap?.Tooltip) {
+      document.querySelectorAll('.contact-btn[title]').forEach(el => new bootstrap.Tooltip(el));
+    }
+  });
 </script>
