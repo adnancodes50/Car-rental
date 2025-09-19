@@ -302,10 +302,14 @@
                             @foreach($addOns as $addOn)
                                 <div
                                     class="d-flex align-items-center justify-content-between border rounded p-3 mb-3 shadow-sm">
-                                    <div class="me-3">
-                                        <img src="{{ $addOn->image_url }}" alt="{{ $addOn->name }}" class="rounded border"
-                                            style="width:60px; height:60px; object-fit:cover;">
-                                    </div>
+     <div class="me-3">
+    <img src="{{ asset($addOn->image_url) }}"
+         alt="{{ $addOn->name }}"
+         class="rounded border"
+         style="width:60px; height:60px; object-fit:cover;">
+</div>
+
+
                                     <div class="flex-grow-1">
                                         <h5 class="fw-semibold mb-1">{{ $addOn->name }}</h5>
                                         <p class="text-muted mb-1">{{ $addOn->description }}</p>

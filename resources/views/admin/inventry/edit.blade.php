@@ -13,7 +13,7 @@
             <h3 class="card-title">Update Add-On Details</h3>
         </div>
         <div class="card-body">
-            <form action="{{ route('inventry.update', $addon->id) }}" method="POST">
+            <form action="{{ route('inventry.update', $addon->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -38,12 +38,18 @@
                         class="form-control">{{ old('description', $addon->description) }}</textarea>
                 </div>
 
-                <!-- Image URL -->
+                <!-- Image Upload -->
                 <div class="mb-3">
-                    <label class="form-label">Image URL (Optional)</label>
-                    <input type="url" name="image_url" class="form-control"
-                        value="{{ old('image_url', $addon->image_url) }}">
-                    <small class="text-muted">Provide a URL for the add-on image to display in booking flow</small>
+                    @if ($addon->image_url)
+                        <div class="mt-2">
+                            <img src="{{ asset($addon->image_url) }}" alt="{{ $addon->name }}" class="rounded border"
+                                style="width:80px; height:80px; object-fit:cover;">
+                        </div>
+                    @endif
+                    <label class="form-label">Upload Image</label>
+                    <input type="file" name="image" class="form-control" accept="image/*">
+
+                    <small class="text-muted">Upload a new image to replace the existing one</small>
                 </div>
 
                 <!-- Prices -->
@@ -67,17 +73,13 @@
 
                 <!-- Buttons -->
                 <div class="d-flex justify-content-end">
-                    <a href="{{ route('inventry.index') }}" class="btn btn-secondary me-2 mr-1">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-dark ">
+                    <a href="{{ route('inventry.index') }}" class="btn btn-secondary me-2 mr-1">Cancel</a>
+                    <button type="submit" class="btn btn-dark">
                         <i class="fas fa-save"></i> Update Add-On
                     </button>
                 </div>
-
-
-
             </form>
+
         </div>
     </div>
 </div>

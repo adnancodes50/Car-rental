@@ -13,8 +13,8 @@
             <h3 class="card-title">Add-On Details</h3>
         </div>
         <div class="card-body">
-            <form action="{{ route('inventry.store') }}" method="POST">
-                @csrf
+            <form action="{{ route('inventry.store') }}" method="POST" enctype="multipart/form-data">
+    @csrf
 
                 <!-- Add-On Name and Quantity -->
                 <div class="row mb-3">
@@ -34,12 +34,13 @@
                     <textarea name="description" rows="3" class="form-control" placeholder="Describe the add-on and its features..."></textarea>
                 </div>
 
-                <!-- Image URL -->
-                <div class="mb-3">
-                    <label class="form-label">Image URL (Optional)</label>
-                    <input type="url" name="image_url" class="form-control" placeholder="e.g., https://example.com/rooftop-tent.jpg">
-                    <small class="text-muted">Provide a URL for the add-on image to display in booking flow</small>
-                </div>
+                <!-- Image Upload -->
+<div class="mb-3">
+    <label class="form-label">Upload Image</label>
+    <input type="file" name="image" class="form-control" accept="image/*">
+    <small class="text-muted">Upload an image for the add-on</small>
+</div>
+
 
                 <!-- Prices -->
                 <div class="row mb-3">

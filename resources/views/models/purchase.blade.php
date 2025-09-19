@@ -519,7 +519,7 @@
                 <div class="modal-footer container">
                     <button type="button" class="btn btn-outline-secondary me-auto" data-bs-target="#purchaseCustomer"
                         data-bs-toggle="modal">Back</button>
-                    <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Pay with Stripe</button>
+                    <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Purchase Now</button>
                 </div>
             </div>
         </div>

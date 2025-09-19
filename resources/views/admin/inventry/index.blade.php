@@ -25,6 +25,7 @@
                 <table id="addonsTable" class="table table-striped table-hover align-middle text-sm w-100">
                     <thead class="table-light text-uppercase text-muted">
                         <tr>
+                            <th>Image</th>
                             <th>Name</th>
                             <th>Description</th>
                             <th>Qty Total</th>
@@ -37,6 +38,7 @@
                     <tbody>
                       @foreach($addOns as $addOn)
    <tr>
+    <td><img src="{{ asset($addOn->image_url) }}" alt="{{ $addOn->name }}" class="rounded border" style="width:60px; height:60px; object-fit:cover;"></td>
       <td class="fw-semibold">{{ $addOn->name }}</td>
       <td>{{ Str::limit($addOn->description, 50) }}</td>
       <td>{{ $addOn->qty_total }}</td>
