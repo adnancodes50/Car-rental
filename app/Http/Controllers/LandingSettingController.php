@@ -20,11 +20,13 @@ public function update(Request $request)
 {
     $data = $request->validate([
         'email_btn_text' => 'required|string|max:255',
-        'email_link' => ['required','string', function($attr, $value, $fail) {
-            if (!Str::startsWith($value, 'mailto:') || !filter_var(substr($value, 7), FILTER_VALIDATE_EMAIL)) {
-                $fail('Email link must be a valid mailto:someone@example.com');
-            }
-        }],
+       'email_link' => ['required', 'string', function($attr, $value, $fail) {
+    // Validate as a proper email address directly
+    if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        $fail('The email must be a valid email address.');
+    }
+}],
+
         'phone_btn_text' => 'required|string|max:255',
         'phone_link' => ['required', 'string', function($attr, $value, $fail) {
             if (!preg_match('/^\+\d{7,15}$/', $value)) {

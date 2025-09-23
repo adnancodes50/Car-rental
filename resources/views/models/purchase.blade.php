@@ -207,7 +207,10 @@
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg overflow-hidden">
                 <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
-                    <h2 class="h4 fw-bold mb-0">Purchase {{ $vehicle->name }}</h2>
+<h2 class="h4 fw-bold mb-0">
+  <i class="bi bi-car-front-fill me-2"></i>
+  Purchase {{ $vehicle->name }}
+</h2>
                     <button type="button" class="btn-close text-secondary" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -237,54 +240,78 @@
     </div>
 
     <!-- Step 2: Customer Info -->
-    <div class="modal fade" id="purchaseCustomer" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-md modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow-lg overflow-hidden">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"> Customer Information</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
+   <div class="modal fade" id="purchaseCustomer" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow-lg overflow-hidden">
 
-                    <div class="col-md-12">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" name="name" class="form-control mb-3 rounded-3" placeholder="Full Name"
-                            required>
-                    </div>
+      <!-- Header -->
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold d-flex align-items-center">
+          <i class="bi bi-person-circle me-2"></i>
+          Enter Your Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
 
-                    <div class="col-md-12">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control mb-3 rounded-3" placeholder="Email"
-                            required>
+      <hr>
 
-                    </div>
 
-                    <div class="col-md-12">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" name="phone" class="form-control mb-3 rounded-3" placeholder="Phone Number"
-                            required>
 
-                    </div>
+      <!-- Body -->
+      <div class="modal-body px-4">
+        <div class="row g-3">
 
-                    <div class="mb-3">
-                        <label class="form-label">Country</label>
+          <div class="col-12">
+            <label class="form-label">
+              <i class="me-2 text-secondary"></i> Full Name
+            </label>
+            <input type="text" name="name" class="form-control rounded-3" placeholder="John Doe" required>
+          </div>
 
-                        <select name="country" class="form-select mb-3 rounded-3" required>
-                            <option value="" disabled selected>Select your country</option>
-                            @foreach($countries as $country)
-                                <option value="{{ $country }}">{{ $country }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-target="#purchaseModal"
-                        data-bs-toggle="modal">Back</button>
-                    <button type="button" id="purchaseStep2Next" class="btn btn-dark">Continue to Payment</button>
-                </div>
-            </div>
+          <div class="col-12">
+            <label class="form-label">
+              <i class=" me-2 text-secondary"></i> Email
+            </label>
+            <input type="email" name="email" class="form-control rounded-3" placeholder="you@example.com" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">
+              <i class="me-2 text-secondary"></i> Phone
+            </label>
+            <input type="tel" name="phone" class="form-control rounded-3" placeholder="+27 123 456 7890" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">
+              <i class=" me-2 text-secondary"></i> Country
+            </label>
+            <select name="country" class="form-select rounded-3" required>
+              <option value="" disabled selected>Select your country</option>
+              @foreach($countries as $country)
+                <option value="{{ $country }}">{{ $country }}</option>
+              @endforeach
+            </select>
+          </div>
+
         </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer border-0 d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary rounded-3"
+          data-bs-target="#purchaseModal" data-bs-toggle="modal">
+          Back
+        </button>
+        <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4">
+          Continue to Payment
+        </button>
+      </div>
+
     </div>
+  </div>
+</div>
+
 
     <!-- Step 3a: Payment Method Selection -->
     <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true">
@@ -339,11 +366,14 @@
     </div>
 
     <!-- Step 3b: Stripe Card Input -->
-    <div class="modal fade" id="stripePaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade mt-5" id="stripePaymentModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Stripe payment and Vehicle Summary</h5>
+<h5 class="modal-title fw-bold">
+  <i class="bi bi-credit-card-fill me-2"></i>
+  Stripe Payment and Vehicle Summary
+</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                <div class="modal-body">
@@ -527,40 +557,40 @@
 
     <!-- Step 4: Thank You -->
     <div class="modal fade" id="purchaseThankYou" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-md modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow text-center p-4 border-0">
-               <div class="modal-body text-center py-5">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow text-center p-4 border-0">
+        <div class="modal-body text-center py-5">
 
-  <!-- Success icon badge -->
-  <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3"
-       style="width:84px;height:84px;">
-    <i class="bi bi-check2-circle fs-1"></i>
-  </div>
-
-  <!-- Title & copy -->
-  <h4 class="fw-bold mb-2">Thank you!</h4>
-  <p class="text-secondary mb-4">
-    Your purchase has been successfully completed.
-  </p>
-
-   {{-- (Optional) mini summary line; remove if you don't have these values --> --}}
-   <div class="d-inline-flex align-items-center gap-2 small text-muted mb-4">
-    {{-- <span class="badge text-bg-light">Ref: <span id="purchaseRef">#12345</span></span> --}}
-    {{-- <span>•</span> --}}
-    <span>Amount: <span id="purchaseAmount">R 5,000.00</span></span>
-  </div>
-
-  <!-- Close button -->
-  <button type="button"
-          class="btn btn-success fw-semibold px-4 rounded-pill"
-          data-bs-dismiss="modal">
-    Close
-  </button>
-</div>
-
+            <!-- Success icon badge -->
+            <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3"
+                style="width:84px;height:84px;">
+            <i class="bi bi-check2-circle fs-1"></i>
             </div>
+
+            <!-- Title & copy -->
+            <h4 class="fw-bold mb-2">Thank you!</h4>
+            <p class="text-secondary mb-4">
+            Your purchase has been successfully completed.
+            </p>
+
+            {{-- <!-- Amount (centered above button) -->
+            <div class="fw-bold fs-5 mb-4">
+            Amount: <span id="purchaseAmount">R 5,000.00</span>
+            </div> --}}
+
+            <!-- Close button -->
+            <button type="button"
+                    class="btn btn-success fw-semibold px-4 rounded-pill"
+                    data-bs-dismiss="modal">
+            Close
+            </button>
+        </div>
         </div>
     </div>
+    </div>
+
+
+
 </form>
 
 
@@ -678,107 +708,346 @@
 </style>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const stripe = Stripe("{{ config('services.stripe.key') }}");
-        const elements = stripe.elements();
-        const style = { base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } } };
-        const cardNumber = elements.create('cardNumber', { style });
-        const cardExpiry = elements.create('cardExpiry', { style });
-        const cardCvc = elements.create('cardCvc', { style });
-        cardNumber.mount('#card-number');
-        cardExpiry.mount('#card-expiry');
-        cardCvc.mount('#card-cvc');
+document.addEventListener("DOMContentLoaded", function () {
+  const stripe = Stripe("{{ config('services.stripe.key') }}");
+  const elements = stripe.elements();
+  const style = { base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } } };
+  const cardNumber = elements.create('cardNumber', { style });
+  const cardExpiry = elements.create('cardExpiry', { style });
+  const cardCvc = elements.create('cardCvc', { style });
+  cardNumber.mount('#card-number');
+  cardExpiry.mount('#card-expiry');
+  cardCvc.mount('#card-cvc');
 
-        // Step 1 → Step 2
-        document.getElementById("purchaseStep1Next").addEventListener("click", function () {
-            bootstrap.Modal.getInstance(document.getElementById("purchaseModal"))?.hide();
-            new bootstrap.Modal(document.getElementById("purchaseCustomer")).show();
-        });
+  const form = document.getElementById("purchaseForm");
 
-        // Step 2 → Step 3a (Payment Method Selection)
-        document.getElementById("purchaseStep2Next").addEventListener("click", function () {
-            const form = document.getElementById("purchaseForm");
-            const name = form.name.value, email = form.email.value, phone = form.phone.value, country = form.country.value;
-            if (!name || !email || !phone || !country) { alert("Fill all required fields."); return; }
+  // 🔹 Step 1 → Step 2
+  document.getElementById("purchaseStep1Next").addEventListener("click", function () {
+    bootstrap.Modal.getInstance(document.getElementById("purchaseModal"))?.hide();
+    new bootstrap.Modal(document.getElementById("purchaseCustomer")).show();
+  });
 
-            // Save customer info via AJAX
-            fetch("{{ route('purchase.store') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
-                body: JSON.stringify({ name, email, phone, country, vehicle_id: form.vehicle_id.value, total_price: form.total_price.value })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        let purchaseIdInput = form.querySelector("input[name='purchase_id']");
-                        if (!purchaseIdInput) {
-                            purchaseIdInput = document.createElement("input");
-                            purchaseIdInput.type = "hidden";
-                            purchaseIdInput.name = "purchase_id";
-                            form.appendChild(purchaseIdInput);
-                        }
-                        purchaseIdInput.value = data.purchase_id;
+  // 🔹 Step 2 → Step 3a (Payment Method Selection)
+  document.getElementById("purchaseStep2Next").addEventListener("click", function () {
+    const name = (form.name.value || '').trim();
+    const email = (form.email.value || '').trim();
+    const phone = (form.phone.value || '').trim();
+    const country = form.country.value;
 
-                        bootstrap.Modal.getInstance(document.getElementById("purchaseCustomer"))?.hide();
-                        new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    } else { alert("Failed to save customer info."); }
-                }).catch(console.error);
-        });
+    if (!name || !email || !phone || !country) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Missing Information',
+        text: 'Please fill in all required customer details before continuing.'
+      });
+      return;
+    }
 
-        // Step 3a → Step 3b (Stripe card) or Finish (PayFast)
-        document.querySelectorAll("input[name='payment_method']").forEach(input => {
-            input.addEventListener("change", function () {
-                const selected = this.value;
-                const paymentModal = bootstrap.Modal.getInstance(document.getElementById("purchasePayment"));
-                paymentModal?.hide();
+    // Save details
+    fetch("{{ route('purchase.store') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+      body: JSON.stringify({
+        name, email, phone, country,
+        vehicle_id: form.vehicle_id.value,
+        total_price: form.total_price.value
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        // ensure hidden purchase_id input exists
+        let purchaseIdInput = form.querySelector("input[name='purchase_id']");
+        if (!purchaseIdInput) {
+          purchaseIdInput = document.createElement("input");
+          purchaseIdInput.type = "hidden";
+          purchaseIdInput.name = "purchase_id";
+          form.appendChild(purchaseIdInput);
+        }
+        purchaseIdInput.value = data.purchase_id;
 
-                if (selected === "stripe") {
-                    new bootstrap.Modal(document.getElementById("stripePaymentModal")).show();
-                } else {
-                    // PayFast selected → show Thank You immediately or redirect to PayFast
-                    new bootstrap.Modal(document.getElementById("purchaseThankYou")).show();
-                }
-            });
-        });
-
-        // Stripe payment
-        document.getElementById("purchaseStripePayButton").addEventListener("click", async function () {
-            const form = document.getElementById("purchaseForm");
-            const { paymentMethod: pm, error } = await stripe.createPaymentMethod({
-                type: 'card',
-                card: cardNumber,
-                billing_details: { name: form.name.value, email: form.email.value }
-            });
-            if (error) { document.getElementById("card-errors").textContent = error.message; return; }
-
-            const purchase_id = form.querySelector("input[name='purchase_id']").value;
-            fetch(`/purchase/${purchase_id}/pay-with-stripe`, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
-                body: JSON.stringify({ payment_method_id: pm.id })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        bootstrap.Modal.getInstance(document.getElementById("stripePaymentModal"))?.hide();
-                        new bootstrap.Modal(document.getElementById("purchaseThankYou")).show();
-                    } else if (data.requires_action) {
-                        stripe.confirmCardPayment(data.payment_intent_client_secret).then(result => {
-                            if (result.error) { alert(result.error.message); }
-                            else { bootstrap.Modal.getInstance(document.getElementById("stripePaymentModal"))?.hide(); new bootstrap.Modal(document.getElementById("purchaseThankYou")).show(); }
-                        });
-                    } else { alert(data.message); }
-                }).catch(console.error);
-        });
-
+        // ✅ Go directly to Payment modal
+        bootstrap.Modal.getInstance(document.getElementById("purchaseCustomer"))?.hide();
+        new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Unable to save details.' });
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      Swal.fire({ icon: 'error', title: 'Network error', text: 'Please try again.' });
     });
+  });
 
-</script>
+// 🔹 Step 3a → Step 3b (Stripe / PayFast)
+document.querySelectorAll("input[name='payment_method']").forEach(input => {
+  input.addEventListener("change", async function () {
+    const selected = this.value;
+    const paymentModal = bootstrap.Modal.getInstance(document.getElementById("purchasePayment"));
+    paymentModal?.hide();
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.bootstrap?.Tooltip) {
-      document.querySelectorAll('.contact-btn[title]').forEach(el => new bootstrap.Tooltip(el));
+    if (selected === "stripe") {
+      new bootstrap.Modal(document.getElementById("stripePaymentModal")).show();
+      return;
+    }
+
+    // ----- PAYFAST -----
+    const formEl = document.getElementById("purchaseForm");
+    const purchaseIdInput = formEl.querySelector("input[name='purchase_id']");
+
+    if (!purchaseIdInput || !purchaseIdInput.value) {
+      Swal.fire({ icon: 'error', title: 'Missing purchase', text: 'Please save your details first.' });
+      // Reopen payment modal for them
+      new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      this.checked = false;
+      return;
+    }
+
+const confirmed = await Swal.fire({
+  icon: 'question',
+  title: 'Proceed with PayFast?',
+  text: 'You will be redirected to PayFast to complete your payment.',
+  showCancelButton: true,
+  confirmButtonText: 'Continue',
+  cancelButtonText: 'Back',
+  reverseButtons: true,
+  customClass: {
+    popup: 'rounded-4 shadow-lg', // 🔹 rounded SweetAlert box itself
+    confirmButton: 'btn btn-dark rounded-pill px-4', // 🔹 pill button
+    cancelButton: 'btn btn-outline-secondary rounded-pill me-3 px-4'
+  },
+  buttonsStyling: false
+});
+
+
+
+    if (!confirmed.isConfirmed) {
+      this.checked = false;
+      new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      return;
+    }
+
+    try {
+      // We’ll send name/email to help prefill PayFast form
+      const res = await fetch(`/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': "{{ csrf_token() }}"
+        },
+        body: JSON.stringify({
+          name:  formEl.name?.value || '',
+          email: formEl.email?.value || ''
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to initialize PayFast.');
+      }
+
+      // Build a POST form to PayFast and auto-submit
+      const pfForm = document.createElement('form');
+      pfForm.method = 'POST';
+      pfForm.action = data.action;
+      pfForm.style.display = 'none';
+
+      Object.entries(data.fields).forEach(([k, v]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = v;
+        pfForm.appendChild(input);
+      });
+
+      document.body.appendChild(pfForm);
+      pfForm.submit();
+    } catch (err) {
+      console.error(err);
+      Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
+      // Let the user re-open the payment modal
+      new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      this.checked = false;
     }
   });
+});
+
+
+document.querySelectorAll("input[name='payment_method']").forEach(input => {
+  input.addEventListener("change", async function () {
+    const selected = this.value;
+    const paymentModal = bootstrap.Modal.getInstance(document.getElementById("purchasePayment"));
+    paymentModal?.hide();
+
+    if (selected === "stripe") {
+      new bootstrap.Modal(document.getElementById("stripePaymentModal")).show();
+      return;
+    }
+
+    // ----- PAYFAST -----
+    const formEl = document.getElementById("purchaseForm");
+    const purchaseIdInput = formEl.querySelector("input[name='purchase_id']");
+
+    if (!purchaseIdInput || !purchaseIdInput.value) {
+      Swal.fire({ icon: 'error', title: 'Missing purchase', text: 'Please save your details first.' });
+      // Reopen payment modal for them
+      new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      this.checked = false;
+      return;
+    }
+
+    const confirmed = await Swal.fire({
+  icon: 'question',
+  title: 'Proceed with PayFast?',
+  text: 'You will be redirected to PayFast to complete your payment.',
+  showCancelButton: true,
+  confirmButtonText: 'Continue',
+  cancelButtonText: 'Back',
+  reverseButtons: true, // 🔹 puts "Continue" on the right, "Back" on the left
+  customClass: {
+    confirmButton: 'btn btn-dark',   // dark button
+    cancelButton: 'btn btn-outline-secondary me-3' // lighter back button
+  },
+  buttonsStyling: false // 🔹 lets Bootstrap classes take effect
+});
+
+
+    if (!confirmed.isConfirmed) {
+      this.checked = false;
+      new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      return;
+    }
+
+    try {
+      // We’ll send name/email to help prefill PayFast form
+      const res = await fetch(`/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': "{{ csrf_token() }}"
+        },
+        body: JSON.stringify({
+          name:  formEl.name?.value || '',
+          email: formEl.email?.value || ''
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to initialize PayFast.');
+      }
+
+      // Build a POST form to PayFast and auto-submit
+      const pfForm = document.createElement('form');
+      pfForm.method = 'POST';
+      pfForm.action = data.action;
+      pfForm.style.display = 'none';
+
+      Object.entries(data.fields).forEach(([k, v]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = v;
+        pfForm.appendChild(input);
+      });
+
+      document.body.appendChild(pfForm);
+      pfForm.submit();
+    } catch (err) {
+      console.error(err);
+      Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
+      // Let the user re-open the payment modal
+      new bootstrap.Modal(document.getElementById("purchasePayment")).show();
+      this.checked = false;
+    }
+  });
+});
+
+
+  // 🔹 Stripe payment handling
+  document.getElementById("purchaseStripePayButton").addEventListener("click", async function () {
+    const purchaseIdInput = form.querySelector("input[name='purchase_id']");
+    if (!purchaseIdInput || !purchaseIdInput.value) {
+      Swal.fire({ icon: 'error', title: 'Missing booking', text: 'Purchase ID is missing. Please go back and save your details.' });
+      return;
+    }
+
+    Swal.fire({
+      title: 'Processing payment',
+      html: 'Please do not close this window.',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    const { paymentMethod: pm, error } = await stripe.createPaymentMethod({
+      type: 'card',
+      card: cardNumber,
+      billing_details: { name: form.name.value, email: form.email.value }
+    });
+
+    if (error) {
+      Swal.close();
+      Swal.fire({ icon: 'error', title: 'Card error', text: error.message });
+      return;
+    }
+
+    const purchase_id = purchaseIdInput.value;
+    fetch(`/purchase/${purchase_id}/pay-with-stripe`, {
+      method: 'POST',
+      headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+      body: JSON.stringify({ payment_method_id: pm.id })
+    })
+    .then(res => res.json())
+    .then(async data => {
+      Swal.close();
+      if (data.success) {
+        Swal.fire({ icon: 'success', title: 'Payment successful', text: 'Thank you — your purchase is complete.', timer: 1400, showConfirmButton: false })
+        .then(() => {
+          bootstrap.Modal.getInstance(document.getElementById("stripePaymentModal"))?.hide();
+          new bootstrap.Modal(document.getElementById("purchaseThankYou")).show();
+        });
+      } else if (data.requires_action) {
+        const result = await stripe.confirmCardPayment(data.payment_intent_client_secret);
+        if (result.error) {
+          Swal.fire({ icon: 'error', title: 'Authentication failed', text: result.error.message });
+        } else {
+          Swal.fire({ icon: 'success', title: 'Payment confirmed', text: 'Payment authentication completed.' })
+          .then(() => {
+            bootstrap.Modal.getInstance(document.getElementById("stripePaymentModal"))?.hide();
+            new bootstrap.Modal(document.getElementById("purchaseThankYou")).show();
+          });
+        }
+      } else {
+        Swal.fire({ icon: 'error', title: 'Payment failed', text: data.message || 'There was a problem processing your payment.' });
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      Swal.close();
+      Swal.fire({ icon: 'error', title: 'Network error', text: 'Unable to complete payment. Please try again.' });
+    });
+  });
+
+  // 🔹 Enable tooltips
+  if (window.bootstrap?.Tooltip) {
+    document.querySelectorAll('.contact-btn[title]').forEach(el => new bootstrap.Tooltip(el));
+  }
+});
 </script>
+
+@if(session('payfast_success'))
+<script>
+Swal.fire({
+    icon: 'success',
+    title: 'Payment Successful 🎉',
+    text: @json(session('payfast_success')),
+    confirmButtonText: 'OK',
+    customClass: {
+        confirmButton: 'btn btn-dark'
+    },
+    buttonsStyling: false
+});
+</script>
+@endif
+
+

@@ -7,7 +7,7 @@
 
 
 @section('content')
-    <h1 class="container">Add New Vehicle</h1>
+    <h1 class="container fw-bold">Add New Vehicle</h1>
 
 <form action="{{ route('vehicles.store') }}" method="POST" enctype="multipart/form-data">
     @csrf
@@ -130,8 +130,8 @@
 
 
  <div class="container card card-white bg-white my-3">
-    <div class="card-header py-2 d-flex justify-content-center">
-        <h3 class="card-title mb-0 w-100 text-center">Images</h3>
+    <div class="card-header py-2 text-center">
+        <h3 class="mb-2">Images</h3>
     </div>
     <div class="card-body p-3">
         <!-- Main Photo -->
@@ -146,7 +146,7 @@
             <div id="image-container">
                 <input type="file" name="images[]" class="form-control form-control-sm mb-2">
             </div>
-            <button type="button" class="btn btn-sm btn-outline-success" id="addImageBtn">
+            <button type="button" class="btn btn-sm btn-outline-success mt-1" id="addImageBtn">
                 <i class="fas fa-plus"></i> Add Image
             </button>
         </div>
@@ -155,8 +155,8 @@
 
   <!-- Pricing -->
 <div class="container card bg-white my-3">
-    <div class="card-header py-2 d-flex justify-content-center ">
-        <h3 class="card-title mb-0 w-100 text-center">Rental Pricing</h3>
+    <div class="card-header py-2 text-center">
+        <h3 class="mb-0">Rental Pricing</h3>
     </div>
     <div class="card-body p-3">
         <!-- Row 1 -->

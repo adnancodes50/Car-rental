@@ -210,7 +210,7 @@
             <input type="hidden" name="booking_id" id="bookingId">
 
             <!-- Step 1: Multi-Step Booking Modal -->
-            <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true">
+            <div class="modal fade " id="multiStepBookingModal" tabindex="-1" aria-hidden="true" style="height: 90vh; margin-top: 4rem;">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content rounded-4 shadow-lg">
                         <div class="modal-header">
@@ -219,7 +219,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <h5 class="mb-3">Select Rental Duration</h5>
+                            <h5 class="mb-3 text-center">Select Rental Duration</h5>
                             <div class="row text-center g-3 text-muted">
                                 @if($vehicle->rental_price_day)
                                     <div class="col-md-4">
@@ -291,7 +291,7 @@
             </div>
 
             <!-- Step 2: Add-Ons Modal -->
-            <div class="modal fade" id="addonsStep" tabindex="-1" aria-hidden="true">
+            <div class="modal fade mt-5" id="addonsStep" tabindex="-1" aria-hidden="true" style="height: 90vh; margin-top: 4rem;">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content rounded-4 shadow-lg">
                         <div class="modal-header">
@@ -343,58 +343,73 @@
             </div>
 
             <!-- Step 3: Customer Details Modal -->
-            <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-md modal-dialog-centered">
-                    <div class="modal-content rounded-4 shadow">
-                        <div class="modal-header flex-column text-center">
-                            <h5 class="modal-title fw-bold">Enter Your Details</h5>
-                            <div class="w-100 fw-bold mt-2">Please provide your information</div>
-                            <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
-                                data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row g-3">
-                                <div class="col-md-12">
-                                    <label class="form-label">Full Name</label>
-                                    <input type="text" class="form-control rounded-3" name="name" placeholder="John Doe"
-                                        required>
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control rounded-3" name="email"
-                                        placeholder="you@example.com" required>
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control rounded-3" name="phone"
-                                        placeholder="+27 123 456 7890" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Country</label>
-                                    <select name="country" class="form-select rounded-3" required>
-                                        <option value="" disabled selected>Select your country</option>
-                                        @foreach($countries as $country)
-                                            <option value="{{ $country }}">{{ $country }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <div class="d-flex justify-content-between w-100">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-target="#addonsStep"
-                                    data-bs-toggle="modal">Back</button>
-                                <button type="button" id="goToSummary" class="btn btn-dark rounded-3">Review
-                                    Booking</button>
-                            </div>
-                        </div>
+            <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true" style="margin-bottom: 10rem">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow">
 
-                    </div>
-                </div>
-            </div>
+      <!-- Header -->
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold d-flex align-items-center">
+          <i class="bi bi-person-circle me-2"></i>
+          Enter Your Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <hr>
+
+
+
+      <!-- Body -->
+      <div class="modal-body px-4">
+        <div class="row g-3">
+
+          <div class="col-12">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control rounded-3" name="name" placeholder="John Doe" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control rounded-3" name="email" placeholder="you@example.com" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" class="form-control rounded-3" name="phone" placeholder="+27 123 456 7890" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Country</label>
+            <select name="country" class="form-select rounded-3" required>
+              <option value="" disabled selected>Select your country</option>
+              @foreach($countries as $country)
+                <option value="{{ $country }}">{{ $country }}</option>
+              @endforeach
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer border-0 d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary rounded-3"
+          data-bs-target="#addonsStep" data-bs-toggle="modal">
+          Back
+        </button>
+        <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">
+          Review Booking
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
             <!-- Step 4: Booking Summary -->
-            <div class="modal fade" id="summaryStep" tabindex="-1" aria-hidden="true">
+            <div class="modal fade mt-5" id="summaryStep" tabindex="-1" aria-hidden="true" style="height: 90vh; margin-top: 4rem;">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content rounded-4 shadow-lg">
                         <div class="modal-header">
@@ -556,7 +571,7 @@
 
 
         <!-- Step 5b: Stripe Card -->
-        <div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true" style="margin-top: 4rem; height:90vh;">
             <div class="modal-dialog modal-md modal-dialog-centered">
                 <div class="modal-content rounded-4 shadow">
                     <div class="modal-header">
@@ -590,19 +605,40 @@
             </div>
         </div>
 
-        <!-- Step 6: Thank You -->
-        <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-md modal-dialog-centered">
-                <div class="modal-content rounded-4 shadow text-center p-4 border-0">
-                    <div class="modal-body">
-                        <h4 class="fw-bold mb-2 text-success">Thank You!</h4>
-                        <p class="text-muted mb-4">Your booking payment has been received.</p>
-                        <button type="button" class="btn btn-success fw-bold px-4 rounded-pill"
-                            data-bs-dismiss="modal">Close</button>
-                    </div>
+       <!-- Step 6: Thank You -->
+<div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow text-center p-4 border-0">
+            <div class="modal-body text-center py-5">
+
+                <!-- Optional Success icon badge -->
+                <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3"
+                     style="width:84px;height:84px;">
+                    <i class="bi bi-check2-circle fs-1"></i>
                 </div>
+
+                <!-- Title & message -->
+                <h4 class="fw-bold mb-2">Thank You!</h4>
+                <p class="text-secondary mb-4">
+                    Your booking payment has been received.
+                </p>
+
+                <!-- Optional Amount (if needed, remove if not) -->
+                <!-- <div class="fw-bold fs-5 mb-4">
+                    Amount: <span id="bookingAmount">R 5,000.00</span>
+                </div> -->
+
+                <!-- Close button (styled like purchase modal) -->
+                <button type="button"
+                        class="btn btn-success fw-semibold px-4 rounded-pill"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
             </div>
         </div>
+    </div>
+</div>
+
 
 
 

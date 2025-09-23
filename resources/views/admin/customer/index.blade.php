@@ -3,7 +3,7 @@
 @section('title', 'Customers')
 
 @section('content_header')
-<h1 class="fw-bold">Customers</h1>
+<h1 class="text-bold container">Customers</h1>
 @stop
 
 @section('content')
@@ -11,7 +11,7 @@
     <!-- Card -->
     <div class="card shadow-sm border-0 rounded-4">
         <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-            <h3 class="card-title mb-0 fw-bold">All Customers</h3>
+            <h3 class="card-title mb-0 text-bold">All Customers</h3>
         </div>
 
         <hr>

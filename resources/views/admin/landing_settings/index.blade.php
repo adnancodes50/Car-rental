@@ -3,7 +3,7 @@
 @section('title', 'Landing Page Settings')
 
 @section('content_header')
-<h1 class="container">Landing Page Management</h1>
+<h1 class="container text-bold">Landing Page Management</h1>
 @stop
 
 @section('content')

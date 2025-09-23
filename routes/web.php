@@ -8,6 +8,7 @@ use App\Http\Controllers\LandingSettingController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\PayfastController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
@@ -120,42 +121,33 @@ Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 
 
 
 
-    Route::get('/pay', function () {
-    $data = [
-        'merchant_id' => config('payfast.merchant_id'),
-        'merchant_key' => config('payfast.merchant_key'),
-        'return_url' => url('/payment/success'),
-        'cancel_url' => url('/payment/cancel'),
-        'notify_url' => url('/payment/notify'),
+// routes/web.php
 
-        'amount' => number_format(100, 2, '.', ''), // Example amount
-        'item_name' => 'Test Car Rental Payment',
-    ];
 
-    // Generate signature
-    $query = http_build_query($data);
-    if (config('payfast.passphrase')) {
-        $query .= '&passphrase=' . urlencode(config('payfast.passphrase'));
-    }
-    $data['signature'] = md5($query);
+// Create the PayFast request + redirect (returns fields to auto-submit to PayFast)
+// Start PayFast payment
+Route::post('/purchase/{purchase}/payfast/init', [PurchaseController::class, 'initPayfast'])
+    ->name('purchase.payfast.init');
 
-    // PayFast sandbox URL
-    $payfastUrl = config('payfast.testmode')
-        ? 'https://sandbox.payfast.co.za/eng/process'
-        : 'https://www.payfast.co.za/eng/process';
+// Return URL after successful payment
+Route::match(['GET','POST'], '/payment/success', [PurchaseController::class, 'payfastReturn'])
+    ->name('payfast.return');
 
-    return view('payfast.checkout', compact('data', 'payfastUrl'));
-});
+// Cancel URL if user cancels
+Route::match(['GET','POST'], '/payment/cancel', [PurchaseController::class, 'payfastCancel'])
+    ->name('payfast.cancel');
 
-Route::get('/payment/success', fn() => '✅ Payment Successful');
-Route::get('/payment/cancel', fn() => '❌ Payment Cancelled');
-Route::post('/payment/notify', function () {
-    return response('OK');
-});
+Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNotify'])
+  ->name('purchase.payfast.notify')
+;
 
 
 
-
+    //FOR BOOKING PAYFAST
+    Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
+Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
+Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])->name('payfast.booking.return');
+Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
 
 require __DIR__ . '/auth.php';
 

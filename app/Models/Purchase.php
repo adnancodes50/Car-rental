@@ -18,6 +18,10 @@ class Purchase extends Model
         'deposit_paid',
     ];
 
+    protected $casts = [
+        'deposit_paid' => 'float',
+    ];
+
     /**
      * Get the vehicle associated with the purchase
      */

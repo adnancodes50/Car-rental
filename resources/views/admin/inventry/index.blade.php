@@ -3,20 +3,26 @@
 @section('title', 'Add-On Inventory')
 
 @section('content_header')
-<h1 class="fw-bold">Add-On Inventory</h1>
+<h1 class="text-bold container">Add-On Inventory</h1>
 @stop
 
 @section('content')
 <div class="container-fluid">
     <!-- Card -->
-    <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header border-0 d-flex justify-content-between align-items-center">
-            <h3 class="card-title mb-0 fw-bold">Manage Add-Ons</h3>
-            <a href="{{ route('inventry.create') }}" class="btn btn-dark text-white btn-sm" style="margin-left: 880px;">
-                <i class="fas fa-plus-circle me-1 text-white"></i> Add-On
-            </a>
+    <div class=" card shadow-sm border-0 rounded-4">
+      <div class="card-header border-0">
+  <div class="row align-items-center">
+    <div class="col">
+      <h3 class="card-title mb-0 text-bold">Manage Add-Ons</h3>
+    </div>
+    <div class="col-auto text-end">
+      <a href="{{ route('inventry.create') }}" class="btn btn-dark btn-sm">
+        <i class="fas fa-plus-circle me-1"></i> Add-On
+      </a>
+    </div>
+  </div>
+</div>
 
-        </div>
 
         <hr>
 
