@@ -30,9 +30,7 @@ class Purchase extends Model
         return $this->belongsTo(Vehicles::class);
     }
 
-    /**
-     * Get the customer associated with the purchase
-     */
+ 
     public function customer()
     {
         return $this->belongsTo(Customer::class);

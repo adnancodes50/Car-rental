@@ -1,4 +1,4 @@
-        {{-- BOOKING MODALS --}}
+       {{-- BOOKING MODALS --}}
         @php
             $countries = [
                 "Afghanistan",
@@ -346,17 +346,11 @@
             <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true" style="margin-bottom: 10rem">
   <div class="modal-dialog modal-md modal-dialog-centered">
     <div class="modal-content rounded-4 shadow">
+        <div class="modal-header">
+                            <h5 class="modal-title fw-bold"><i class="bi bi-person-circle me-2"></i>Enter Your Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
 
-      <!-- Header -->
-      <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold d-flex align-items-center">
-          <i class="bi bi-person-circle me-2"></i>
-          Enter Your Details
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <hr>
 
 
 
@@ -498,76 +492,78 @@
 
         <!-- Step 5a: Payment Method (centered, taller, pretty) -->
 
-        <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content rounded-4 shadow">
-                    <div class="modal-header">
-                        <h5 class="modal-title fw-bold w-100 text-center">Select Payment Method</h5>
-                        <button type="button" class="btn-close position-absolute end-0 me-3"
-                            data-bs-dismiss="modal"></button>
-                    </div>
+      <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow">
 
-                   <div class="modal-body">
-  <div class="row g-3 align-items-stretch justify-content-center">
-    <!-- Stripe -->
-    <div class="col-12 col-md-6">
-      <input
-        type="radio"
-        name="booking_payment_method"
-        id="bookingStripe"
-        value="stripe"
-        class="btn-check"
-        autocomplete="off"
-      >
-      <label for="bookingStripe" class="card btn w-100 booking-pay-option">
-        <div class="booking-icon-wrap">
-          <!-- Swap to a logo if you prefer -->
-          <i class="bi bi-credit-card"></i>
-          <!-- <img src="/images/payments/stripe.svg" alt="Stripe"> -->
-        </div>
-        <div class="booking-pay-text">
-          <div class="fw-bold">Stripe (Card)</div>
-          <small class="text-muted">Visa • Mastercard • Amex</small>
-        </div>
-      </label>
-    </div>
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-credit-card me-2"></i> Select Payment Method
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
 
-    <!-- PayFast -->
-    <div class="col-12 col-md-6">
-      <input
-        type="radio"
-        name="booking_payment_method"
-        id="bookingPayfast"
-        value="payfast"
-        class="btn-check"
-        autocomplete="off"
-      >
-      <label for="bookingPayfast" class="card btn w-100 booking-pay-option">
-        <div class="booking-icon-wrap">
-          <i class="bi bi-lightning-charge"></i>
-          <!-- <img src="/images/payments/payfast.svg" alt="PayFast"> -->
+      <!-- Body -->
+      <div class="modal-body">
+        <div class="row g-3 align-items-stretch justify-content-center">
+
+          <!-- Stripe -->
+          <div class="col-12 col-md-6">
+            <input
+              type="radio"
+              name="booking_payment_method"
+              id="bookingStripe"
+              value="stripe"
+              class="btn-check"
+              autocomplete="off"
+            >
+            <label for="bookingStripe" class="card btn w-100 booking-pay-option p-3">
+              <div class="text-center mb-2">
+                <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe" style="width: 80px; height:auto;">
+              </div>
+              <div class="booking-pay-text text-center">
+                <div class="fw-bold">Stripe (Card)</div>
+                <small class="text-muted">Visa • Mastercard • Amex</small>
+              </div>
+            </label>
+          </div>
+
+          <!-- PayFast -->
+          <div class="col-12 col-md-6">
+            <input
+              type="radio"
+              name="booking_payment_method"
+              id="bookingPayfast"
+              value="payfast"
+              class="btn-check"
+              autocomplete="off"
+            >
+            <label for="bookingPayfast" class="card btn w-100 booking-pay-option p-3">
+              <div class="text-center mb-2">
+                <img src="{{ asset('images/payfast.png') }}" class="rounded-3" alt="PayFast" style="width: 80px; height:auto;">
+              </div>
+              <div class="booking-pay-text text-center">
+                <div class="fw-bold">PayFast</div>
+                <small class="text-muted">South Africa payments</small>
+              </div>
+            </label>
+          </div>
+
         </div>
-        <div class="booking-pay-text">
-          <div class="fw-bold">PayFast</div>
-          <small class="text-muted">South Africa payments</small>
-        </div>
-      </label>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#summaryStep">
+          Back
+        </button>
+        <!-- Optional: Next / Continue button -->
+        <!-- <button type="button" class="btn btn-dark" id="proceedAfterMethod">Continue</button> -->
+      </div>
     </div>
   </div>
 </div>
-
-
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
-                            data-bs-target="#summaryStep">
-                            Back
-                        </button>
-                        <!-- Optional: proceed button if you want an explicit Next -->
-                        <!-- <button type="button" class="btn btn-dark" id="proceedAfterMethod">Continue</button> -->
-                    </div>
-                </div>
-            </div>
-        </div>
 
 
         <!-- Step 5b: Stripe Card -->
@@ -605,40 +601,19 @@
             </div>
         </div>
 
-       <!-- Step 6: Thank You -->
-<div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-        <div class="modal-content rounded-4 shadow text-center p-4 border-0">
-            <div class="modal-body text-center py-5">
-
-                <!-- Optional Success icon badge -->
-                <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-3"
-                     style="width:84px;height:84px;">
-                    <i class="bi bi-check2-circle fs-1"></i>
+        <!-- Step 6: Thank You -->
+        <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-md modal-dialog-centered">
+                <div class="modal-content rounded-4 shadow text-center p-4 border-0">
+                    <div class="modal-body">
+                        <h4 class="fw-bold mb-2 text-success">Thank You!</h4>
+                        <p class="text-muted mb-4">Your booking payment has been received.</p>
+                        <button type="button" class="btn btn-success fw-bold px-4 rounded-pill"
+                            data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
-
-                <!-- Title & message -->
-                <h4 class="fw-bold mb-2">Thank You!</h4>
-                <p class="text-secondary mb-4">
-                    Your booking payment has been received.
-                </p>
-
-                <!-- Optional Amount (if needed, remove if not) -->
-                <!-- <div class="fw-bold fs-5 mb-4">
-                    Amount: <span id="bookingAmount">R 5,000.00</span>
-                </div> -->
-
-                <!-- Close button (styled like purchase modal) -->
-                <button type="button"
-                        class="btn btn-success fw-semibold px-4 rounded-pill"
-                        data-bs-dismiss="modal">
-                    Close
-                </button>
             </div>
         </div>
-    </div>
-</div>
-
 
 
 

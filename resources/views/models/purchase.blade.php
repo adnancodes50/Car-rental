@@ -206,13 +206,18 @@
     <div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg overflow-hidden">
-                <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+                {{-- <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
 <h2 class="h4 fw-bold mb-0">
   <i class="bi bi-car-front-fill me-2"></i>
   Purchase {{ $vehicle->name }}
 </h2>
                     <button type="button" class="btn-close text-secondary" data-bs-dismiss="modal"></button>
-                </div>
+                </div> --}}
+                <div class="modal-header">
+                            <h5 class="modal-title fw-bold"><i class="bi bi-car-front-fill me-2"></i>
+  Purchase {{ $vehicle->name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
                 <div class="modal-body p-4">
                     <div class="text-center mb-4">
                         <h5 class="fw-semibold mb-2">Purchase Process Information</h5>
@@ -245,15 +250,20 @@
     <div class="modal-content rounded-4 shadow-lg overflow-hidden">
 
       <!-- Header -->
-      <div class="modal-header border-0">
+      {{-- <div class="modal-header border-0">
         <h5 class="modal-title fw-bold d-flex align-items-center">
           <i class="bi bi-person-circle me-2"></i>
           Enter Your Details
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
+      </div> --}}
 
-      <hr>
+      <div class="modal-header">
+                            <h5 class="modal-title fw-bold"><i class="bi bi-person-circle me-2"></i>
+          Enter Your Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
 
 
 
@@ -313,57 +323,81 @@
 </div>
 
 
-    <!-- Step 3a: Payment Method Selection -->
-    <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Select Payment Method</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3 align-items-stretch">
-                        <!-- Stripe -->
-                        <div class="col-12 col-md-6">
-                            <input type="radio" name="payment_method" id="stripe" value="stripe" class="btn-check"
-                                autocomplete="off" required>
-                            <label for="stripe" class="card pay-option btn w-100">
-                                <div class="icon-wrap">
-                                    <!-- Use an icon or small logo -->
-                                    <i class="bi bi-credit-card"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold">Stripe</div>
-                                    <small class="text-muted">International Cards</small>
-                                </div>
-                            </label>
-                        </div>
 
-                        <!-- PayFast -->
-                        <div class="col-12 col-md-6">
-                            <input type="radio" name="payment_method" id="payfast" value="payfast" class="btn-check"
-                                autocomplete="off" required>
-                            <label for="payfast" class="card pay-option btn w-100">
-                                <div class="icon-wrap">
-                                    <!-- Replace with your PayFast logo if you have one -->
-                                    <i class="bi bi-lightning-charge"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold">PayFast</div>
-                                    <small class="text-muted">South Africa</small>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
+<!-- Purchase Payment Modal -->
+<div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow">
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary me-auto" data-bs-target="#purchaseCustomer"
-                        data-bs-toggle="modal">Back</button>
-                </div>
-            </div>
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-credit-card me-2"></i> Select Payment Method
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <div class="row g-3 align-items-stretch justify-content-center">
+
+          <!-- Stripe -->
+          <div class="col-12 col-md-6">
+            <input
+              type="radio"
+              name="payment_method"
+              id="purchaseStripe"
+              value="stripe"
+              class="btn-check"
+              autocomplete="off"
+              required
+            >
+            <label for="purchaseStripe" class="card btn w-100 purchase-pay-option p-3 flex-column">
+              <div class=" text-center mb-2">
+                <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe" style="width: 80px; height:auto;">
+              </div>
+              <div class="purchase-pay-text">
+                <div class="fw-bold">Stripe (Card)</div>
+                <small class="text-muted">Visa • Mastercard • Amex</small>
+              </div>
+            </label>
+          </div>
+
+          <!-- PayFast -->
+          <div class="col-12 col-md-6">
+            <input
+              type="radio"
+              name="payment_method"
+              id="purchasePayfast"
+              value="payfast"
+              class="btn-check"
+              autocomplete="off"
+              required
+            >
+            <label for="purchasePayfast" class="card btn w-100 purchase-pay-option p-3 flex-column">
+              <div class=" text-center mb-2">
+                <img src="{{ asset('images/payfast.png') }}" class="rounded-3" alt="PayFast" style="width: 80px; height:auto;">
+              </div>
+              <div class="purchase-pay-text">
+                <div class="fw-bold">PayFast</div>
+                <small class="text-muted">South Africa payments</small>
+              </div>
+            </label>
+          </div>
+
         </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-target="#purchaseCustomer" data-bs-toggle="modal">
+          Back
+        </button>
+      </div>
     </div>
+  </div>
+</div>
+
 
     <!-- Step 3b: Stripe Card Input -->
     <div class="modal fade mt-5" id="stripePaymentModal" tabindex="-1" aria-hidden="true">
@@ -546,11 +580,13 @@
 </div>
 
 
-                <div class="modal-footer container">
-                    <button type="button" class="btn btn-outline-secondary me-auto" data-bs-target="#purchaseCustomer"
-                        data-bs-toggle="modal">Back</button>
-                    <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Purchase Now</button>
-                </div>
+               <div class="modal-footer container">
+    <button type="button" class="btn btn-outline-secondary me-auto"
+        data-bs-target="#purchasePayment"
+        data-bs-toggle="modal">Back</button>
+    <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Purchase Now</button>
+</div>
+
             </div>
         </div>
     </div>
@@ -695,16 +731,70 @@
 .contact-btn:hover i{ transform: scale(1.05); }
 
 
-    /* Force a single row on md+; stacks on xs for responsiveness */
-    @media (min-width: 768px) {
-        #purchasePayment .col-md-6 {
-            display: flex;
-        }
 
-        #purchasePayment .pay-option {
-            width: 100%;
-        }
-    }
+
+
+
+/* Scope to the purchase modal by ID */
+#purchasePayment .purchase-pay-option {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: .75rem;
+  padding: 20px;
+  text-align: left;
+  transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+}
+
+#purchasePayment .purchase-pay-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+}
+
+#purchasePayment .btn-check:checked + .purchase-pay-option {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 .25rem rgba(13,110,253,.2);
+}
+
+/* Icon container */
+#purchasePayment .purchase-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  flex: 0 0 56px;
+}
+
+#purchasePayment .purchase-icon-wrap img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+/* Text block */
+#purchasePayment .purchase-pay-text {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+/* Responsive: row on md+, stack on xs */
+@media (min-width: 768px) {
+  #purchasePayment .col-md-6 {
+    display: flex;
+  }
+  #purchasePayment .purchase-pay-option {
+    width: 100%;
+  }
+}
+
 </style>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
@@ -1033,6 +1123,13 @@ document.querySelectorAll("input[name='payment_method']").forEach(input => {
     document.querySelectorAll('.contact-btn[title]').forEach(el => new bootstrap.Tooltip(el));
   }
 });
+
+document.getElementById("purchasePayment").addEventListener("show.bs.modal", function () {
+  document.querySelectorAll("#purchasePayment input[name='payment_method']").forEach(el => {
+    el.checked = false; // reset selection
+  });
+});
+
 </script>
 
 @if(session('payfast_success'))
