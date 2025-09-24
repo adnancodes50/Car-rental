@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class AddOn extends Model
 {
@@ -36,4 +37,31 @@ class AddOn extends Model
                     ->withPivot('qty', 'price_total')
                     ->withTimestamps();
     }
+
+    // app/Models/AddOn.php
+
+public function getTotalBookedAttribute()
+{
+    return $this->bookings->sum(function ($booking) {
+        return (int) $booking->pivot->qty;
+    });
+}
+
+public function getRemainingQtyAttribute()
+{
+    return max($this->qty_total - $this->total_booked, 0);
+}
+
+// public function getActiveBookingsAttribute()
+// {
+//     $today = Carbon::today();
+
+//     return $this->bookings()
+//         ->where('start_date', '<=', $today)
+//         ->where('end_date', '>=', $today)
+//         ->count();
+// }
+
+
+
 }

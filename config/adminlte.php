@@ -369,6 +369,15 @@ return [
         'route' => 'customers.index',
         'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
     ],
+
+[
+    'text'  => 'Payment Settings',
+    'route' => 'settings.index',
+    'icon'  => 'fas fa-cogs fa-lg text-info', // Gear icon
+    'icon2' => 'fas fa-credit-card fa-lg text-warning', // Payment icon
+],
+
+
         // [
         //     'text' => 'Management',
         //     'icon' => 'fas fa-fw fa-cogs',

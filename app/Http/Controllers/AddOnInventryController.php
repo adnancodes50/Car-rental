@@ -9,11 +9,15 @@ use Str;
 
 class AddOnInventryController extends Controller
 {
-    public function index()
-    {
-        $addOns = AddOn::all();
-        return view('admin.inventry.index', compact('addOns'));
-    }
+public function index()
+{
+    // Eager load bookings to avoid N+1 problem
+    $addOns = AddOn::with('bookings')->get();
+
+    return view('admin.inventry.index', compact('addOns'));
+}
+
+
 
     public function create()
     {
@@ -50,6 +54,21 @@ class AddOnInventryController extends Controller
         return redirect()->route('inventry.index')
             ->with('success', 'Add-On created successfully!');
     }
+
+
+public function view(AddOn $addon)
+{
+
+// dd($addon);
+    $addon->load(['bookings.customer']); // keep this
+    $reservations = \App\Models\AddOnReservation::with(['booking.customer'])
+        ->where('add_on_id', $addon->id)
+        ->get();
+
+// dd($reservations);
+
+    return view('admin.inventry.view', compact('addon', 'reservations'));
+}
 
 
     public function edit(AddOn $addon)

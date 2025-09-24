@@ -36,7 +36,7 @@
 
 
             {{-- Extra Features --}}
-            
+
 
             <!-- Vehicle details -->
             <div class="col-12 col-md-6">

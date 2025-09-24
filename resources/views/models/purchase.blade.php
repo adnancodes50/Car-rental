@@ -323,6 +323,13 @@
 </div>
 
 
+@php
+$stripe = Cache::get('payments.stripe', config('payments.stripe'));
+$payfast = Cache::get('payments.payfast', config('payments.payfast'));
+
+// Count how many payment methods are enabled
+$enabledCount = ($stripe['enabled'] ? 1 : 0) + ($payfast['enabled'] ? 1 : 0);
+@endphp
 
 <!-- Purchase Payment Modal -->
 <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true">
@@ -341,49 +348,45 @@
       <div class="modal-body">
         <div class="row g-3 align-items-stretch justify-content-center">
 
+          @if($stripe['enabled'])
           <!-- Stripe -->
-          <div class="col-12 col-md-6">
-            <input
-              type="radio"
-              name="payment_method"
-              id="purchaseStripe"
-              value="stripe"
-              class="btn-check"
-              autocomplete="off"
-              required
-            >
-            <label for="purchaseStripe" class="card btn w-100 purchase-pay-option p-3 flex-column">
-              <div class=" text-center mb-2">
-                <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe" style="width: 80px; height:auto;">
-              </div>
-              <div class="purchase-pay-text">
-                <div class="fw-bold">Stripe (Card)</div>
-                <small class="text-muted">Visa • Mastercard • Amex</small>
-              </div>
-            </label>
+          <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+              <input type="radio" name="payment_method" id="purchaseStripe" value="stripe" class="btn-check" autocomplete="off" required>
+              <label for="purchaseStripe" class="card btn w-100 purchase-pay-option p-3 flex-column">
+                  <div class="text-center mb-2">
+                      <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe" style="width: 80px;">
+                  </div>
+                  <div class="purchase-pay-text">
+                      <div class="fw-bold">Stripe (Card)</div>
+                      <small class="text-muted">Visa • Mastercard • Amex</small>
+                  </div>
+              </label>
           </div>
+          @endif
 
+          @if($payfast['enabled'])
           <!-- PayFast -->
-          <div class="col-12 col-md-6">
-            <input
-              type="radio"
-              name="payment_method"
-              id="purchasePayfast"
-              value="payfast"
-              class="btn-check"
-              autocomplete="off"
-              required
-            >
-            <label for="purchasePayfast" class="card btn w-100 purchase-pay-option p-3 flex-column">
-              <div class=" text-center mb-2">
-                <img src="{{ asset('images/payfast.png') }}" class="rounded-3" alt="PayFast" style="width: 80px; height:auto;">
-              </div>
-              <div class="purchase-pay-text">
-                <div class="fw-bold">PayFast</div>
-                <small class="text-muted">South Africa payments</small>
-              </div>
-            </label>
+          <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+              <input type="radio" name="payment_method" id="purchasePayfast" value="payfast" class="btn-check" autocomplete="off" required>
+              <label for="purchasePayfast" class="card btn w-100 purchase-pay-option p-3 flex-column">
+                  <div class="text-center mb-2">
+                      <img src="{{ asset('images/payfast.png') }}" class="rounded-3" alt="PayFast" style="width: 80px;">
+                  </div>
+                  <div class="purchase-pay-text">
+                      <div class="fw-bold">PayFast</div>
+                      <small class="text-muted">South Africa payments</small>
+                  </div>
+              </label>
           </div>
+          @endif
+
+          @if($enabledCount === 0)
+          <div class="col-12">
+              <div class="alert alert-warning text-center">
+                  No payment methods are currently available.
+              </div>
+          </div>
+          @endif
 
         </div>
       </div>
@@ -394,10 +397,10 @@
           Back
         </button>
       </div>
+
     </div>
   </div>
 </div>
-
 
     <!-- Step 3b: Stripe Card Input -->
     <div class="modal fade mt-5" id="stripePaymentModal" tabindex="-1" aria-hidden="true">

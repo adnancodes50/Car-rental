@@ -176,9 +176,8 @@ class VehicleController extends Controller
             ->with('success', '✅ Vehicle updated successfully!');
     }
 
-
+    
    // App\Http\Controllers\YourController.php
-
 public function view(Vehicles $vehicle)
 {
     $addOns = \App\Models\AddOn::all();
@@ -192,6 +191,7 @@ public function view(Vehicles $vehicle)
 
     return view('view', compact('vehicle', 'addOns', 'bookedRanges', 'landing'));
 }
+
 
 
 

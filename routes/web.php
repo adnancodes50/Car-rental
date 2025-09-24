@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\PaymentSettingsController;
 
 
 Route::get('/', [VehicleController::class, 'frontendIndex'])->name('home');
@@ -70,7 +71,7 @@ Route::group([
 
     Route::get('/{addon}/edit', [AddOnInventryController::class, 'edit'])->name('edit');
     Route::put('/{addon}', [AddOnInventryController::class, 'update'])->name('update');
-    // Route::get('/{vehicle}', [AddOnInventryController::class, 'show'])->name('show');
+    Route::get('/{vehicle}', [AddOnInventryController::class, 'view'])->name('view');
 Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy');
 });
 
@@ -93,6 +94,27 @@ Route::group([
     Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
 
 });
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'settings',
+    'as' => 'settings.'
+], function () {
+    Route::get('/', [PaymentSettingsController::class, 'edit'])->name('index');
+
+    // Main payments overview page
+    Route::get('/payments', [PaymentSettingsController::class, 'edit'])->name('payments.edit');
+
+    // Dedicated pages for each gateway
+    Route::get('/payments/stripe', [PaymentSettingsController::class, 'stripe'])->name('payments.stripe');
+    Route::post('/payments/stripe', [PaymentSettingsController::class, 'updateStripe'])->name('payments.stripe.update');
+
+    Route::get('/payments/payfast', [PaymentSettingsController::class, 'payfast'])->name('payments.payfast');
+    Route::post('/payments/payfast', [PaymentSettingsController::class, 'updatePayfast'])->name('payments.payfast.update');
+});
+
+
 
 
 

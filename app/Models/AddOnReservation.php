@@ -16,6 +16,9 @@ class AddOnReservation extends Model
         'booking_id',
         'qty',
         'price_total',
+        'start_date',
+    'end_date',
+     'extra_days',
     ];
 
     /**

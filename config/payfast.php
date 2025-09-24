@@ -13,7 +13,6 @@ return [
         'live'    => 'https://www.payfast.co.za/eng/process',
     ],
 
-    // just paths or env overrides — NO url() here
     'return_url' => env('PAYFAST_RETURN_URL', '/payment/success'),
     'cancel_url' => env('PAYFAST_CANCEL_URL', '/payment/cancel'),
     'notify_url' => env('PAYFAST_NOTIFY_URL', '/payment/notify'),
