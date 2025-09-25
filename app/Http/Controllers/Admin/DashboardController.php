@@ -17,18 +17,24 @@ class DashboardController extends Controller
         $totalBookings = Booking::count();
 
         // Total booking amount (sum of total_price column)
+        // $totalBookingAmount = Booking::sum('total_price');
         $totalBookingAmount = Booking::sum('total_price');
 
+        // dd( $totalBookingAmount);
+
         // Active bookings based on today's date
-        $today = Carbon::today();
+         $today = carbon::today();
         $activeBookings = Booking::whereDate('start_date', '<=', $today)
-                                ->whereDate('end_date', '>=', $today)
-                                ->count();
+                         ->whereDate('end_date', '>=', $today )
+                         ->count();
+
+
 
         // ✅ Total customers
         $totalCustomers = Customer::count();
 
         // ✅ Total purchases
+        // $totalPurchases = Purchase::count();
         $totalPurchases = Purchase::count();
 
         // ✅ Total purchase amount

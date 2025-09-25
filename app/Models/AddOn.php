@@ -31,12 +31,12 @@ class AddOn extends Model
     }
 
 
-     public function bookings()
-    {
-        return $this->belongsToMany(Booking::class, 'add_on_reservations')
-                    ->withPivot('qty', 'price_total')
-                    ->withTimestamps();
-    }
+    //  public function bookings()
+    // {
+    //     return $this->belongsToMany(Booking::class, 'add_on_reservations')
+    //                 ->withPivot('qty', 'price_total')
+    //                 ->withTimestamps();
+    // }
 
     // app/Models/AddOn.php
 
@@ -64,4 +64,19 @@ public function getRemainingQtyAttribute()
 
 
 
+
+    public function reservations()
+    {
+        // explicit FK helps avoid surprises
+        return $this->hasMany(AddOnReservation::class, 'add_on_id');
+    }
+
+    public function bookings()
+    {
+        // if you still need the many-to-many view
+        return $this->belongsToMany(Booking::class, 'add_on_reservations', 'add_on_id', 'booking_id')
+                    ->withPivot('qty', 'price_total', 'start_date', 'end_date', 'extra_days')
+                    ->withTimestamps();
+    }
 }
+

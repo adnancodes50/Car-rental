@@ -69,11 +69,17 @@ Route::group([
     Route::get('/create', [AddOnInventryController::class, 'create'])->name('create');
     Route::post('/', [AddOnInventryController::class, 'store'])->name('store');
 
+    // use {addon} everywhere for implicit model binding to App\Models\AddOn
     Route::get('/{addon}/edit', [AddOnInventryController::class, 'edit'])->name('edit');
     Route::put('/{addon}', [AddOnInventryController::class, 'update'])->name('update');
-    Route::get('/{vehicle}', [AddOnInventryController::class, 'view'])->name('view');
-Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy');
+
+    // reservations page for a specific Add-On (was {vehicle} before)
+    Route::get('/{addon}/reservations', [AddOnInventryController::class, 'view'])->name('view');
+
+    Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy')
+         ->whereNumber('addon'); // optional, keeps it from matching 'create'
 });
+
 
 
 

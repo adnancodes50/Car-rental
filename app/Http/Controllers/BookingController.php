@@ -45,7 +45,7 @@ public function store(Request $request)
         'add_ons.*.quantity'    => ['nullable','integer','min:1'],
         'add_ons.*.start_date'  => ['nullable','date'],
         'add_ons.*.end_date'    => ['nullable','date'],
-         'add_ons.*.extra_days'          => 'nullable|integer|min:0|max:6',
+        'add_ons.*.extra_days'    => ['nullable','integer','min:0'],
         'add_ons.*.total'       => ['nullable','numeric','min:0'], // ignored for security; we compute server-side
     ]);
 
@@ -119,7 +119,8 @@ public function store(Request $request)
         // Support BOTH shapes:
         // (A) nested: add_ons[ID][type|quantity|start_date|end_date]
         // (B) legacy: add_ons[ID] = quantity
-        $rawAddOns = $validated['add_ons'] ?? [];
+        $rawAddOns = $request->input('add_ons', []);
+        // $rawAddOns = $validated['add_ons'] ?? [];
 
         foreach ($rawAddOns as $addOnId => $payload) {
             // Normalize to a structure
@@ -165,14 +166,15 @@ public function store(Request $request)
 
             $addonsTotal += $priceTotal;
 
-            $addOnReservations[] = [
+        $addOnReservations[] = [
     'add_on_id'   => (int) $addOn->id,
-    'qty'         => $aQty,
+    'qty'         => (int) $aQty,
     'price_total' => (int) round($priceTotal),
     'start_date'  => $aStart->toDateString(),
     'end_date'    => $aEnd->toDateString(),
-    'extra_days'  => (int) ($payload['extra_days'] ?? 0),
+    'extra_days'  => isset($payload['extra_days']) ? (int)$payload['extra_days'] : 0, // ← now preserved
 ];
+
 
         }
 

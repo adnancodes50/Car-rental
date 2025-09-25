@@ -93,7 +93,7 @@ class VehicleController extends Controller
 
 
         return redirect()->route('vehicles.index')
-            ->with('success', '✅ Vehicle created successfully!');
+            ->with('success', 'Vehicle created successfully!');
     }
 
 
@@ -105,7 +105,7 @@ class VehicleController extends Controller
 
     public function update(Request $request, Vehicles $vehicle)
     {
-        // 1️⃣ Validate input
+        // Step 1: Validate input
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'model' => 'nullable|string|max:255',
@@ -133,10 +133,10 @@ class VehicleController extends Controller
             'features.*' => 'string|max:255',
         ]);
 
-        // 2️⃣ Remove images from validated array
+        // Step 2: Remove images from validated array
         unset($validated['main_image'], $validated['images']);
 
-        // 3️⃣ Update vehicle basic fields
+        // Step 3: Update vehicle basic fields
         $vehicle->update($validated);
 
         if ($request->hasFile('main_image')) {
@@ -152,7 +152,7 @@ class VehicleController extends Controller
 }
 
 
-        // 5️⃣ Remove images marked for deletion
+        // Step 5: Remove images marked for deletion
         if ($request->has('removed_images')) {
             foreach ($request->removed_images as $imgId) {
                 $image = $vehicle->images()->find($imgId);
@@ -173,14 +173,20 @@ class VehicleController extends Controller
 
 
         return redirect()->route('vehicles.index')
-            ->with('success', '✅ Vehicle updated successfully!');
+            ->with('success', 'Vehicle updated successfully!');
     }
 
     
    // App\Http\Controllers\YourController.php
 public function view(Vehicles $vehicle)
 {
-    $addOns = \App\Models\AddOn::all();
+    $addOns = \App\Models\AddOn::with([
+        'reservations' => function ($query) {
+            $query->whereHas('booking', function ($bookingQuery) {
+                $bookingQuery->where('status', '!=', 'cancelled');
+            })->select('id', 'add_on_id', 'booking_id', 'qty', 'start_date', 'end_date');
+        },
+    ])->get();
 
     $bookedRanges = Booking::where('vehicle_id', $vehicle->id)
         ->where('status', '!=', 'cancelled')
@@ -189,7 +195,78 @@ public function view(Vehicles $vehicle)
 
     $landing = Landing::first(); // <-- owner phone/settings
 
-    return view('view', compact('vehicle', 'addOns', 'bookedRanges', 'landing'));
+    $addonFullyBooked = [];
+    $today = Carbon::today();
+
+    foreach ($addOns as $addOn) {
+        if ($addOn->qty_total <= 0) {
+            $addonFullyBooked[$addOn->id] = [];
+            $addOn->setAttribute('available_today', 0);
+            continue;
+        }
+
+        $dailyTotals = [];
+        $reservedToday = 0;
+
+        foreach ($addOn->reservations as $reservation) {
+            if (!$reservation->start_date || !$reservation->end_date) {
+                continue;
+            }
+
+            $start = Carbon::parse($reservation->start_date)->startOfDay();
+            $end   = Carbon::parse($reservation->end_date)->startOfDay();
+
+            if ($start->lte($today) && $end->gte($today)) {
+                $reservedToday += (int) $reservation->qty;
+            }
+
+            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                $key = $date->toDateString();
+                $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (int) $reservation->qty;
+            }
+        }
+
+        $addOn->setAttribute('available_today', max($addOn->qty_total - $reservedToday, 0));
+
+        if (empty($dailyTotals)) {
+            $addonFullyBooked[$addOn->id] = [];
+            continue;
+        }
+
+        $fullyBookedDates = array_keys(array_filter(
+            $dailyTotals,
+            fn($count) => $count >= $addOn->qty_total
+        ));
+
+        sort($fullyBookedDates);
+
+        $ranges = [];
+        $currentRange = null;
+
+        foreach ($fullyBookedDates as $dateStr) {
+            if ($currentRange === null) {
+                $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+                continue;
+            }
+
+            $expectedNext = Carbon::parse($currentRange['to'])->addDay()->toDateString();
+
+            if ($expectedNext === $dateStr) {
+                $currentRange['to'] = $dateStr;
+            } else {
+                $ranges[] = $currentRange;
+                $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+            }
+        }
+
+        if ($currentRange !== null) {
+            $ranges[] = $currentRange;
+        }
+
+        $addonFullyBooked[$addOn->id] = $ranges;
+    }
+
+    return view('view', compact('vehicle', 'addOns', 'bookedRanges', 'landing', 'addonFullyBooked'));
 }
 
 
@@ -259,7 +336,7 @@ public function view(Vehicles $vehicle)
 
         return redirect()
             ->route('vehicles.show', $vehicleId)
-            ->with('success', '❌ Booking removed successfully!');
+            ->with('success', 'Booking removed successfully!');
     }
 
 

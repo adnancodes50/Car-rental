@@ -1,4 +1,4 @@
-{{-- resources/views/show.blade.php --}}
+﻿{{-- resources/views/show.blade.php --}}
 @extends('layouts.frontend')
 
 @section('title', $vehicle->name)
@@ -19,12 +19,12 @@
                         alt="{{ $vehicle->name }}" style="object-fit: cover; max-height: 380px;">
                 </div>
 
-                @if($vehicle->images->count() > 0)
+                @if ($vehicle->images->count() > 0)
                     <div class="d-flex flex-wrap gap-2">
                         <img src="{{ $vehicle->mainImage() }}" class="img-thumbnail"
                             style="width: 80px; height: 60px; object-fit: cover; cursor: pointer;"
                             onclick="document.getElementById('mainImage').src=this.src">
-                        @foreach($vehicle->images as $image)
+                        @foreach ($vehicle->images as $image)
                             <img src="{{ $image->url }}" class="img-thumbnail"
                                 style="width: 80px; height: 60px; object-fit: cover; cursor: pointer;"
                                 onclick="document.getElementById('mainImage').src=this.src">
@@ -55,7 +55,7 @@
 
                     <!-- Pricing -->
                     <div class="row text-center g-2 mb-4">
-                        @if($vehicle->rental_price_day)
+                        @if ($vehicle->rental_price_day)
                             <div class="col-6 col-lg-4">
                                 <div class="border rounded p-2">
                                     <div class="fw-semibold">R{{ number_format($vehicle->rental_price_day) }}/day</div>
@@ -63,7 +63,7 @@
                                 </div>
                             </div>
                         @endif
-                        @if($vehicle->rental_price_week)
+                        @if ($vehicle->rental_price_week)
                             <div class="col-6 col-lg-4">
                                 <div class="border rounded p-2">
                                     <div class="fw-semibold">R{{ number_format($vehicle->rental_price_week) }}/week</div>
@@ -71,7 +71,7 @@
                                 </div>
                             </div>
                         @endif
-                        @if($vehicle->rental_price_month)
+                        @if ($vehicle->rental_price_month)
                             <div class="col-6 col-lg-4">
                                 <div class="border rounded p-2">
                                     <div class="fw-semibold">R{{ number_format($vehicle->rental_price_month) }}/month</div>
@@ -87,7 +87,7 @@
                             data-bs-toggle="modal" data-bs-target="#multiStepBookingModal">
                             <i class="bi bi-calendar-check me-2"></i> Book this {{ $vehicle->name }}
                         </button>
-                        @if($vehicle->purchase_price)
+                        @if ($vehicle->purchase_price)
                             <a href="#" class="btn btn-dark w-100 d-flex align-items-center justify-content-center"
                                 data-bs-toggle="modal" data-bs-target="#purchaseModal">
                                 Purchase (R{{ number_format($vehicle->purchase_price) }})
@@ -97,27 +97,27 @@
 
                     <!-- Specs -->
                     <div class="row g-3 text-muted small">
-                        @if($vehicle->engine)
+                        @if ($vehicle->engine)
                             <div class="col-6"><i class="bi bi-gear-fill me-2"></i><strong>Engine:</strong>
                                 {{ $vehicle->engine }}</div>
                         @endif
-                        @if($vehicle->transmission)
+                        @if ($vehicle->transmission)
                             <div class="col-6"><i class="bi bi-gear-wide-connected me-2"></i><strong>Transmission:</strong>
                                 {{ $vehicle->transmission }}</div>
                         @endif
-                        @if($vehicle->seats)
+                        @if ($vehicle->seats)
                             <div class="col-6"><i class="bi bi-people-fill me-2"></i><strong>Seating:</strong>
                                 {{ $vehicle->seats }}</div>
                         @endif
-                        @if($vehicle->fuel_type)
+                        @if ($vehicle->fuel_type)
                             <div class="col-6"><i class="bi bi-fuel-pump-fill me-2"></i><strong>Fuel:</strong>
                                 {{ $vehicle->fuel_type }}</div>
                         @endif
-                        @if($vehicle->location)
+                        @if ($vehicle->location)
                             <div class="col-6"><i class="bi bi-geo-alt-fill me-2"></i><strong>Location:</strong>
                                 {{ $vehicle->location }}</div>
                         @endif
-                        @if($vehicle->mileage)
+                        @if ($vehicle->mileage)
                             <div class="col-6"><i class="bi bi-speedometer me-2"></i><strong>Mileage:</strong>
                                 {{ number_format($vehicle->mileage) }} km</div>
                         @endif
@@ -127,9 +127,9 @@
                     <div class="mt-4">
                         <h5 class="fw-bold">Features & Equipment</h5>
                         <div class="row row-cols-2 row-cols-md-2 row-cols-lg-3 g-2 small">
-                            @if(!empty($vehicle->features) && is_array($vehicle->features))
-                                @foreach($vehicle->features as $feature)
-                                    @if($feature)
+                            @if (!empty($vehicle->features) && is_array($vehicle->features))
+                                @foreach ($vehicle->features as $feature)
+                                    @if ($feature)
                                         <div class="col d-flex align-items-center">
                                             <i class="bi bi-check-circle-fill me-2 text-secondary"></i>
                                             {{ ucfirst($feature) }}
@@ -209,515 +209,604 @@
 @endpush
 
 @push('scripts')
-<script src="https://js.stripe.com/v3/"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        /* ------------------------ Date helpers ------------------------ */
+    <script src="https://js.stripe.com/v3/"></script>
+    <!-- BOOKING CORE + PAYMENT (now pays vehicle + add-ons) -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            /* ------------------------ Date helpers ------------------------ */
+            function parseYMD(ymd) {
+                const [y, m, d] = ymd.split('-').map(Number);
+                return new Date(y, m - 1, d, 0, 0, 0, 0);
+            }
 
-        function parseYMD(ymd) { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d, 0, 0, 0, 0); }
-        function toMidnight(val) { if (typeof val === 'string') return parseYMD(val); return new Date(val.getFullYear(), val.getMonth(), val.getDate(), 0, 0, 0, 0); }
-        function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, 0, 0, 0, 0); }
-        function fmt(d) { return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); }
+            function toMidnight(val) {
+                if (typeof val === 'string') return parseYMD(val);
+                return new Date(val.getFullYear(), val.getMonth(), val.getDate(), 0, 0, 0, 0);
+            }
 
-        // Inclusive month math: start + qty months (exclusive) - 1 day + extras
-        function addMonthsInclusive(start, months, extraDays) {
-            const exclusive = new Date(start.getFullYear(), start.getMonth() + months, start.getDate(), 0, 0, 0, 0);
-            return toMidnight(addDays(exclusive, -1 + (extraDays || 0)));
-        }
+            function addDays(d, n) {
+                return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, 0, 0, 0, 0);
+            }
 
-        /* ----------------- Disable & check booked ranges ---------------- */
-        const rawRanges = @json($bookedRanges ?? []);
-        const bookedRanges = rawRanges.map(r => ({ from: toMidnight(r.from), to: toMidnight(r.to) }));
-        function hasOverlap(a1, a2) { return bookedRanges.some(({ from, to }) => a1 <= to && a2 >= from); }
+            function fmt(d) {
+                return d.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric"
+                });
+            }
 
-        /* ------------------------ Grab elements ------------------------ */
-        const optionCards = document.querySelectorAll(".option-card");
-        const dateSection = document.getElementById("dateSection");
-        const quantitySection = document.getElementById("quantitySection");
-        const quantitySelect = document.getElementById("rentalQuantity");
-        const rentalStartDate = document.getElementById("rentalStartDate");
-        const totalPriceDiv = document.getElementById("totalPrice");
-        const rentalPeriodDiv = document.getElementById("rentalPeriod");
+            function addMonthsInclusive(start, months, extraDays) {
+                const exclusive = new Date(start.getFullYear(), start.getMonth() + months, start.getDate(), 0, 0, 0,
+                    0);
+                return toMidnight(addDays(exclusive, -1 + (extraDays || 0)));
+            }
 
-        const inputRentalUnit = document.getElementById("inputRentalUnit");
-        const inputRentalQuantity = document.getElementById("inputRentalQuantity");
-        const inputRentalStartDate = document.getElementById("inputRentalStartDate");
-        const inputTotalPrice = document.getElementById("inputTotalPrice");
-        const bookingIdField = document.getElementById("bookingId");
+            /* ----------------- Disable & check booked ranges ---------------- */
+            const rawRanges = @json($bookedRanges ?? []);
+            const bookedRanges = rawRanges.map(r => ({
+                from: toMidnight(r.from),
+                to: toMidnight(r.to)
+            }));
 
-        let inputExtraDays = document.getElementById("inputExtraDays");
-        if (!inputExtraDays) {
-            inputExtraDays = document.createElement("input");
-            inputExtraDays.type = "hidden"; inputExtraDays.name = "extra_days"; inputExtraDays.id = "inputExtraDays"; inputExtraDays.value = 0;
-            document.getElementById("bookingForm").appendChild(inputExtraDays);
-        }
+            function hasOverlap(a1, a2) {
+                return bookedRanges.some(({
+                    from,
+                    to
+                }) => a1 <= to && a2 >= from);
+            }
 
-        // Summary
-        const summaryType = document.getElementById("summaryType");
-        const summaryPeriod = document.getElementById("summaryPeriod");
-        const summaryPrice = document.getElementById("summaryPrice");
-        const summaryCustomerName = document.getElementById("summaryCustomerName");
-        const summaryCustomerEmail = document.getElementById("summaryCustomerEmail");
-        const summaryCustomerPhone = document.getElementById("summaryCustomerPhone");
-        const summaryCustomerCountry = document.getElementById("summaryCustomerCountry");
+            /* ------------------------ Grab elements ------------------------ */
+            const optionCards = document.querySelectorAll(".option-card");
+            const dateSection = document.getElementById("dateSection");
+            const quantitySection = document.getElementById("quantitySection");
+            const quantitySelect = document.getElementById("rentalQuantity");
+            const rentalStartDate = document.getElementById("rentalStartDate");
+            const totalPriceDiv = document.getElementById("totalPrice");
+            const rentalPeriodDiv = document.getElementById("rentalPeriod");
 
-        /* ----------------------- Flatpickr init ------------------------ */
-        const fp = flatpickr("#rentalStartDate", {
-            dateFormat: "Y-m-d",
-            minDate: "today",
-            disable: [
-                (date) => {
+            const inputRentalUnit = document.getElementById("inputRentalUnit");
+            const inputRentalQuantity = document.getElementById("inputRentalQuantity");
+            const inputRentalStartDate = document.getElementById("inputRentalStartDate");
+            const inputExtraDays = document.getElementById("inputExtraDays") || (() => {
+                const i = document.createElement('input');
+                i.type = 'hidden';
+                i.name = 'extra_days';
+                i.id = 'inputExtraDays';
+                i.value = 0;
+                document.getElementById("bookingForm").appendChild(i);
+                return i;
+            })();
+            const inputTotalPrice = document.getElementById("inputTotalPrice");
+            const bookingIdField = document.getElementById("bookingId");
+
+            // Summary
+            const summaryType = document.getElementById("summaryType");
+            const summaryPeriod = document.getElementById("summaryPeriod");
+            const summaryPrice = document.getElementById("summaryPrice");
+            const summaryCustomerName = document.getElementById("summaryCustomerName");
+            const summaryCustomerEmail = document.getElementById("summaryCustomerEmail");
+            const summaryCustomerPhone = document.getElementById("summaryCustomerPhone");
+            const summaryCustomerCountry = document.getElementById("summaryCustomerCountry");
+
+            /* ----------------------- Flatpickr init ------------------------ */
+            const fp = flatpickr("#rentalStartDate", {
+                dateFormat: "Y-m-d",
+                minDate: "today",
+                disable: [(date) => {
                     const d = toMidnight(date);
-                    return bookedRanges.some(({ from, to }) => d >= from && d <= to);
+                    return bookedRanges.some(({
+                        from,
+                        to
+                    }) => d >= from && d <= to);
+                }],
+                onChange: () => {
+                    revealAfterDate();
+                    calculateTotal();
                 }
-            ],
-            onChange: () => {
-                // When a date is chosen → reveal the rest & compute
-                revealAfterDate();
-                calculateTotal();
-            }
-        });
+            });
 
-        /* ---------------------- State & helpers ------------------------ */
-        let selectedType = "";   // 'day' | 'week' | 'month'
-        let selectedPrice = 0;
-        let totalPrice = 0;
-        let rentalPeriodText = "";
+            /* ---------------------- State & helpers ------------------------ */
+            let selectedType = ""; // 'day' | 'week' | 'month'
+            let selectedPrice = 0;
+            let totalPrice = 0;
+            let rentalPeriodText = "";
 
-        // Start state: hide everything except the 3 cards
-        function resetVisibility() {
-            // Date only (hidden until a type is picked)
-            dateSection.classList.add("d-none");
-            // Hidden until a date is picked
-            quantitySection.classList.add("d-none");
-            totalPriceDiv.classList.add("d-none");
-            rentalPeriodDiv.classList.add("d-none");
-        }
-        resetVisibility();
-
-        // After type is picked, show only the date picker
-        function revealDateOnly() {
-            dateSection.classList.remove("d-none");
-            quantitySection.classList.add("d-none");
-            totalPriceDiv.classList.add("d-none");
-            rentalPeriodDiv.classList.add("d-none");
-        }
-
-        // After date is picked, show quantity/extra + totals/period
-        function revealAfterDate() {
-            quantitySection.classList.remove("d-none");
-            totalPriceDiv.classList.remove("d-none");
-            rentalPeriodDiv.classList.remove("d-none");
-        }
-
-        function buildQuantityAndExtras() {
-            quantitySection.innerHTML = "";
-            const wrapper = document.createElement("div");
-            wrapper.className = "d-flex align-items-end gap-2 flex-wrap";
-
-            // Quantity
-            const qCol = document.createElement("div");
-            qCol.style.flex = "1 1 220px";
-            qCol.innerHTML = `
-      <label class="form-label mb-1">${selectedType === 'day' ? 'Number of Days' : selectedType === 'week' ? 'Number of Weeks' : 'Number of Months'}</label>
-    `;
-            quantitySelect.innerHTML = "";
-            const maxQty = (selectedType === "day") ? 6 : 4;
-            for (let i = 1; i <= maxQty; i++) {
-                const opt = document.createElement("option");
-                opt.value = i;
-                opt.textContent = i + " " + (selectedType === 'day' ? 'day' : selectedType === 'week' ? 'week' : 'month') + (i > 1 ? 's' : '');
-                quantitySelect.appendChild(opt);
-            }
-            qCol.appendChild(quantitySelect);
-            wrapper.appendChild(qCol);
-
-            // Extra days (only week/month)
-            if (selectedType !== "day") {
-                const extraCol = document.createElement("div");
-                extraCol.style.flex = "1 1 220px";
-                extraCol.innerHTML = `<label class="form-label mb-1">Extra Days</label>`;
-                const extraSelect = document.createElement("select");
-                extraSelect.id = "extraDays";
-                extraSelect.className = "form-select";
-                for (let i = 0; i <= 6; i++) {
-                    const opt = document.createElement("option");
-                    opt.value = i; opt.textContent = i === 0 ? "0 days" : (i === 1 ? "1 day" : `${i} days`);
-                    extraSelect.appendChild(opt);
-                }
-                extraSelect.addEventListener("change", calculateTotal);
-                extraCol.appendChild(extraSelect);
-                wrapper.appendChild(extraCol);
-            }
-
-            quantitySection.appendChild(wrapper);
-        }
-
-        function calculateTotal() {
-            const startStr = rentalStartDate.value;
-            if (!startStr || !selectedType) {
-                // nothing chosen yet
+            function resetVisibility() {
+                dateSection.classList.add("d-none");
+                quantitySection.classList.add("d-none");
                 totalPriceDiv.classList.add("d-none");
                 rentalPeriodDiv.classList.add("d-none");
-                return;
+            }
+            resetVisibility();
+
+            function revealDateOnly() {
+                dateSection.classList.remove("d-none");
+                quantitySection.classList.add("d-none");
+                totalPriceDiv.classList.add("d-none");
+                rentalPeriodDiv.classList.add("d-none");
             }
 
-            const qty = parseInt(quantitySelect.value || "1", 10);
-            const extraSel = document.getElementById("extraDays");
-            const extraDays = extraSel ? parseInt(extraSel.value || "0", 10) : 0;
-            inputExtraDays.value = extraDays;
-
-            const start = toMidnight(startStr);
-            let end;
-
-            if (selectedType === "day") {
-                end = addDays(start, qty + extraDays - 1);
-            } else if (selectedType === "week") {
-                end = addDays(start, qty * 7 + extraDays - 1);
-            } else { // month
-                end = addMonthsInclusive(start, qty, extraDays);
+            function revealAfterDate() {
+                quantitySection.classList.remove("d-none");
+                totalPriceDiv.classList.remove("d-none");
+                rentalPeriodDiv.classList.remove("d-none");
             }
 
-            // Overlap guard
-            if (hasOverlap(start, end)) {
-                const clashes = bookedRanges
-                    .filter(({ from, to }) => start <= to && end >= from)
-                    .map(({ from, to }) => `${fmt(from)} → ${fmt(to)}`)
-                    .join("<br>");
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Booking Conflict',
-                    html: `
-    <p>Unfortunately, your selected dates overlap with an existing reservation.</p>
-    <p><strong>Unavailable Dates:</strong></p>
-    <div style="text-align:center; font-size:14px;">${clashes}</div>
-    <p>Please adjust your booking period and try again.</p>
-  `
-                });
+            function buildQuantityAndExtras() {
+                quantitySection.innerHTML = "";
+                const wrapper = document.createElement("div");
+                wrapper.className = "d-flex align-items-end gap-2 flex-wrap";
 
-                rentalStartDate.value = "";
-                revealDateOnly(); // go back to date-only
-                return;
+                const qCol = document.createElement("div");
+                qCol.style.flex = "1 1 220px";
+                qCol.innerHTML =
+                    `<label class="form-label mb-1">${selectedType==='day'?'Number of Days':selectedType==='week'?'Number of Weeks':'Number of Months'}</label>`;
+                quantitySelect.innerHTML = "";
+                const maxQty = (selectedType === "day") ? 6 : 4;
+                for (let i = 1; i <= maxQty; i++) {
+                    const opt = document.createElement("option");
+                    opt.value = i;
+                    opt.textContent = i + " " + (selectedType === 'day' ? 'day' : selectedType === 'week' ? 'week' :
+                        'month') + (i > 1 ? 's' : '');
+                    quantitySelect.appendChild(opt);
+                }
+                qCol.appendChild(quantitySelect);
+                wrapper.appendChild(qCol);
+
+                if (selectedType !== "day") {
+                    const extraCol = document.createElement("div");
+                    extraCol.style.flex = "1 1 220px";
+                    extraCol.innerHTML = `<label class="form-label mb-1">Extra Days</label>`;
+                    const extraSelect = document.createElement("select");
+                    extraSelect.id = "extraDays";
+                    extraSelect.className = "form-select";
+                    for (let i = 0; i <= 6; i++) {
+                        const opt = document.createElement("option");
+                        opt.value = i;
+                        opt.textContent = (i === 0 ? "0 days" : (i === 1 ? "1 day" : `${i} days`));
+                        extraSelect.appendChild(opt);
+                    }
+                    extraSelect.addEventListener("change", calculateTotal);
+                    extraCol.appendChild(extraSelect);
+                    wrapper.appendChild(extraCol);
+                }
+
+                quantitySection.appendChild(wrapper);
             }
 
-            // Pricing
-            const base = qty * selectedPrice;
-            let extraPrice = 0;
-            if (extraDays > 0) {
-                if (selectedType === "day") extraPrice = extraDays * selectedPrice;
-                if (selectedType === "week") extraPrice = extraDays * (selectedPrice / 7);
-                if (selectedType === "month") extraPrice = extraDays * (selectedPrice / 30);
-            }
-            totalPrice = Math.round(base + extraPrice);
+            function calculateTotal() {
+                const startStr = rentalStartDate.value;
+                if (!startStr || !selectedType) {
+                    totalPriceDiv.classList.add("d-none");
+                    rentalPeriodDiv.classList.add("d-none");
+                    return;
+                }
 
-            // UI
-            rentalPeriodText = `
+                const qty = parseInt(quantitySelect.value || "1", 10);
+                const extraSel = document.getElementById("extraDays");
+                const extraDays = extraSel ? parseInt(extraSel.value || "0", 10) : 0;
+                inputExtraDays.value = extraDays;
+
+                const start = toMidnight(startStr);
+                let end;
+                if (selectedType === "day") end = addDays(start, qty + extraDays - 1);
+                else if (selectedType === "week") end = addDays(start, qty * 7 + extraDays - 1);
+                else end = addMonthsInclusive(start, qty, extraDays);
+
+                // overlap guard
+                if (hasOverlap(start, end)) {
+                    const clashes = bookedRanges.filter(({
+                            from,
+                            to
+                        }) => start <= to && end >= from)
+                        .map(({
+                            from,
+                            to
+                        }) => `${fmt(from)} → ${fmt(to)}`).join("<br>");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking Conflict',
+                        html: `<p>Unfortunately, your selected dates overlap with an existing reservation.</p><p><strong>Unavailable Dates:</strong></p><div style="text-align:center; font-size:14px;">${clashes}</div><p>Please adjust your booking period and try again.</p>`
+                    });
+                    rentalStartDate.value = "";
+                    revealDateOnly();
+                    return;
+                }
+
+                const base = qty * selectedPrice;
+                let extraPrice = 0;
+                if (extraDays > 0) {
+                    if (selectedType === "day") extraPrice = extraDays * selectedPrice;
+                    if (selectedType === "week") extraPrice = extraDays * (selectedPrice / 7);
+                    if (selectedType === "month") extraPrice = extraDays * (selectedPrice / 30);
+                }
+                totalPrice = Math.round(base + extraPrice);
+
+                // UI
+                rentalPeriodText = `
       <div class="d-flex justify-content-between">
         <div class="text-muted small">Start Date<br>${fmt(start)}</div>
         <div class="text-muted small">End Date<br>${fmt(end)}</div>
       </div>`;
-            rentalPeriodDiv.innerHTML = rentalPeriodText;
+                rentalPeriodDiv.innerHTML = rentalPeriodText;
 
-            let costHtml = `<div style="font-size:14px;">
-      ${selectedType === 'day' ? 'Days' : selectedType === 'week' ? 'Weeks' : 'Months'}:
-      ${qty} × R${selectedPrice.toLocaleString()}
-    </div>`;
-            if (extraDays > 0) {
-                const perExtra = (selectedType === 'week') ? (selectedPrice / 7) : (selectedType === 'month' ? (selectedPrice / 30) : selectedPrice);
-                costHtml += `<div style="font-size:14px;">Extra Days: ${extraDays} × R${perExtra.toFixed(2)}</div>`;
+                let costHtml =
+                    `<div style="font-size:14px;">${selectedType==='day'?'Days':selectedType==='week'?'Weeks':'Months'}: ${qty} × R${selectedPrice.toLocaleString()}</div>`;
+                if (extraDays > 0) {
+                    const perExtra = (selectedType === 'week') ? (selectedPrice / 7) : (selectedType === 'month' ? (
+                        selectedPrice / 30) : selectedPrice);
+                    costHtml +=
+                        `<div style="font-size:14px;">Extra Days: ${extraDays} × R${perExtra.toFixed(2)}</div>`;
+                }
+                costHtml +=
+                    `<div class="mt-2" style="font-size:14px;">Total Cost: R${totalPrice.toLocaleString()}</div>`;
+                totalPriceDiv.innerHTML = costHtml;
+
+                // hidden inputs
+                inputRentalUnit.value = selectedType;
+                inputRentalQuantity.value = qty;
+                inputRentalStartDate.value = startStr;
+                inputTotalPrice.value = totalPrice;
             }
-            costHtml += `<div class="mt-2" style="font-size:14px;">Total Cost: R${totalPrice.toLocaleString()}</div>`;
-            totalPriceDiv.innerHTML = costHtml;
 
-            // Keep hidden inputs in sync
-            inputRentalUnit.value = selectedType;
-            inputRentalQuantity.value = qty;
-            inputRentalStartDate.value = startStr;
-            inputTotalPrice.value = totalPrice;
-        }
-
-        /* ------------------- Rental type selection --------------------- */
-        optionCards.forEach(card => {
-            card.addEventListener("click", () => {
-                // Visual select
-                optionCards.forEach(c => c.classList.remove("border-warning", "bg-warning-subtle"));
-                card.classList.add("border-warning", "bg-warning-subtle");
-
-                // Set type + price
-                selectedType = card.getAttribute("data-type");
-                selectedPrice = parseFloat(card.getAttribute("data-price") || "0");
-
-                // Reset date & UI for new type
-                rentalStartDate.value = "";
-                revealDateOnly();
-
-                // Build quantity/extra controls (but keep hidden until a date is picked)
-                buildQuantityAndExtras();
-
-                // Open the calendar right away
-                setTimeout(() => fp.open(), 0);
-            });
-        });
-
-        // Recalculate when quantity changes (after date is picked)
-        quantitySelect.addEventListener("change", calculateTotal);
-
-        /* -------------------- Summary step button ---------------------- */
-        document.getElementById("continueFromStep1").addEventListener("click", function () {
-            if (!selectedType) {
-                Swal.fire({ icon: 'error', title: 'Choose a rental type', text: 'Please select Day, Week or Month.' });
-                return;
-            }
-            if (!rentalStartDate.value) {
-                Swal.fire({ icon: 'error', title: 'Select a start date', text: 'Please pick a start date from the calendar.' });
-                return;
-            }
-            bootstrap.Modal.getInstance(document.getElementById("multiStepBookingModal"))?.hide();
-            new bootstrap.Modal(document.getElementById("addonsStep")).show();
-        });
-
-        document.getElementById("goToSummary").addEventListener("click", function () {
-            const form = document.getElementById("bookingForm");
-            const name = form.querySelector("input[name='name']").value;
-            const email = form.querySelector("input[name='email']").value;
-            const phone = form.querySelector("input[name='phone']").value;
-            const country = form.querySelector("select[name='country']").value;
-
-            if (!name || !email || !phone || !country) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Missing Information',
-                    text: 'Please fill in all required customer details before continuing.'
+            /* ------------------- Rental type selection --------------------- */
+            optionCards.forEach(card => {
+                card.addEventListener("click", () => {
+                    optionCards.forEach(c => c.classList.remove("border-warning",
+                        "bg-warning-subtle"));
+                    card.classList.add("border-warning", "bg-warning-subtle");
+                    selectedType = card.getAttribute("data-type");
+                    selectedPrice = parseFloat(card.getAttribute("data-price") || "0");
+                    rentalStartDate.value = "";
+                    revealDateOnly();
+                    buildQuantityAndExtras();
+                    setTimeout(() => fp.open(), 0);
                 });
-                return;
-            }
+            });
+            quantitySelect.addEventListener("change", calculateTotal);
 
-            summaryType.textContent = selectedType;
-            summaryPeriod.innerHTML = rentalPeriodText;
-            summaryPrice.textContent = "R" + totalPrice.toLocaleString();
-            summaryCustomerName.textContent = name;
-            summaryCustomerEmail.textContent = email;
-            summaryCustomerPhone.textContent = phone;
-            summaryCustomerCountry.textContent = country;
-
-            inputRentalUnit.value = selectedType;
-            inputRentalQuantity.value = quantitySelect.value;
-            inputRentalStartDate.value = rentalStartDate.value;
-            inputTotalPrice.value = totalPrice;
-
-            bootstrap.Modal.getInstance(document.getElementById("customerStep"))?.hide();
-            new bootstrap.Modal(document.getElementById("summaryStep")).show();
-        });
-
-        /* ------------------- Payment modals & flow --------------------- */
-        // Create booking then open payment method modal
-        document.getElementById('openPayment').addEventListener('click', async function () {
-            if (!bookingIdField.value) {
-                const bookingForm = document.getElementById('bookingForm');
-                const formData = new FormData(bookingForm);
-                try {
-                    const res = await fetch(bookingForm.action, {
-                        method: "POST",
-                        body: formData,
-                        headers: {
-                            "X-Requested-With": "XMLHttpRequest",
-                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
-                        }
+            /* -------------------- Summary step button ---------------------- */
+            document.getElementById("continueFromStep1").addEventListener("click", function() {
+                if (!selectedType) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Choose a rental type',
+                        text: 'Please select Day, Week or Month.'
                     });
-                    const text = await res.text();
-                    let data;
-                    try { data = JSON.parse(text); } catch { data = { success: false, message: text }; }
+                    return;
+                }
+                if (!rentalStartDate.value) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Select a start date',
+                        text: 'Please pick a start date from the calendar.'
+                    });
+                    return;
+                }
+                bootstrap.Modal.getInstance(document.getElementById("multiStepBookingModal"))?.hide();
+                new bootstrap.Modal(document.getElementById("addonsStep")).show();
+            });
 
-                    if (!res.ok || !data.success) {
-                        Swal.fire({ icon: 'error', title: 'Oops...', text: data.message || 'Failed to create booking.' });
+            document.getElementById("goToSummary").addEventListener("click", function() {
+                const form = document.getElementById("bookingForm");
+                const name = form.querySelector("input[name='name']").value;
+                const email = form.querySelector("input[name='email']").value;
+                const phone = form.querySelector("input[name='phone']").value;
+                const country = form.querySelector("select[name='country']").value;
+
+                if (!name || !email || !phone || !country) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Missing Information',
+                        text: 'Please fill in all required customer details before continuing.'
+                    });
+                    return;
+                }
+
+                summaryType.textContent = selectedType;
+                summaryPeriod.innerHTML = rentalPeriodText;
+                summaryPrice.textContent = "R" + totalPrice.toLocaleString();
+                summaryCustomerName.textContent = name;
+                summaryCustomerEmail.textContent = email;
+                summaryCustomerPhone.textContent = phone;
+                summaryCustomerCountry.textContent = country;
+
+                inputRentalUnit.value = selectedType;
+                inputRentalQuantity.value = quantitySelect.value;
+                inputRentalStartDate.value = rentalStartDate.value;
+                inputTotalPrice.value = totalPrice;
+
+                bootstrap.Modal.getInstance(document.getElementById("customerStep"))?.hide();
+                new bootstrap.Modal(document.getElementById("summaryStep")).show();
+            });
+
+            /* ------------------- Payment modals & flow --------------------- */
+            // Create booking then open payment method modal
+            document.getElementById('openPayment').addEventListener('click', async function() {
+                // ensure add-on hidden fields are enabled for POST
+                if (window.enableSelectedAddonHiddenFields) window.enableSelectedAddonHiddenFields();
+
+                if (!bookingIdField.value) {
+                    const bookingForm = document.getElementById('bookingForm');
+                    const formData = new FormData(bookingForm);
+                    try {
+                        const res = await fetch(bookingForm.action, {
+                            method: "POST",
+                            body: formData,
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                                "X-CSRF-TOKEN": document.querySelector(
+                                    'meta[name="csrf-token"]').getAttribute("content")
+                            }
+                        });
+                        const text = await res.text();
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch {
+                            data = {
+                                success: false,
+                                message: text
+                            };
+                        }
+
+                        if (!res.ok || !data.success) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: data.message || 'Failed to create booking.'
+                            });
+                            return;
+                        }
+                        bookingIdField.value = data.booking_id || data.id;
+                        if (!bookingIdField.value) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: 'Booking created but no ID returned.'
+                            });
+                            return;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: 'Network error while creating booking.'
+                        });
                         return;
                     }
-                    // Accept either `booking_id` or `id` from backend
-                    bookingIdField.value = data.booking_id || data.id;
-                    if (!bookingIdField.value) {
-                        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Booking created but no ID returned.' });
+                }
+                bootstrap.Modal.getInstance(document.getElementById("summaryStep"))?.hide();
+                new bootstrap.Modal(document.getElementById("bookingPayment")).show();
+            });
+
+            // Choose payment method (Stripe / PayFast)
+            document.addEventListener('change', async function(e) {
+                if (!(e.target && e.target.name === 'booking_payment_method')) return;
+
+                const method = e.target.value;
+                const paymentModalEl = document.getElementById("bookingPayment");
+                const paymentModal = bootstrap.Modal.getInstance(paymentModalEl);
+                paymentModal?.hide();
+
+                // compute grand total (vehicle + add-ons)
+                const vehicleTotal = parseFloat(document.getElementById('inputTotalPrice')?.value ||
+                    '0');
+                const addonTotal = window.computeAddonsTotal ? window.computeAddonsTotal() : 0;
+                const grandTotal = Math.round((vehicleTotal + addonTotal) * 100) / 100;
+
+                if (method === 'stripe') {
+                    // Open Stripe card modal; the actual charge uses grandTotal below
+                    new bootstrap.Modal(document.getElementById("bookingStripeModal")).show();
+                    // Stash the grand total on the button for later
+                    document.getElementById('bookingStripePayButton').dataset.amount = String(
+                        grandTotal);
+                    return;
+                }
+
+                // ----- PAYFAST flow -----
+                const bookingId = document.getElementById('bookingId').value;
+                if (!bookingId) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'No booking yet',
+                        text: 'Please create the booking first.'
+                    });
+                    new bootstrap.Modal(paymentModalEl).show();
+                    e.target.checked = false;
+                    return;
+                }
+
+                const confirmRes = await Swal.fire({
+                    icon: 'question',
+                    title: 'Proceed with PayFast?',
+                    text: 'You will be redirected to PayFast to complete your payment.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Continue',
+                    cancelButtonText: 'Back',
+                    reverseButtons: true,
+                    customClass: {
+                        confirmButton: 'btn btn-dark',
+                        cancelButton: 'btn btn-outline-secondary me-3'
+                    },
+                    buttonsStyling: false
+                });
+                if (!confirmRes.isConfirmed) {
+                    e.target.checked = false;
+                    new bootstrap.Modal(paymentModalEl).show();
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                .getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            name: document.querySelector('#bookingForm [name="name"]')
+                                ?.value || '',
+                            email: document.querySelector('#bookingForm [name="email"]')
+                                ?.value || '',
+                            // ⬇️ send grand total so backend can set amount for PayFast
+                            amount: grandTotal
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok || !data.success) throw new Error(data.message ||
+                        'Failed to initialize PayFast.');
+
+                    const pfForm = document.createElement('form');
+                    pfForm.method = 'POST';
+                    pfForm.action = data.action;
+                    pfForm.style.display = 'none';
+
+                    // allow backend to override amount, but if not present, patch it
+                    if (data.fields && typeof data.fields.amount === 'undefined') {
+                        data.fields.amount = String(grandTotal.toFixed(2));
+                    }
+
+                    Object.entries(data.fields).forEach(([k, v]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = k;
+                        input.value = v;
+                        pfForm.appendChild(input);
+                    });
+
+                    document.body.appendChild(pfForm);
+                    pfForm.submit();
+                } catch (err) {
+                    console.error(err);
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'PayFast error',
+                        text: err.message || 'Could not redirect to PayFast.'
+                    });
+                    e.target.checked = false;
+                    new bootstrap.Modal(paymentModalEl).show();
+                }
+            });
+
+            /* ----------------------- Stripe checkout ----------------------- */
+            const stripe = Stripe("{{ config('services.stripe.key') }}");
+            const elements = stripe.elements();
+            const style = {
+                base: {
+                    fontSize: '16px',
+                    color: '#32325d',
+                    '::placeholder': {
+                        color: '#a0aec0'
+                    }
+                }
+            };
+            const cardNumber = elements.create('cardNumber', {
+                style
+            });
+            const cardExpiry = elements.create('cardExpiry', {
+                style
+            });
+            const cardCvc = elements.create('cardCvc', {
+                style
+            });
+            cardNumber.mount('#booking-card-number');
+            cardExpiry.mount('#booking-card-expiry');
+            cardCvc.mount('#booking-card-cvc');
+
+            document.getElementById("bookingStripePayButton").addEventListener("click", async function() {
+                const form = document.getElementById("bookingForm");
+                const bookingId = bookingIdField.value;
+                if (!bookingId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Booking not created yet. Please try again.'
+                    });
+                    return;
+                }
+
+                const amount = parseFloat(this.dataset.amount ||
+                '0'); // grand total passed from selector
+                const {
+                    paymentMethod,
+                    error
+                } = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardNumber,
+                    billing_details: {
+                        name: form.name?.value || '',
+                        email: form.email?.value || ''
+                    }
+                });
+                if (error) {
+                    document.getElementById("booking-card-errors").textContent = error.message;
+                    return;
+                }
+
+                try {
+                    // ⬇️ send amount so backend charges vehicle + add-ons
+                    const res = await fetch(
+                        `/bookings/${encodeURIComponent(bookingId)}/pay-with-stripe`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                    .content
+                            },
+                            body: JSON.stringify({
+                                payment_method_id: paymentMethod.id,
+                                amount
+                            })
+                        });
+
+                    const text = await res.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch {
+                        data = {
+                            success: false,
+                            message: text
+                        };
+                    }
+
+                    if (!res.ok) {
+                        console.error('Server error:', data);
+                        alert(data.message || 'Payment failed (server error).');
                         return;
+                    }
+
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById("bookingStripeModal"))
+                            ?.hide();
+                        new bootstrap.Modal(document.getElementById("bookingThankYou")).show();
+                    } else if (data.requires_action && data.payment_intent_client_secret) {
+                        const result = await stripe.confirmCardPayment(data
+                            .payment_intent_client_secret);
+                        if (result.error) {
+                            alert(result.error.message);
+                        } else {
+                            bootstrap.Modal.getInstance(document.getElementById("bookingStripeModal"))
+                                ?.hide();
+                            new bootstrap.Modal(document.getElementById("bookingThankYou")).show();
+                        }
+                    } else {
+                        alert(data.message || 'Payment failed.');
                     }
                 } catch (e) {
                     console.error(e);
-                    Swal.fire({ icon: 'error', title: 'Oops...', text: 'Network error while creating booking.' });
-                    return;
-                }
-            }
-            bootstrap.Modal.getInstance(document.getElementById("summaryStep"))?.hide();
-            new bootstrap.Modal(document.getElementById("bookingPayment")).show();
-        });
-
-
-       // Choose payment method
-document.addEventListener('change', async function (e) {
-  if (e.target && e.target.name === 'booking_payment_method') {
-    const method = e.target.value;
-    const paymentModalEl = document.getElementById("bookingPayment");
-    const paymentModal   = bootstrap.Modal.getInstance(paymentModalEl);
-    paymentModal?.hide();
-
-    if (method === 'stripe') {
-      new bootstrap.Modal(document.getElementById("bookingStripeModal")).show();
-      return;
-    }
-
-    // ----- PAYFAST flow -----
-    // We need an existing booking ID
-    const bookingId = document.getElementById('bookingId').value;
-    if (!bookingId) {
-      await Swal.fire({ icon: 'error', title: 'No booking yet', text: 'Please create the booking first.' });
-      new bootstrap.Modal(paymentModalEl).show();
-      e.target.checked = false;
-      return;
-    }
-
-    // Confirm with SweetAlert first
-    const confirmRes = await Swal.fire({
-      icon: 'question',
-      title: 'Proceed with PayFast?',
-      text: 'You will be redirected to PayFast to complete your payment.',
-      showCancelButton: true,
-      confirmButtonText: 'Continue',
-      cancelButtonText: 'Back',
-      reverseButtons: true,
-      customClass: {
-        confirmButton: 'btn btn-dark',
-        cancelButton: 'btn btn-outline-secondary me-3'
-      },
-      buttonsStyling: false
-    });
-
-    if (!confirmRes.isConfirmed) {
-      e.target.checked = false;
-      new bootstrap.Modal(paymentModalEl).show();
-      return;
-    }
-
-    // Call init to get PayFast action + signed fields
-    try {
-      const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        // optional buyer params to prefill at PayFast; safe to omit
-        body: JSON.stringify({
-          // name/email if you captured them earlier in customer step:
-          name:  document.querySelector('#bookingForm [name="name"]')?.value || '',
-          email: document.querySelector('#bookingForm [name="email"]')?.value || ''
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to initialize PayFast.');
-      }
-
-      // Build a hidden POST form and auto-submit to PayFast
-      const pfForm = document.createElement('form');
-      pfForm.method = 'POST';
-      pfForm.action = data.action; // sandbox or live endpoint
-      pfForm.style.display = 'none';
-
-      Object.entries(data.fields).forEach(([k, v]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = k;
-        input.value = v;
-        pfForm.appendChild(input);
-      });
-
-      document.body.appendChild(pfForm);
-      pfForm.submit(); // 🚀 go to PayFast
-    } catch (err) {
-      console.error(err);
-      await Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
-      e.target.checked = false;
-      new bootstrap.Modal(paymentModalEl).show();
-    }
-  }
-});
-
-
-        /* ----------------------- Stripe checkout ----------------------- */
-        const stripe = Stripe("{{ config('services.stripe.key') }}");
-        const elements = stripe.elements();
-        const style = { base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } } };
-        const cardNumber = elements.create('cardNumber', { style });
-        const cardExpiry = elements.create('cardExpiry', { style });
-        const cardCvc = elements.create('cardCvc', { style });
-        cardNumber.mount('#booking-card-number');
-        cardExpiry.mount('#booking-card-expiry');
-        cardCvc.mount('#booking-card-cvc');
-
-        document.getElementById("bookingStripePayButton").addEventListener("click", async function () {
-            const form = document.getElementById("bookingForm");
-            const bookingId = bookingIdField.value;
-
-            if (!bookingId) {
-                Swal.fire({ icon: 'error', title: 'Oops...', text: 'Booking not created yet. Please try again.' });
-                return;
-            }
-
-            const { paymentMethod, error } = await stripe.createPaymentMethod({
-                type: 'card',
-                card: cardNumber,
-                billing_details: {
-                    name: form.name?.value || '',
-                    email: form.email?.value || ''
+                    alert('Network error while charging card.');
                 }
             });
 
-            if (error) {
-                document.getElementById("booking-card-errors").textContent = error.message;
-                return;
-            }
-
-            try {
-                const res = await fetch(`/bookings/${encodeURIComponent(bookingId)}/pay-with-stripe`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({ payment_method_id: paymentMethod.id })
-                });
-
-                const text = await res.text();
-                let data;
-                try { data = JSON.parse(text); } catch { data = { success: false, message: text }; }
-
-                if (!res.ok) {
-                    console.error('Server error:', data);
-                    alert(data.message || 'Payment failed (server error).');
-                    return;
-                }
-
-                if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById("bookingStripeModal"))?.hide();
-                    new bootstrap.Modal(document.getElementById("bookingThankYou")).show();
-                } else if (data.requires_action && data.payment_intent_client_secret) {
-                    const result = await stripe.confirmCardPayment(data.payment_intent_client_secret);
-                    if (result.error) {
-                        alert(result.error.message);
-                    } else {
-                        bootstrap.Modal.getInstance(document.getElementById("bookingStripeModal"))?.hide();
-                        new bootstrap.Modal(document.getElementById("bookingThankYou")).show();
-                    }
-                } else {
-                    alert(data.message || 'Payment failed.');
-                }
-            } catch (e) {
-                console.error(e);
-                alert('Network error while charging card.');
-            }
+            // Never submit the <form> directly; we handle via AJAX
+            document.getElementById("bookingForm").addEventListener("submit", function(e) {
+                e.preventDefault();
+            });
         });
-
-        // Never submit the <form> directly; we handle via AJAX
-        document.getElementById("bookingForm").addEventListener("submit", function (e) {
-            e.preventDefault();
-        });
-    });
-</script>
+    </script>

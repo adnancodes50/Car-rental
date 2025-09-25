@@ -6,13 +6,25 @@ use Illuminate\Http\Request;
 use App\Models\AddOn;
 use Storage;
 use Str;
+use Illuminate\Support\Carbon;
 
 class AddOnInventryController extends Controller
 {
 public function index()
 {
-    // Eager load bookings to avoid N+1 problem
-    $addOns = AddOn::with('bookings')->get();
+    $today = Carbon::today()->toDateString();
+
+    $addOns = AddOn::query()
+        // total booked quantity across all time
+        ->withSum('reservations as total_booked_qty', 'qty')
+        // active bookings = reservations where today is between start and end
+        ->withCount([
+            'reservations as active_bookings' => function ($q) use ($today) {
+                $q->whereDate('start_date', '<=', $today)
+                  ->whereDate('end_date', '>=', $today);
+            }
+        ])
+        ->get();
 
     return view('admin.inventry.index', compact('addOns'));
 }
@@ -58,18 +70,13 @@ public function index()
 
 public function view(AddOn $addon)
 {
-
-// dd($addon);
-    $addon->load(['bookings.customer']); // keep this
-    $reservations = \App\Models\AddOnReservation::with(['booking.customer'])
-        ->where('add_on_id', $addon->id)
+    $reservations = $addon->reservations()
+        ->with(['booking.customer'])
+        ->latest('start_date')
         ->get();
-
-// dd($reservations);
 
     return view('admin.inventry.view', compact('addon', 'reservations'));
 }
-
 
     public function edit(AddOn $addon)
     {

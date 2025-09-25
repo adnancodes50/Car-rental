@@ -54,8 +54,12 @@
                                     <td>{{ $addOn->qty_total }}</td>
                                     <td>{{ $addOn->total_booked }}</td>
                                     <td>{{ $addOn->remaining_qty }}</td>
-                                    <td>{{ $addOn->active_bookings }}</td>
-
+                                    <td>
+                                        <span class="badge bg-warning w-25 roounded-pill">
+                                            <i class="bi bi-calendar-check me-1"></i>
+                                            {{ (int) ($addOn->active_bookings ?? 0) }}
+                                        </span>
+                                    </td>
                                     <td>R{{ number_format($addOn->price_day, 2) }}</td>
                                     <td>R{{ number_format($addOn->price_week, 2) }}</td>
                                     <td>R{{ number_format($addOn->price_month, 2) }}</td>
@@ -109,12 +113,13 @@
         }
 
         .btn-outline-info:hover {
-    background-color: #e7f9fc !important;
-    color: #0dcaf0 !important;
-}
-.btn-outline-info:hover i {
-    color: #0dcaf0 !important;
-}
+            background-color: #e7f9fc !important;
+            color: #0dcaf0 !important;
+        }
+
+        .btn-outline-info:hover i {
+            color: #0dcaf0 !important;
+        }
 
 
         /* Action button styling */

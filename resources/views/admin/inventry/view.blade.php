@@ -29,15 +29,16 @@
                         </thead>
                         <tbody>
                             @foreach($reservations as $res)
-                                <tr>
-                                    <td class="fw-semibold">{{ $res->booking->customer->name ?? 'Unknown' }}</td>
-                                    <td>{{ $res->booking->customer->email ?? '-' }}</td>
-                                    <td>{{ $res->booking->customer->phone ?? '-' }}</td>
-                                    <td>{{ $res->qty }}</td>
-                                    <td>R{{ number_format($res->price_total, 2) }}</td>
-                                    <td>{{ $res->booking->start_date }} → {{ $res->booking->end_date }}</td>
-                                </tr>
-                            @endforeach
+    <tr>
+        <td class="fw-semibold">{{ $res->booking->customer->name ?? 'Unknown' }}</td>
+        <td>{{ $res->booking->customer->email ?? '-' }}</td>
+        <td>{{ $res->booking->customer->phone ?? '-' }}</td>
+        <td>{{ $res->qty }}</td>
+        <td>R{{ number_format($res->price_total, 2) }}</td>
+        <td>{{ $res->booking->start_date }} → {{ $res->booking->end_date }}</td>
+    </tr>
+@endforeach
+
                         </tbody>
                     </table>
                 </div>
