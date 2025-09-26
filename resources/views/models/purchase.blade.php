@@ -235,10 +235,12 @@
                         </div>
                         <div class="d-flex justify-content-between">
                             <span class="fw-medium text-secondary">Required Deposit:</span>
-                            <span class="fw-bold text-warning">R{{ number_format($vehicle->deposit_amount) }} ZAR</span>
+                            <span class="fw-bold" style="color: #CF9B4D">R{{ number_format($vehicle->deposit_amount) }} ZAR</span>
                         </div>
                     </div>
-                    <button type="button" id="purchaseStep1Next" class="btn btn-dark w-100">Continue</button>
+<!-- Step 1 continue button -->
+<button type="button" id="purchaseStep1Next" class="btn btn-dark w-100"
+        data-bs-target="#purchaseCustomer" data-bs-toggle="modal">Continue</button>
                 </div>
             </div>
         </div>
@@ -316,101 +318,126 @@
                         data-bs-toggle="modal">
                         Back
                     </button>
-                    <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4">
-                        Continue to Payment
-                    </button>
+                    <button type="button"
+        id="purchaseStep2Next"
+        class="btn btn-dark rounded-3 px-4"
+        data-bs-target="#purchasePayment"
+        data-bs-toggle="modal">
+  Continue to Payment
+</button>
+
                 </div>
 
             </div>
         </div>
     </div>
 
+@php
+    use App\Models\StripeSetting;
+    use App\Models\PayfastSetting;
+    use Illuminate\Support\Facades\Cache;
 
-    @php
-        $stripe = Cache::get('payments.stripe', config('payments.stripe'));
-        $payfast = Cache::get('payments.payfast', config('payments.payfast'));
+    // In dev mode (local), always fetch fresh from DB to avoid cache confusion
+    if (app()->environment('local')) {
+        $stripe = StripeSetting::first() ?: new StripeSetting(['enabled' => false]);
+        $payfast = PayfastSetting::first() ?: new PayfastSetting(['enabled' => false]);
+    } else {
+        // In production, cache for 60 minutes
+        $stripe = Cache::remember('payments.stripe', 60, function () {
+            return StripeSetting::first() ?: new StripeSetting(['enabled' => false]);
+        });
 
-        // Count how many payment methods are enabled
-        $enabledCount = ($stripe['enabled'] ? 1 : 0) + ($payfast['enabled'] ? 1 : 0);
-    @endphp
+        $payfast = Cache::remember('payments.payfast', 60, function () {
+            return PayfastSetting::first() ?: new PayfastSetting(['enabled' => false]);
+        });
+    }
 
-    <!-- Purchase Payment Modal -->
-    <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow">
+    // Calculate enabled count safely (cast to bool just in case)
+$enabledCount = ((bool) $stripe->stripe_enabled ? 1 : 0) + ((bool) $payfast->enabled ? 1 : 0);
 
-                <!-- Header -->
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-credit-card me-2"></i> Select Payment Method
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+    // dd( $enabledCount);
+@endphp
 
-                <!-- Body -->
-                <div class="modal-body">
-                    <div class="row g-3 align-items-stretch justify-content-center">
+<!-- Purchase Payment Modal -->
+<div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow">
 
-                        @if ($stripe['enabled'])
-                            <!-- Stripe -->
-                            <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
-                                <input type="radio" name="payment_method" id="purchaseStripe" value="stripe"
-                                    class="btn-check" autocomplete="off" required>
-                                <label for="purchaseStripe"
-                                    class="card btn w-100 purchase-pay-option p-3 flex-column">
-                                    <div class="text-center mb-2">
-                                        <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe"
-                                            style="width: 80px;">
-                                    </div>
-                                    <div class="purchase-pay-text">
-                                        <div class="fw-bold">Stripe (Card)</div>
-                                        <small class="text-muted">Visa • Mastercard • Amex</small>
-                                    </div>
-                                </label>
-                            </div>
-                        @endif
 
-                        @if ($payfast['enabled'])
-                            <!-- PayFast -->
-                            <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
-                                <input type="radio" name="payment_method" id="purchasePayfast" value="payfast"
-                                    class="btn-check" autocomplete="off" required>
-                                <label for="purchasePayfast"
-                                    class="card btn w-100 purchase-pay-option p-3 flex-column">
-                                    <div class="text-center mb-2">
-                                        <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
-                                            alt="PayFast" style="width: 80px;">
-                                    </div>
-                                    <div class="purchase-pay-text">
-                                        <div class="fw-bold">PayFast</div>
-                                        <small class="text-muted">South Africa payments</small>
-                                    </div>
-                                </label>
-                            </div>
-                        @endif
 
-                        @if ($enabledCount === 0)
-                            <div class="col-12">
-                                <div class="alert alert-warning text-center">
-                                    No payment methods are currently available.
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-credit-card me-2"></i> Select Payment Method
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <div class="row g-3 align-items-stretch justify-content-center">
+
+                    @if ($stripe->stripe_enabled)
+                        <!-- Stripe -->
+                        <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+                            <input type="radio" name="payment_method" id="purchaseStripe" value="stripe"
+                                class="btn-check" autocomplete="off" required>
+                            <label for="purchaseStripe"
+                                class="card btn w-100 purchase-pay-option p-3 flex-column">
+                                <div class="text-center mb-2">
+                                    <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe"
+                                        style="width: 80px;">
                                 </div>
+                                <div class="purchase-pay-text">
+                                    <div class="fw-bold">Stripe (Card)</div>
+                                    <small class="text-muted">Visa • Mastercard • Amex</small>
+                                </div>
+                            </label>
+                        </div>
+                    @endif
+
+                    @if ($payfast->enabled)
+                        <!-- PayFast -->
+                        <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+                            <input type="radio" name="payment_method" id="purchasePayfast" value="payfast"
+                                class="btn-check" autocomplete="off" required>
+                            <label for="purchasePayfast"
+                                class="card btn w-100 purchase-pay-option p-3 flex-column">
+                                <div class="text-center mb-2">
+                                    <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
+                                        alt="PayFast" style="width: 80px;">
+                                </div>
+                                <div class="purchase-pay-text">
+                                    <div class="fw-bold">PayFast</div>
+                                    <small class="text-muted">South Africa payments</small>
+                                </div>
+                            </label>
+                        </div>
+                    @endif
+
+                    @if ($enabledCount === 0)
+                        <div class="col-12">
+                            <div class="alert alert-warning text-center">
+                                No payment methods are currently available.
                             </div>
-                        @endif
+                        </div>
+                    @endif
 
-                    </div>
                 </div>
-
-                <!-- Footer -->
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-target="#purchaseCustomer"
-                        data-bs-toggle="modal">
-                        Back
-                    </button>
-                </div>
-
             </div>
+
+            <!-- Footer -->
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" data-bs-target="#purchaseCustomer"
+                    data-bs-toggle="modal">
+                    Back
+                </button>
+            </div>
+
         </div>
     </div>
+</div>
 
     <!-- Step 3b: Stripe Card Input -->
     <div class="modal fade mt-5" id="stripePaymentModal" tabindex="-1" aria-hidden="true">
@@ -499,10 +526,7 @@
                                         <span>R{{ number_format($deposit, 2) }}</span>
                                     </div>
 
-                                    {{-- <div class="d-flex justify-content-between small">
-        <span>Payable After Deposit</span>
-        <span>R{{ number_format($remaining, 2) }}</span>
-      </div> --}}
+
 
                                     <div class="border-top mt-2 pt-2 d-flex justify-content-between">
                                         <span class="fw-semibold">Total Due Now</span>
@@ -830,448 +854,205 @@
 </style>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const stripe = Stripe("{{ config('services.stripe.key') }}");
-        const elements = stripe.elements();
-        const style = {
-            base: {
-                fontSize: '16px',
-                color: '#32325d',
-                '::placeholder': {
-                    color: '#a0aec0'
-                }
-            }
-        };
-        const cardNumber = elements.create('cardNumber', {
-            style
+document.addEventListener("DOMContentLoaded", function () {
+  // --- Stripe Elements init (safe even if modal is hidden) ---
+const stripe = Stripe("{{ $stripe->stripe_key ?? '' }}");
+  const elements = stripe.elements();
+  const style = { base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } } };
+  const cardNumber = elements.create('cardNumber', { style });
+  const cardExpiry = elements.create('cardExpiry', { style });
+  const cardCvc    = elements.create('cardCvc', { style });
+  cardNumber.mount('#card-number');
+  cardExpiry.mount('#card-expiry');
+  cardCvc.mount('#card-cvc');
+
+  const form = document.getElementById("purchaseForm");
+
+  // --- Step 1 -> Step 2 (modal hop) ---
+  document.getElementById("purchaseStep1Next").addEventListener("click", function () {
+    bootstrap.Modal.getOrCreateInstance('#purchaseModal').hide();
+    bootstrap.Modal.getOrCreateInstance('#purchaseCustomer').show();
+  });
+
+  // --- Step 2 -> Step 3 (save customer, then open payment selection) ---
+  document.getElementById("purchaseStep2Next").addEventListener("click", async function () {
+    const name = (form.name.value || '').trim();
+    const email = (form.email.value || '').trim();
+    const phone = (form.phone.value || '').trim();
+    const country = form.country.value;
+
+    if (!name || !email || !phone || !country) {
+      Swal.fire({ icon: 'error', title: 'Missing Information', text: 'Please fill in all required customer details before continuing.' });
+      return;
+    }
+
+    try {
+      const res = await fetch("{{ route('purchase.store') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+        body: JSON.stringify({
+          name, email, phone, country,
+          vehicle_id: form.vehicle_id.value,
+          total_price: form.total_price.value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Unable to save details.');
+
+      let purchaseIdInput = form.querySelector("input[name='purchase_id']");
+      if (!purchaseIdInput) {
+        purchaseIdInput = document.createElement("input");
+        purchaseIdInput.type = "hidden";
+        purchaseIdInput.name = "purchase_id";
+        form.appendChild(purchaseIdInput);
+      }
+      purchaseIdInput.value = data.purchase_id;
+
+      bootstrap.Modal.getOrCreateInstance('#purchaseCustomer').hide();
+      bootstrap.Modal.getOrCreateInstance('#purchasePayment').show();
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Network error.' });
+    }
+  });
+
+  // --- Reset selection each time payment modal opens ---
+  document.getElementById("purchasePayment").addEventListener("show.bs.modal", function () {
+    document.querySelectorAll("#purchasePayment input[name='payment_method']").forEach(el => el.checked = false);
+  });
+
+  // --- ONE listener for selecting payment method (Stripe or PayFast) ---
+  document.querySelectorAll("input[name='payment_method']").forEach(input => {
+    input.addEventListener("change", async function () {
+      const selected = this.value;
+      bootstrap.Modal.getOrCreateInstance('#purchasePayment').hide();
+
+      if (selected === "stripe") {
+        // open stripe card modal
+        bootstrap.Modal.getOrCreateInstance('#stripePaymentModal').show();
+        return;
+      }
+
+      // --- PayFast flow ---
+      const purchaseIdInput = form.querySelector("input[name='purchase_id']");
+      if (!purchaseIdInput || !purchaseIdInput.value) {
+        Swal.fire({ icon: 'error', title: 'Missing purchase', text: 'Please save your details first.' });
+        bootstrap.Modal.getOrCreateInstance('#purchasePayment').show();
+        this.checked = false;
+        return;
+      }
+
+      const confirmed = await Swal.fire({
+        icon: 'question',
+        title: 'Proceed with PayFast?',
+        text: 'You will be redirected to PayFast to complete your payment.',
+        showCancelButton: true,
+        confirmButtonText: 'Continue',
+        cancelButtonText: 'Back',
+        reverseButtons: true,
+        customClass: { popup: 'rounded-4 shadow-lg', confirmButton: 'btn btn-dark rounded-pill px-4', cancelButton: 'btn btn-outline-secondary rounded-pill me-3 px-4' },
+        buttonsStyling: false
+      });
+
+      if (!confirmed.isConfirmed) {
+        this.checked = false;
+        bootstrap.Modal.getOrCreateInstance('#purchasePayment').show();
+        return;
+      }
+
+      try {
+        const res = await fetch(`/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+          body: JSON.stringify({ name: form.name?.value || '', email: form.email?.value || '' })
         });
-        const cardExpiry = elements.create('cardExpiry', {
-            style
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to initialize PayFast.');
+
+        // build form POST to PayFast
+        const pfForm = document.createElement('form');
+        pfForm.method = 'POST';
+        pfForm.action = data.action;
+        pfForm.style.display = 'none';
+        Object.entries(data.fields).forEach(([k, v]) => {
+          const inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = k; inp.value = v;
+          pfForm.appendChild(inp);
         });
-        const cardCvc = elements.create('cardCvc', {
-            style
-        });
-        cardNumber.mount('#card-number');
-        cardExpiry.mount('#card-expiry');
-        cardCvc.mount('#card-cvc');
-
-        const form = document.getElementById("purchaseForm");
-
-        // 🔹 Step 1 → Step 2
-        document.getElementById("purchaseStep1Next").addEventListener("click", function() {
-            bootstrap.Modal.getInstance(document.getElementById("purchaseModal"))?.hide();
-            new bootstrap.Modal(document.getElementById("purchaseCustomer")).show();
-        });
-
-        // 🔹 Step 2 → Step 3a (Payment Method Selection)
-        document.getElementById("purchaseStep2Next").addEventListener("click", function() {
-            const name = (form.name.value || '').trim();
-            const email = (form.email.value || '').trim();
-            const phone = (form.phone.value || '').trim();
-            const country = form.country.value;
-
-            if (!name || !email || !phone || !country) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Missing Information',
-                    text: 'Please fill in all required customer details before continuing.'
-                });
-                return;
-            }
-
-            // Save details
-            fetch("{{ route('purchase.store') }}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                    },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        phone,
-                        country,
-                        vehicle_id: form.vehicle_id.value,
-                        total_price: form.total_price.value
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // ensure hidden purchase_id input exists
-                        let purchaseIdInput = form.querySelector("input[name='purchase_id']");
-                        if (!purchaseIdInput) {
-                            purchaseIdInput = document.createElement("input");
-                            purchaseIdInput.type = "hidden";
-                            purchaseIdInput.name = "purchase_id";
-                            form.appendChild(purchaseIdInput);
-                        }
-                        purchaseIdInput.value = data.purchase_id;
-
-                        // ✅ Go directly to Payment modal
-                        bootstrap.Modal.getInstance(document.getElementById("purchaseCustomer"))
-                            ?.hide();
-                        new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: data.message || 'Unable to save details.'
-                        });
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Network error',
-                        text: 'Please try again.'
-                    });
-                });
-        });
-
-        // 🔹 Step 3a → Step 3b (Stripe / PayFast)
-        document.querySelectorAll("input[name='payment_method']").forEach(input => {
-            input.addEventListener("change", async function() {
-                const selected = this.value;
-                const paymentModal = bootstrap.Modal.getInstance(document.getElementById(
-                    "purchasePayment"));
-                paymentModal?.hide();
-
-                if (selected === "stripe") {
-                    new bootstrap.Modal(document.getElementById("stripePaymentModal"))
-                    .show();
-                    return;
-                }
-
-                // ----- PAYFAST -----
-                const formEl = document.getElementById("purchaseForm");
-                const purchaseIdInput = formEl.querySelector("input[name='purchase_id']");
-
-                if (!purchaseIdInput || !purchaseIdInput.value) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Missing purchase',
-                        text: 'Please save your details first.'
-                    });
-                    // Reopen payment modal for them
-                    new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    this.checked = false;
-                    return;
-                }
-
-                const confirmed = await Swal.fire({
-                    icon: 'question',
-                    title: 'Proceed with PayFast?',
-                    text: 'You will be redirected to PayFast to complete your payment.',
-                    showCancelButton: true,
-                    confirmButtonText: 'Continue',
-                    cancelButtonText: 'Back',
-                    reverseButtons: true,
-                    customClass: {
-                        popup: 'rounded-4 shadow-lg', // 🔹 rounded SweetAlert box itself
-                        confirmButton: 'btn btn-dark rounded-pill px-4', // 🔹 pill button
-                        cancelButton: 'btn btn-outline-secondary rounded-pill me-3 px-4'
-                    },
-                    buttonsStyling: false
-                });
+        document.body.appendChild(pfForm);
+        pfForm.submit();
+      } catch (err) {
+        console.error(err);
+        Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
+        bootstrap.Modal.getOrCreateInstance('#purchasePayment').show();
+        this.checked = false;
+      }
+    });
+  });
 
 
 
-                if (!confirmed.isConfirmed) {
-                    this.checked = false;
-                    new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    return;
-                }
+  // --- Stripe "Purchase Now" ---
+  document.getElementById("purchaseStripePayButton").addEventListener("click", async function () {
+    const purchaseIdInput = form.querySelector("input[name='purchase_id']");
+    if (!purchaseIdInput || !purchaseIdInput.value) {
+      Swal.fire({ icon: 'error', title: 'Missing booking', text: 'Purchase ID is missing. Please go back and save your details.' });
+      return;
+    }
 
-                try {
-                    // We’ll send name/email to help prefill PayFast form
-                    const res = await fetch(
-                        `/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify({
-                                name: formEl.name?.value || '',
-                                email: formEl.email?.value || ''
-                            })
-                        });
+    Swal.fire({ title: 'Processing payment', html: 'Please do not close this window.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-                    const data = await res.json();
-                    if (!res.ok || !data.success) {
-                        throw new Error(data.message || 'Failed to initialize PayFast.');
-                    }
+    const { paymentMethod: pm, error } = await stripe.createPaymentMethod({
+      type: 'card',
+      card: cardNumber,
+      billing_details: { name: form.name.value, email: form.email.value }
+    });
 
-                    // Build a POST form to PayFast and auto-submit
-                    const pfForm = document.createElement('form');
-                    pfForm.method = 'POST';
-                    pfForm.action = data.action;
-                    pfForm.style.display = 'none';
+    if (error) {
+      Swal.close();
+      Swal.fire({ icon: 'error', title: 'Card error', text: error.message });
+      return;
+    }
 
-                    Object.entries(data.fields).forEach(([k, v]) => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = k;
-                        input.value = v;
-                        pfForm.appendChild(input);
-                    });
+    try {
+      const res = await fetch(`/purchase/${purchaseIdInput.value}/pay-with-stripe`, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+        body: JSON.stringify({ payment_method_id: pm.id })
+      });
+      const data = await res.json();
+      Swal.close();
 
-                    document.body.appendChild(pfForm);
-                    pfForm.submit();
-                } catch (err) {
-                    console.error(err);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'PayFast error',
-                        text: err.message || 'Could not redirect to PayFast.'
-                    });
-                    // Let the user re-open the payment modal
-                    new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    this.checked = false;
-                }
+      if (data.success) {
+        Swal.fire({ icon: 'success', title: 'Payment successful', text: 'Thank you — your purchase is complete.', timer: 1400, showConfirmButton: false })
+          .then(() => {
+            bootstrap.Modal.getOrCreateInstance('#stripePaymentModal').hide();
+            bootstrap.Modal.getOrCreateInstance('#purchaseThankYou').show();
+          });
+      } else if (data.requires_action) {
+        const result = await stripe.confirmCardPayment(data.payment_intent_client_secret);
+        if (result.error) {
+          Swal.fire({ icon: 'error', title: 'Authentication failed', text: result.error.message });
+        } else {
+          Swal.fire({ icon: 'success', title: 'Payment confirmed', text: 'Payment authentication completed.' })
+            .then(() => {
+              bootstrap.Modal.getOrCreateInstance('#stripePaymentModal').hide();
+              bootstrap.Modal.getOrCreateInstance('#purchaseThankYou').show();
             });
-        });
-
-
-        document.querySelectorAll("input[name='payment_method']").forEach(input => {
-            input.addEventListener("change", async function() {
-                const selected = this.value;
-                const paymentModal = bootstrap.Modal.getInstance(document.getElementById(
-                    "purchasePayment"));
-                paymentModal?.hide();
-
-                if (selected === "stripe") {
-                    new bootstrap.Modal(document.getElementById("stripePaymentModal"))
-                    .show();
-                    return;
-                }
-
-                // ----- PAYFAST -----
-                const formEl = document.getElementById("purchaseForm");
-                const purchaseIdInput = formEl.querySelector("input[name='purchase_id']");
-
-                if (!purchaseIdInput || !purchaseIdInput.value) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Missing purchase',
-                        text: 'Please save your details first.'
-                    });
-                    // Reopen payment modal for them
-                    new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    this.checked = false;
-                    return;
-                }
-
-                const confirmed = await Swal.fire({
-                    icon: 'question',
-                    title: 'Proceed with PayFast?',
-                    text: 'You will be redirected to PayFast to complete your payment.',
-                    showCancelButton: true,
-                    confirmButtonText: 'Continue',
-                    cancelButtonText: 'Back',
-                    reverseButtons: true, // 🔹 puts "Continue" on the right, "Back" on the left
-                    customClass: {
-                        confirmButton: 'btn btn-dark', // dark button
-                        cancelButton: 'btn btn-outline-secondary me-3' // lighter back button
-                    },
-                    buttonsStyling: false // 🔹 lets Bootstrap classes take effect
-                });
-
-
-                if (!confirmed.isConfirmed) {
-                    this.checked = false;
-                    new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    return;
-                }
-
-                try {
-                    // We’ll send name/email to help prefill PayFast form
-                    const res = await fetch(
-                        `/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify({
-                                name: formEl.name?.value || '',
-                                email: formEl.email?.value || ''
-                            })
-                        });
-
-                    const data = await res.json();
-                    if (!res.ok || !data.success) {
-                        throw new Error(data.message || 'Failed to initialize PayFast.');
-                    }
-
-                    // Build a POST form to PayFast and auto-submit
-                    const pfForm = document.createElement('form');
-                    pfForm.method = 'POST';
-                    pfForm.action = data.action;
-                    pfForm.style.display = 'none';
-
-                    Object.entries(data.fields).forEach(([k, v]) => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = k;
-                        input.value = v;
-                        pfForm.appendChild(input);
-                    });
-
-                    document.body.appendChild(pfForm);
-                    pfForm.submit();
-                } catch (err) {
-                    console.error(err);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'PayFast error',
-                        text: err.message || 'Could not redirect to PayFast.'
-                    });
-                    // Let the user re-open the payment modal
-                    new bootstrap.Modal(document.getElementById("purchasePayment")).show();
-                    this.checked = false;
-                }
-            });
-        });
-
-
-        // 🔹 Stripe payment handling
-        document.getElementById("purchaseStripePayButton").addEventListener("click", async function() {
-            const purchaseIdInput = form.querySelector("input[name='purchase_id']");
-            if (!purchaseIdInput || !purchaseIdInput.value) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Missing booking',
-                    text: 'Purchase ID is missing. Please go back and save your details.'
-                });
-                return;
-            }
-
-            Swal.fire({
-                title: 'Processing payment',
-                html: 'Please do not close this window.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            const {
-                paymentMethod: pm,
-                error
-            } = await stripe.createPaymentMethod({
-                type: 'card',
-                card: cardNumber,
-                billing_details: {
-                    name: form.name.value,
-                    email: form.email.value
-                }
-            });
-
-            if (error) {
-                Swal.close();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Card error',
-                    text: error.message
-                });
-                return;
-            }
-
-            const purchase_id = purchaseIdInput.value;
-            fetch(`/purchase/${purchase_id}/pay-with-stripe`, {
-                    method: 'POST',
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                    },
-                    body: JSON.stringify({
-                        payment_method_id: pm.id
-                    })
-                })
-                .then(res => res.json())
-                .then(async data => {
-                    Swal.close();
-                    if (data.success) {
-                        Swal.fire({
-                                icon: 'success',
-                                title: 'Payment successful',
-                                text: 'Thank you — your purchase is complete.',
-                                timer: 1400,
-                                showConfirmButton: false
-                            })
-                            .then(() => {
-                                bootstrap.Modal.getInstance(document.getElementById(
-                                    "stripePaymentModal"))?.hide();
-                                new bootstrap.Modal(document.getElementById(
-                                    "purchaseThankYou")).show();
-                            });
-                    } else if (data.requires_action) {
-                        const result = await stripe.confirmCardPayment(data
-                            .payment_intent_client_secret);
-                        if (result.error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Authentication failed',
-                                text: result.error.message
-                            });
-                        } else {
-                            Swal.fire({
-                                    icon: 'success',
-                                    title: 'Payment confirmed',
-                                    text: 'Payment authentication completed.'
-                                })
-                                .then(() => {
-                                    bootstrap.Modal.getInstance(document.getElementById(
-                                        "stripePaymentModal"))?.hide();
-                                    new bootstrap.Modal(document.getElementById(
-                                        "purchaseThankYou")).show();
-                                });
-                        }
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Payment failed',
-                            text: data.message ||
-                                'There was a problem processing your payment.'
-                        });
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    Swal.close();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Network error',
-                        text: 'Unable to complete payment. Please try again.'
-                    });
-                });
-        });
-
-        // 🔹 Enable tooltips
-        if (window.bootstrap?.Tooltip) {
-            document.querySelectorAll('.contact-btn[title]').forEach(el => new bootstrap.Tooltip(el));
         }
-    });
+      } else {
+        Swal.fire({ icon: 'error', title: 'Payment failed', text: data.message || 'There was a problem processing your payment.' });
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.close();
+      Swal.fire({ icon: 'error', title: 'Network error', text: 'Unable to complete payment. Please try again.' });
+    }
+  });
 
-    document.getElementById("purchasePayment").addEventListener("show.bs.modal", function() {
-        document.querySelectorAll("#purchasePayment input[name='payment_method']").forEach(el => {
-            el.checked = false; // reset selection
-        });
-    });
+  // --- Optional: Bootstrap tooltips for your contact icons ---
+  if (window.bootstrap?.Tooltip) {
+    document.querySelectorAll('.contact-btn[title]').forEach(el => new bootstrap.Tooltip(el));
+  }
+});
 </script>
 
-@if (session('payfast_success'))
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: 'Payment Successful 🎉',
-            text: @json(session('payfast_success')),
-            confirmButtonText: 'OK',
-            customClass: {
-                confirmButton: 'btn btn-dark'
-            },
-            buttonsStyling: false
-        });
-    </script>
-@endif

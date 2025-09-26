@@ -30,7 +30,7 @@
 <style>
 /* Inactive links */
 .navbar-dark .navbar-nav .nav-link {
-    color: #ffc107; /* yellow */
+    color: #CF9B4D; /* yellow */
     position: relative;
     font-weight: 500;
     transition: color 0.3s, transform 0.3s;

@@ -176,7 +176,7 @@ class VehicleController extends Controller
             ->with('success', 'Vehicle updated successfully!');
     }
 
-    
+
    // App\Http\Controllers\YourController.php
 public function view(Vehicles $vehicle)
 {
@@ -193,7 +193,7 @@ public function view(Vehicles $vehicle)
         ->get(['start_date', 'end_date'])
         ->map(fn($b) => ['from' => $b->start_date, 'to' => $b->end_date]);
 
-    $landing = Landing::first(); // <-- owner phone/settings
+    $landing = Landing::first();
 
     $addonFullyBooked = [];
     $today = Carbon::today();
@@ -209,9 +209,7 @@ public function view(Vehicles $vehicle)
         $reservedToday = 0;
 
         foreach ($addOn->reservations as $reservation) {
-            if (!$reservation->start_date || !$reservation->end_date) {
-                continue;
-            }
+            if (!$reservation->start_date || !$reservation->end_date) continue;
 
             $start = Carbon::parse($reservation->start_date)->startOfDay();
             $end   = Carbon::parse($reservation->end_date)->startOfDay();
@@ -250,7 +248,6 @@ public function view(Vehicles $vehicle)
             }
 
             $expectedNext = Carbon::parse($currentRange['to'])->addDay()->toDateString();
-
             if ($expectedNext === $dateStr) {
                 $currentRange['to'] = $dateStr;
             } else {
@@ -266,7 +263,19 @@ public function view(Vehicles $vehicle)
         $addonFullyBooked[$addOn->id] = $ranges;
     }
 
-    return view('view', compact('vehicle', 'addOns', 'bookedRanges', 'landing', 'addonFullyBooked'));
+    // ✅ fetch payment configs from DB
+    $stripeConfig  = \App\Models\StripeSetting::first();
+    $payfastConfig = \App\Models\PayfastSetting::first();
+
+    return view('view', compact(
+        'vehicle',
+        'addOns',
+        'bookedRanges',
+        'landing',
+        'addonFullyBooked',
+        'stripeConfig',
+        'payfastConfig'
+    ));
 }
 
 

@@ -10,55 +10,58 @@
 <div class="container-fluid mt-4">
     <div class="card shadow-sm">
         <div class="card-body">
-            <form action="{{ route('settings.payments.payfast.update') }}" method="POST">
+            <form action="{{ route('payfast.update') }}" method="POST">
                 @csrf
 
+                <!-- Merchant ID -->
                 <div class="mb-3">
                     <label class="form-label">Merchant ID</label>
-                    <input type="text" name="PAYFAST_MERCHANT_ID" class="form-control"
-                           value="{{ old('PAYFAST_MERCHANT_ID', env('PAYFAST_MERCHANT_ID')) }}">
+                    <input type="text" name="merchant_id" class="form-control"
+                           value="{{ old('merchant_id', $payfast->merchant_id ?? '') }}">
                 </div>
 
+                <!-- Merchant Key -->
                 <div class="mb-3">
                     <label class="form-label">Merchant Key</label>
-                    <input type="text" name="PAYFAST_MERCHANT_KEY" class="form-control"
-                           value="{{ old('PAYFAST_MERCHANT_KEY', env('PAYFAST_MERCHANT_KEY')) }}">
+                    <input type="text" name="merchant_key" class="form-control"
+                           value="{{ old('merchant_key', $payfast->merchant_key ?? '') }}">
                 </div>
 
+                <!-- Passphrase -->
                 <div class="mb-3">
                     <label class="form-label">Passphrase (optional)</label>
-                    <input type="text" name="PAYFAST_PASSPHRASE" class="form-control"
-                           value="{{ old('PAYFAST_PASSPHRASE', env('PAYFAST_PASSPHRASE')) }}">
+                    <input type="text" name="passphrase" class="form-control"
+                           value="{{ old('passphrase', $payfast->passphrase ?? '') }}">
                 </div>
 
+                <!-- Mode -->
                 <div class="mb-3">
                     <label class="form-label">Mode</label>
-                    <select name="PAYFAST_TEST_MODE" class="form-control">
-                        <option value="true" {{ env('PAYFAST_TEST_MODE') === 'true' ? 'selected' : '' }}>Sandbox (Test)</option>
-                        <option value="false" {{ env('PAYFAST_TEST_MODE') === 'false' ? 'selected' : '' }}>Live</option>
+                    <select name="test_mode" class="form-control">
+                        <option value="1" {{ ($payfast->test_mode ?? true) ? 'selected' : '' }}>Sandbox (Test)</option>
+                        <option value="0" {{ isset($payfast) && !$payfast->test_mode ? 'selected' : '' }}>Live</option>
                     </select>
                 </div>
 
+                <!-- Enable Toggle -->
                 <div class="form-check form-switch mb-4">
-                    <input type="hidden" name="PAYFAST_ENABLED" value="false">
-                    <input type="checkbox" name="PAYFAST_ENABLED" value="true"
+                    <input type="hidden" name="enabled" value="0">
+                    <input type="checkbox" name="enabled" value="1"
                            class="form-check-input"
                            id="payfastToggle"
-                           {{ config('payments.payfast.enabled') ? 'checked' : '' }}>
+                           {{ ($payfast->enabled ?? false) ? 'checked' : '' }}>
                     <label class="form-check-label" for="payfastToggle">
                         Enable PayFast
                     </label>
                 </div>
 
                 <!-- Footer -->
-                <div class="d-flex justify-content-between">
-                    <a href="{{ route('settings.payments.edit') }}" class="btn btn-outline-secondary">
-                        Back
-                    </a>
-                    <button type="submit" class="btn btn-dark">
-                        Save Changes
-                    </button>
-                </div>
+<div class="d-flex justify-content-end">
+    <button type="submit" class="btn btn-dark">
+        Save Changes
+    </button>
+</div>
+
             </form>
         </div>
     </div>

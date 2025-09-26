@@ -83,7 +83,7 @@
 
                     <!-- Actions -->
                     <div class="d-flex flex-column flex-md-row gap-3 mb-4">
-                        <button type="button" class="btn btn-warning text-black w-100" style="padding: 15px;"
+                        <button type="button" class="btn text-black w-100" style="padding: 15px; background-color:#CF9B4D"
                             data-bs-toggle="modal" data-bs-target="#multiStepBookingModal">
                             <i class="bi bi-calendar-check me-2"></i> Book this {{ $vehicle->name }}
                         </button>
@@ -694,8 +694,8 @@
             });
 
             /* ----------------------- Stripe checkout ----------------------- */
-            const stripe = Stripe("{{ config('services.stripe.key') }}");
-            const elements = stripe.elements();
+ const stripe = Stripe("{{ $stripeConfig->stripe_key ?? '' }}");
+             const elements = stripe.elements();
             const style = {
                 base: {
                     fontSize: '16px',

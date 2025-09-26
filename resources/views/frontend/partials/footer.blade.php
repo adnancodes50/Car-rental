@@ -3,7 +3,7 @@
     <div class="container">
         <div class="text-center mb-5">
             <div class="d-flex align-items-center gap-2" style="justify-content: center; margin-bottom: 1rem;">
-                <i class="bi bi-headset text-warning display-5"></i>
+                <i class="bi bi-headset display-5" style="color: #CF9B4D"></i>
 
             </div>
 
@@ -23,15 +23,13 @@
                 <i class="bi bi-envelope me-2"></i> {{ $settings->email_btn_text ?? 'Email Alex' }}
             </a>
 
-           <a href="https://wa.me/{{ $settings->whatsapp_link ?? '1234567890' }}"
-   target="_blank"
-   rel="noopener"
-   class="btn btn-lg px-4 fw-semibold"
-   style="background-color: #25D366; color: white; border-color: #25D366;"
-   onmouseover="this.style.backgroundColor='#25D366'; this.style.filter='brightness(90%)';"
-   onmouseout="this.style.backgroundColor='#25D366'; this.style.filter='brightness(100%)';">
-    <i class="bi bi-whatsapp me-2 text-white"></i> {{ $settings->whatsapp_btn_text ?? 'WhatsApp' }}
-</a>
+            <a href="https://wa.me/{{ $settings->whatsapp_link ?? '1234567890' }}" target="_blank" rel="noopener"
+                class="btn btn-lg px-4 fw-semibold"
+                style="background-color: #25D366; color: white; border-color: #25D366;"
+                onmouseover="this.style.backgroundColor='#25D366'; this.style.filter='brightness(90%)';"
+                onmouseout="this.style.backgroundColor='#25D366'; this.style.filter='brightness(100%)';">
+                <i class="bi bi-whatsapp me-2 text-white"></i> {{ $settings->whatsapp_btn_text ?? 'WhatsApp' }}
+            </a>
 
 
         </div>

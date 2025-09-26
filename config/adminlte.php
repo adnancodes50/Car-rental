@@ -370,45 +370,52 @@ return [
         'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
     ],
 
-[
-    'text'  => 'Payment Settings',
-    'route' => 'settings.index',
-    'icon'  => 'fas fa-cogs fa-lg text-info', // Gear icon
-    'icon2' => 'fas fa-credit-card fa-lg text-warning', // Payment icon
+
+
+
+
+
+
+
+
+        [
+            'text' => 'Setting',
+            'icon' => 'fas fa-fw fa-cogs',
+            'submenu' => [
+                   [
+    'text' => 'Stripe Setting',
+    'route'  => 'stripe.edit',
+    'icon' => 'fas fa-credit-card',
 ],
 
 
-        // [
-        //     'text' => 'Management',
-        //     'icon' => 'fas fa-fw fa-cogs',
-        //     'submenu' => [
-        //         [
-        //             'text' => 'Vehicle Management',
-        //             'url' => '/vehicles',
-        //             'icon' => 'fas fa-car', // 🚗 Car icon
-        //         ],
-        //         [
-        //             'text' => 'Landing page management',
-        //             'route' => 'admin.landing-settings.index', // links to GET route
-        //             'icon' => 'fas fa-fw fa-images',          // gallery images icon
-        //         ],
-        //         [
-        //             'text' => 'Add On Inventory',
-        //             'route' => 'inventry.index',
-        //             'icon' => 'fas fa-fw fa-boxes',   // inventory/boxes icon
-        //         ],
+       [
+    'text' => 'Pay Fast Setting',
+    'route'  => 'payfast.edit',
+    'icon' => 'fas fa-credit-card',
+],
+    //             [
+                //     'text' => 'Landing page management',
+                //     'route' => 'admin.landing-settings.index', // links to GET route
+                //     'icon' => 'fas fa-fw fa-images',          // gallery images icon
+                // ],
+                // [
+                //     'text' => 'Add On Inventory',
+                //     'route' => 'inventry.index',
+                //     'icon' => 'fas fa-fw fa-boxes',   // inventory/boxes icon
+                // ],
 
-        //         [
-        //             'text' => 'Customers',
-        //             'route' => 'customers.index',
-        //             'icon' => 'fas fa-user-friends',   // inventory/boxes icon
-        //         ],
+                // [
+                //     'text' => 'Customers',
+                //     'route' => 'customers.index',
+                //     'icon' => 'fas fa-user-friends',   // inventory/boxes icon
+                // ],
 
 
 
 
-        //     ],
-        // ],
+            ],
+        ],
 
         // ['header' => 'labels'],
         // [

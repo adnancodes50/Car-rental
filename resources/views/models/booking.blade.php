@@ -226,7 +226,7 @@
                                    <div class="col-md-4">
                                        <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
                                            data-price="{{ $vehicle->rental_price_day }}">
-                                           <i class="bi bi-clock display-6 text-warning"></i>
+                                           <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
                                            <h6 class="mt-2">Daily Rental</h6>
                                            <p class="small text-muted mb-1">Perfect for short trips</p>
                                            <div class="text-dark">R{{ number_format($vehicle->rental_price_day) }}/day
@@ -238,7 +238,7 @@
                                    <div class="col-md-4">
                                        <div class="option-card p-3 border rounded-4 h-100" data-type="week"
                                            data-price="{{ $vehicle->rental_price_week }}">
-                                           <i class="bi bi-calendar-event display-6 text-warning"></i>
+                                           <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
                                            <h6 class="mt-2">Weekly Rental</h6>
                                            <p class="small text-muted mb-1">Great for 1-4 weeks</p>
                                            <div class="text-dark">R{{ number_format($vehicle->rental_price_week) }}/week
@@ -250,7 +250,7 @@
                                    <div class="col-md-4">
                                        <div class="option-card p-3 border rounded-4 h-100" data-type="month"
                                            data-price="{{ $vehicle->rental_price_month }}">
-                                           <i class="bi bi-box display-6 text-warning"></i>
+                                           <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
                                            <h6 class="mt-2">Monthly Rental</h6>
                                            <p class="small text-muted mb-1">Best for long stays</p>
                                            <div class="text-dark">
@@ -379,7 +379,7 @@
                                                        class="card-body d-flex flex-column align-items-center justify-content-center text-center">
                                                        <!-- Icon (center & top) -->
                                                        <div class="addon-type-icon mb-2">
-                                                           <i class="bi bi-clock display-6 text-warning"></i>
+                                                           <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
                                                            <!-- Or: <i class="bi bi-sun"></i> -->
                                                        </div>
 
@@ -397,7 +397,7 @@
                                                    <div class="card-body">
 
                                                        <div class="addon-type-icon mb-2">
-                                                           <i class="bi bi-calendar-event display-6 text-warning"></i>
+                                                           <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
                                                            <!-- Or: <i class="bi bi-sun"></i> -->
                                                        </div>
                                                        <h6 class="card-title">Weekly</h6>
@@ -412,7 +412,7 @@
                                                    <div class="card-body">
 
                                                        <div class="addon-type-icon mb-2">
-                                                           <i class="bi bi-box display-6 text-warning"></i>
+                                                           <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
                                                            <!-- Or: <i class="bi bi-sun"></i> -->
                                                        </div>
 

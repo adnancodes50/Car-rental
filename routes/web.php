@@ -14,6 +14,8 @@ use App\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\PaymentSettingsController;
+use App\Http\Controllers\StripeSettingController;
+use App\Http\Controllers\PayfastSettingController;
 
 
 Route::get('/', [VehicleController::class, 'frontendIndex'])->name('home');
@@ -102,23 +104,26 @@ Route::group([
 });
 
 
+
 Route::group([
     'middleware' => ['auth'],
-    'prefix' => 'settings',
-    'as' => 'settings.'
+    'prefix' => 'stripe',
+    'as' => 'stripe.'
 ], function () {
-    Route::get('/', [PaymentSettingsController::class, 'edit'])->name('index');
-
-    // Main payments overview page
-    Route::get('/payments', [PaymentSettingsController::class, 'edit'])->name('payments.edit');
-
-    // Dedicated pages for each gateway
-    Route::get('/payments/stripe', [PaymentSettingsController::class, 'stripe'])->name('payments.stripe');
-    Route::post('/payments/stripe', [PaymentSettingsController::class, 'updateStripe'])->name('payments.stripe.update');
-
-    Route::get('/payments/payfast', [PaymentSettingsController::class, 'payfast'])->name('payments.payfast');
-    Route::post('/payments/payfast', [PaymentSettingsController::class, 'updatePayfast'])->name('payments.payfast.update');
+    Route::get('/edit', [StripeSettingController::class, 'edit'])->name('edit');
+    Route::post('/update', [StripeSettingController::class, 'update'])->name('update');
 });
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'payfast',
+    'as' => 'payfast.'
+], function () {
+    Route::get('/edit', [PayfastSettingController::class, 'edit'])->name('edit');
+    Route::post('/update', [PayfastSettingController::class, 'update'])->name('update');
+});
+
 
 
 

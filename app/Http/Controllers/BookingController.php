@@ -231,32 +231,36 @@ public function store(Request $request)
 
 
 
+
+
+
 public function payWithStripe(Request $request, Booking $booking)
 {
     $request->validate([
         'payment_method_id' => 'required|string',
     ]);
 
-    if (!in_array($booking->status, ['pending', 'processing'])) {
-        return response()->json([
-            'success' => false,
-            'message' => 'This booking cannot be paid (status: '.$booking->status.').',
-        ], 422);
-    }
-
-    // Ensure we have customer's email for receipts
+    // load customer if missing
     $booking->loadMissing('customer');
 
-    $stripe   = new StripeClient(config('services.stripe.secret'));
+    $stripeSetting = \App\Models\StripeSetting::first();
+
+    if (!$stripeSetting || !$stripeSetting->stripe_enabled) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Stripe is not configured or disabled.',
+        ], 500);
+    }
+
+    $stripe   = new \Stripe\StripeClient($stripeSetting->stripe_secret);
     $currency = $booking->currency ?: 'zar';
-    $amount   = (int) round($booking->total_price * 100); // cents
+    $amount   = (int) round($booking->total_price * 100);
     $receipt  = optional($booking->customer)->email;
 
-    // Stripe requires minimum amount >= 50 (i.e., R0.50)
     if ($amount < 50) {
         return response()->json([
             'success' => false,
-            'message' => 'Amount too low to charge. (Minimum R0.50)',
+            'message' => 'Amount too low to charge (minimum R0.50).',
         ], 422);
     }
 
@@ -336,9 +340,8 @@ public function payWithStripe(Request $request, Booking $booking)
             'message' => 'Payment could not be completed. Status: '.$pi->status,
         ], 422);
 
-    } catch (ApiErrorException $e) {
-        // Stripe API error (card_declined, invalid_request, etc.)
-        Log::error('Stripe error on booking payment', [
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        \Log::error('Stripe error on booking payment', [
             'booking_id' => $booking->id,
             'code'       => $e->getError() ? $e->getError()->code : null,
             'param'      => $e->getError() ? $e->getError()->param : null,
@@ -349,8 +352,7 @@ public function payWithStripe(Request $request, Booking $booking)
             'message' => $e->getMessage(),
         ], 500);
     } catch (\Throwable $e) {
-        // Any other server error
-        Log::error('Booking payWithStripe crashed', [
+        \Log::error('Booking payWithStripe crashed', [
             'booking_id' => $booking->id,
             'message'    => $e->getMessage(),
         ]);
@@ -363,14 +365,15 @@ public function payWithStripe(Request $request, Booking $booking)
 
 
 
+
+
+
 public function initPayfastBooking(Request $request, $bookingId)
 {
-    // Force JSON response
     if (!$request->expectsJson()) {
         $request->headers->set('Accept', 'application/json');
     }
 
-    // Load booking with vehicle and customer
     $booking = Booking::with(['vehicle', 'customer'])->find($bookingId);
     if (!$booking) {
         return response()->json([
@@ -379,7 +382,21 @@ public function initPayfastBooking(Request $request, $bookingId)
         ], 404);
     }
 
-    // Calculate deposit / amount exactly as store method did
+    // ---- Load PayFast settings from DB ----
+    $pf = PayfastSetting::where('enabled', true)->first();
+    if (!$pf) {
+        return response()->json([
+            'success' => false,
+            'message' => 'PayFast is not configured.',
+        ], 500);
+    }
+
+    $isTest = (bool) $pf->test_mode;
+    $action = $isTest
+        ? 'https://sandbox.payfast.co.za/eng/process'
+        : 'https://www.payfast.co.za/eng/process';
+
+    // ---- Calculate booking amount ----
     $notes = json_decode($booking->notes, true) ?? [];
     $unit = $notes['rental_unit'] ?? 'day';
     $qty = (int) ($notes['rental_quantity'] ?? 1);
@@ -403,40 +420,33 @@ public function initPayfastBooking(Request $request, $bookingId)
     $addonsTotal = collect($addonsSummary)->sum('price_total');
 
     $totalAmount = $basePrice + $extraDaysPrice + $addonsTotal;
+    $amount = number_format($totalAmount, 2, '.', ''); // Always 2 decimals
 
-    // ---- PayFast config & endpoint ----
-    $pf = config('payfast');
-    $isTest = filter_var($pf['testmode'], FILTER_VALIDATE_BOOLEAN);
-    $action = $isTest ? $pf['urls']['sandbox'] : $pf['urls']['live'];
-
-    // Unique ID
+    // ---- Build fields ----
     $m_payment_id = 'book-' . $booking->id . '-' . Str::random(6);
-
-    // Format amount to 2 decimals
-    $amount = number_format($totalAmount, 2, '.', '');
-
-    $returnUrl = route('fleet.view', ['vehicle' => $booking->vehicle->id]);
+    $returnUrl    = route('fleet.view', ['vehicle' => $booking->vehicle->id]);
 
     $fields = [
-        'merchant_id'   => $pf['merchant_id'],
-        'merchant_key'  => $pf['merchant_key'],
+        'merchant_id'   => $pf->merchant_id,
+        'merchant_key'  => $pf->merchant_key,
         'return_url'    => $returnUrl,
-        'cancel_url'    => url($pf['cancel_url']),
-        'notify_url'    => url($pf['notify_url']),
+        'cancel_url'    => url('/payment/cancel'),
+        'notify_url'    => url('/payment/notify'),
         'm_payment_id'  => $m_payment_id,
         'amount'        => $amount,
-        'item_name'     => 'Deposit for booking ' . $booking->reference,
-        'name_first'    => $request->input('name', $booking->customer->name ?? ''),
-        'email_address' => $request->input('email', $booking->customer->email ?? ''),
+        'item_name'     => substr('Deposit for booking ' . $booking->reference, 0, 100),
+        'name_first'    => $request->input('name', $booking->customer->name ?? 'Guest'),
+        'email_address' => $request->input('email', $booking->customer->email ?? 'test@example.com'),
         'custom_str1'   => (string) $booking->id,
     ];
 
-    // Generate signature
+    // ---- Generate signature ----
     $sigData = $fields;
-    if (!empty($pf['passphrase'])) {
-        $sigData['passphrase'] = $pf['passphrase'];
+    if (!empty($pf->passphrase)) {
+        $sigData['passphrase'] = $pf->passphrase;
     }
     ksort($sigData);
+
     $pairs = [];
     foreach ($sigData as $key => $val) {
         if ($val === '' || $val === null) continue;
@@ -444,6 +454,7 @@ public function initPayfastBooking(Request $request, $bookingId)
     }
     $fields['signature'] = md5(implode('&', $pairs));
 
+    // ---- Update booking ----
     $booking->update([
         'payment_method'     => 'payfast',
         'payfast_payment_id' => $m_payment_id,
