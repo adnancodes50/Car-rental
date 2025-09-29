@@ -152,12 +152,12 @@ return [
     |
     */
 
-    'layout_topnav' => null,
-    'layout_boxed' => null,
-    'layout_fixed_sidebar' => null,
-    'layout_fixed_navbar' => null,
-    'layout_fixed_footer' => null,
-    'layout_dark_mode' => null,
+   'layout_topnav' => null,
+'layout_boxed' => null,
+'layout_fixed_sidebar' => true,
+'layout_fixed_navbar' => null,
+'layout_fixed_footer' => null,
+'layout_dark_mode' => null,
 
     /*
     |--------------------------------------------------------------------------
@@ -213,16 +213,15 @@ return [
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Layout-and-Styling-Configuration
     |
     */
-
-    'sidebar_mini' => 'lg',
-    'sidebar_collapse' => false,
-    'sidebar_collapse_auto_size' => false,
-    'sidebar_collapse_remember' => false,
-    'sidebar_collapse_remember_no_transition' => true,
-    'sidebar_scrollbar_theme' => 'os-theme-light',
-    'sidebar_scrollbar_auto_hide' => 'l',
-    'sidebar_nav_accordion' => true,
-    'sidebar_nav_animation_speed' => 300,
+'sidebar_mini' => 'lg',
+'sidebar_collapse' => false,
+'sidebar_collapse_auto_size' => false,
+'sidebar_collapse_remember' => false,
+'sidebar_collapse_remember_no_transition' => true,
+'sidebar_scrollbar_theme' => 'os-theme-light',
+'sidebar_scrollbar_auto_hide' => 'l',
+'sidebar_nav_accordion' => true,
+'sidebar_nav_animation_speed' => 300,
 
     /*
     |--------------------------------------------------------------------------
@@ -383,17 +382,17 @@ return [
             'icon' => 'fas fa-fw fa-cogs',
             'submenu' => [
                    [
-    'text' => 'Stripe Setting',
-    'route'  => 'stripe.edit',
-    'icon' => 'fas fa-credit-card',
+    'text' => 'System Setting',
+    'route'  => 'systemsetting.edit',
+    'icon' => 'fas fa-tools',
 ],
 
 
-       [
-    'text' => 'Pay Fast Setting',
-    'route'  => 'payfast.edit',
-    'icon' => 'fas fa-credit-card',
-],
+//        [
+//     'text' => 'Pay Fast Setting',
+//     'route'  => 'payfast.edit',
+//     'icon' => 'fas fa-credit-card',
+// ],
     //             [
                 //     'text' => 'Landing page management',
                 //     'route' => 'admin.landing-settings.index', // links to GET route

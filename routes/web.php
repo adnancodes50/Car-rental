@@ -16,6 +16,8 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\PaymentSettingsController;
 use App\Http\Controllers\StripeSettingController;
 use App\Http\Controllers\PayfastSettingController;
+use App\Http\Controllers\SystemSettingController;
+
 
 
 Route::get('/', [VehicleController::class, 'frontendIndex'])->name('home');
@@ -107,22 +109,23 @@ Route::group([
 
 Route::group([
     'middleware' => ['auth'],
-    'prefix' => 'stripe',
-    'as' => 'stripe.'
+    'prefix' => 'systemsetting',
+    'as' => 'systemsetting.'
 ], function () {
-    Route::get('/edit', [StripeSettingController::class, 'edit'])->name('edit');
-    Route::post('/update', [StripeSettingController::class, 'update'])->name('update');
+    Route::get('/edit', [SystemSettingController::class, 'edit'])->name('edit');
+    Route::post('/update', [SystemSettingController::class, 'update'])->name('update');
 });
 
 
-Route::group([
-    'middleware' => ['auth'],
-    'prefix' => 'payfast',
-    'as' => 'payfast.'
-], function () {
-    Route::get('/edit', [PayfastSettingController::class, 'edit'])->name('edit');
-    Route::post('/update', [PayfastSettingController::class, 'update'])->name('update');
-});
+
+// Route::group([
+//     'middleware' => ['auth'],
+//     'prefix' => 'payfast',
+//     'as' => 'payfast.'
+// ], function () {
+//     Route::get('/edit', [PayfastSettingController::class, 'edit'])->name('edit');
+//     Route::post('/update', [PayfastSettingController::class, 'update'])->name('update');
+// });
 
 
 
@@ -148,15 +151,6 @@ Route::post('/purchase', [PurchaseController::class, 'store'])->name('purchase.s
 Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 'payWithStripe'])
     ->name('purchase.pay.stripe');
 
-
-
-
-
-
-
-// routes/web.php
-
-
 // Create the PayFast request + redirect (returns fields to auto-submit to PayFast)
 // Start PayFast payment
 Route::post('/purchase/{purchase}/payfast/init', [PurchaseController::class, 'initPayfast'])
@@ -171,8 +165,7 @@ Route::match(['GET','POST'], '/payment/cancel', [PurchaseController::class, 'pay
     ->name('payfast.cancel');
 
 Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNotify'])
-  ->name('purchase.payfast.notify')
-;
+    ->name('purchase.payfast.notify');
 
 
 

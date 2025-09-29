@@ -379,7 +379,8 @@
                                                        class="card-body d-flex flex-column align-items-center justify-content-center text-center">
                                                        <!-- Icon (center & top) -->
                                                        <div class="addon-type-icon mb-2">
-                                                           <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
+                                                           <i class="bi bi-clock display-6"
+                                                               style="color: #CF9B4D"></i>
                                                            <!-- Or: <i class="bi bi-sun"></i> -->
                                                        </div>
 
@@ -397,7 +398,8 @@
                                                    <div class="card-body">
 
                                                        <div class="addon-type-icon mb-2">
-                                                           <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
+                                                           <i class="bi bi-calendar-event display-6"
+                                                               style="color: #CF9B4D"></i>
                                                            <!-- Or: <i class="bi bi-sun"></i> -->
                                                        </div>
                                                        <h6 class="card-title">Weekly</h6>
@@ -692,12 +694,30 @@
        </form> {{-- CLOSE booking form here --}}
 
 
+     
        @php
-           $stripeEnabled = Cache::get('payments.stripe', config('payments.stripe'));
-           $payfastEnabled = Cache::get('payments.payfast', config('payments.payfast'));
+           use App\Models\SystemSetting;
+           use Illuminate\Support\Facades\Cache;
+
+           if (app()->environment('local')) {
+               $settings =
+                   SystemSetting::first() ?:
+                   new SystemSetting([
+                       'stripe_enabled' => false,
+                       'payfast_enabled' => false,
+                   ]);
+           } else {
+               $settings = Cache::remember('payments.settings', 60, function () {
+                   return SystemSetting::first() ?:
+                       new SystemSetting([
+                           'stripe_enabled' => false,
+                           'payfast_enabled' => false,
+                       ]);
+               });
+           }
 
            // Count enabled payment methods
-           $enabledCount = ($stripeEnabled ? 1 : 0) + ($payfastEnabled ? 1 : 0);
+           $enabledCount = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
        @endphp
 
        <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
@@ -716,7 +736,7 @@
                    <div class="modal-body">
                        <div class="row g-3 align-items-stretch justify-content-center">
 
-                           @if ($stripeEnabled)
+                           @if ($settings->stripe_enabled)
                                <!-- Stripe -->
                                <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
                                    <input type="radio" name="booking_payment_method" id="bookingStripe"
@@ -735,7 +755,7 @@
                                </div>
                            @endif
 
-                           @if ($payfastEnabled)
+                           @if ($settings->payfast_enabled)
                                <!-- PayFast -->
                                <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
                                    <input type="radio" name="booking_payment_method" id="bookingPayfast"
@@ -765,7 +785,6 @@
                        </div>
                    </div>
 
-
                    <!-- Footer -->
                    <div class="modal-footer justify-content-between">
                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
@@ -776,6 +795,7 @@
                </div>
            </div>
        </div>
+
 
        <!-- Step 5b: Stripe Card -->
        <div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
@@ -1364,7 +1384,7 @@
                            onOpen: (_sel, _str, inst) => {
                                const next = nextAvailableFrom(new Date(), blockedRanges);
                                if (next && (!inst.selectedDates || inst.selectedDates.length ===
-                                   0)) {
+                                       0)) {
                                    const unit = typeH.value || 'day';
                                    if (unit === 'day') {
                                        const d = Math.max(1, parseInt(daysH.value || extraSel

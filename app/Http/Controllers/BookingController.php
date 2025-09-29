@@ -16,6 +16,7 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use Stripe\StripeClient;
+use App\Models\SystemSetting;
 use Validator;
 
 
@@ -243,17 +244,18 @@ public function payWithStripe(Request $request, Booking $booking)
     // load customer if missing
     $booking->loadMissing('customer');
 
-    $stripeSetting = \App\Models\StripeSetting::first();
+    $settings = \App\Models\SystemSetting::first();
 
-    if (!$stripeSetting || !$stripeSetting->stripe_enabled) {
+    if (! $settings || ! $settings->stripe_enabled) {
         return response()->json([
             'success' => false,
             'message' => 'Stripe is not configured or disabled.',
         ], 500);
     }
 
-    $stripe   = new \Stripe\StripeClient($stripeSetting->stripe_secret);
-    $currency = $booking->currency ?: 'zar';
+    // Stripe init
+    $secret   = $settings->stripe_secret;
+    $currency = strtolower($booking->currency ?: 'zar'); // default to ZAR if missing
     $amount   = (int) round($booking->total_price * 100);
     $receipt  = optional($booking->customer)->email;
 
@@ -264,8 +266,11 @@ public function payWithStripe(Request $request, Booking $booking)
         ], 422);
     }
 
+    $stripe = new \Stripe\StripeClient($secret);
+
     try {
-        if (!$booking->stripe_payment_intent_id) {
+        if (! $booking->stripe_payment_intent_id) {
+            // Create new PI
             $pi = $stripe->paymentIntents->create([
                 'amount'               => $amount,
                 'currency'             => $currency,
@@ -284,9 +289,11 @@ public function payWithStripe(Request $request, Booking $booking)
             ]);
             $booking->update(['stripe_payment_intent_id' => $pi->id]);
         } else {
-            $pi = $stripe->paymentIntents->retrieve($booking->stripe_payment_intent_id, [
-                'expand' => ['payment_method', 'charges.data.balance_transaction'],
-            ]);
+            // Retrieve & confirm existing PI
+            $pi = $stripe->paymentIntents->retrieve(
+                $booking->stripe_payment_intent_id,
+                ['expand' => ['payment_method', 'charges.data.balance_transaction']]
+            );
 
             if ($pi->status !== 'succeeded') {
                 $pi = $stripe->paymentIntents->confirm($pi->id, [
@@ -295,6 +302,7 @@ public function payWithStripe(Request $request, Booking $booking)
             }
         }
 
+        // Handle next actions
         if ($pi->status === 'requires_action' && isset($pi->next_action) && $pi->next_action->type === 'use_stripe_sdk') {
             $booking->update(['status' => 'processing']);
             return response()->json([
@@ -304,6 +312,7 @@ public function payWithStripe(Request $request, Booking $booking)
             ]);
         }
 
+        // Handle success
         if ($pi->status === 'succeeded') {
             $pm     = $pi->payment_method ?? null;
             $card   = $pm && isset($pm->card) ? $pm->card : null;
@@ -317,15 +326,15 @@ public function payWithStripe(Request $request, Booking $booking)
                 'paid_at'                   => now(),
 
                 'stripe_payment_intent_id'  => $pi->id,
-                'stripe_payment_method_id'  => $pm ? $pm->id : null,
-                'stripe_charge_id'          => $charge ? $charge->id : null,
+                'stripe_payment_method_id'  => $pm?->id,
+                'stripe_charge_id'          => $charge?->id,
 
-                'card_brand'                => $card ? $card->brand : null,
-                'card_last4'                => $card ? $card->last4 : null,
-                'card_exp_month'            => $card ? $card->exp_month : null,
-                'card_exp_year'             => $card ? $card->exp_year : null,
+                'card_brand'                => $card?->brand,
+                'card_last4'                => $card?->last4,
+                'card_exp_month'            => $card?->exp_month,
+                'card_exp_year'             => $card?->exp_year,
 
-                'receipt_url'               => $charge ? ($charge->receipt_url ?? null) : null,
+                'receipt_url'               => $charge?->receipt_url,
             ]);
 
             return response()->json([
@@ -335,16 +344,17 @@ public function payWithStripe(Request $request, Booking $booking)
             ]);
         }
 
+        // Fallback
         return response()->json([
             'success' => false,
-            'message' => 'Payment could not be completed. Status: '.$pi->status,
+            'message' => 'Payment could not be completed. Status: ' . $pi->status,
         ], 422);
 
     } catch (\Stripe\Exception\ApiErrorException $e) {
         \Log::error('Stripe error on booking payment', [
             'booking_id' => $booking->id,
-            'code'       => $e->getError() ? $e->getError()->code : null,
-            'param'      => $e->getError() ? $e->getError()->param : null,
+            'code'       => $e->getError()?->code,
+            'param'      => $e->getError()?->param,
             'message'    => $e->getMessage(),
         ]);
         return response()->json([
@@ -368,14 +378,17 @@ public function payWithStripe(Request $request, Booking $booking)
 
 
 
+
+
 public function initPayfastBooking(Request $request, $bookingId)
 {
-    if (!$request->expectsJson()) {
+    if (! $request->expectsJson()) {
         $request->headers->set('Accept', 'application/json');
     }
 
+    // load booking
     $booking = Booking::with(['vehicle', 'customer'])->find($bookingId);
-    if (!$booking) {
+    if (! $booking) {
         return response()->json([
             'success' => false,
             'message' => 'Booking not found.',
@@ -383,18 +396,19 @@ public function initPayfastBooking(Request $request, $bookingId)
     }
 
     // ---- Load PayFast settings from DB ----
-    $pf = PayfastSetting::where('enabled', true)->first();
-    if (!$pf) {
+    $pf = SystemSetting::where('payfast_enabled', true)->first();
+    if (! $pf) {
         return response()->json([
             'success' => false,
             'message' => 'PayFast is not configured.',
         ], 500);
     }
 
-    $isTest = (bool) $pf->test_mode;
+    // ---- Determine action URL (sandbox vs live) ----
+    $isTest = (bool) ($pf->payfast_test_mode ?? true);
     $action = $isTest
         ? 'https://sandbox.payfast.co.za/eng/process'
-        : 'https://www.payfast.co.za/eng/process';
+        : ($pf->payfast_live_url ?? 'https://www.payfast.co.za/eng/process');
 
     // ---- Calculate booking amount ----
     $notes = json_decode($booking->notes, true) ?? [];
@@ -422,34 +436,46 @@ public function initPayfastBooking(Request $request, $bookingId)
     $totalAmount = $basePrice + $extraDaysPrice + $addonsTotal;
     $amount = number_format($totalAmount, 2, '.', ''); // Always 2 decimals
 
-    // ---- Build fields ----
+    // ---- Payment identifiers & URLs (make sure returnUrl exists before using) ----
     $m_payment_id = 'book-' . $booking->id . '-' . Str::random(6);
-    $returnUrl    = route('fleet.view', ['vehicle' => $booking->vehicle->id]);
 
+    // safe fallback if vehicle missing
+    if ($booking->vehicle && isset($booking->vehicle->id)) {
+        $returnUrl = route('fleet.view', ['vehicle' => $booking->vehicle->id]);
+    } else {
+        $returnUrl = url('/'); // fallback
+    }
+
+    $cancelUrl = url('/payment/cancel');
+    $notifyUrl = url('/payment/notify');
+
+    // ---- Build fields using the correct DB column names ----
     $fields = [
-        'merchant_id'   => $pf->merchant_id,
-        'merchant_key'  => $pf->merchant_key,
+        'merchant_id'   => $pf->payfast_merchant_id,
+        'merchant_key'  => $pf->payfast_merchant_key,
         'return_url'    => $returnUrl,
-        'cancel_url'    => url('/payment/cancel'),
-        'notify_url'    => url('/payment/notify'),
+        'cancel_url'    => $cancelUrl,
+        'notify_url'    => $notifyUrl,
         'm_payment_id'  => $m_payment_id,
         'amount'        => $amount,
-        'item_name'     => substr('Deposit for booking ' . $booking->reference, 0, 100),
+        'item_name'     => substr('Deposit for booking ' . ($booking->reference ?? $booking->id), 0, 100),
         'name_first'    => $request->input('name', $booking->customer->name ?? 'Guest'),
         'email_address' => $request->input('email', $booking->customer->email ?? 'test@example.com'),
         'custom_str1'   => (string) $booking->id,
     ];
 
-    // ---- Generate signature ----
+    // ---- Generate signature (include passphrase only for signature if present) ----
     $sigData = $fields;
-    if (!empty($pf->passphrase)) {
-        $sigData['passphrase'] = $pf->passphrase;
+    if (! empty($pf->payfast_passphrase)) {
+        $sigData['passphrase'] = $pf->payfast_passphrase;
     }
-    ksort($sigData);
 
+    ksort($sigData);
     $pairs = [];
     foreach ($sigData as $key => $val) {
-        if ($val === '' || $val === null) continue;
+        if ($val === '' || $val === null) {
+            continue;
+        }
         $pairs[] = $key . '=' . urlencode(trim($val));
     }
     $fields['signature'] = md5(implode('&', $pairs));
@@ -461,6 +487,7 @@ public function initPayfastBooking(Request $request, $bookingId)
         'deposit_expected'   => $totalAmount,
     ]);
 
+    // ---- Return to client ----
     return response()->json([
         'success' => true,
         'action'  => $action,
