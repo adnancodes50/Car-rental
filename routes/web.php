@@ -32,9 +32,7 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
-
     });
-
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');

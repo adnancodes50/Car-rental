@@ -379,12 +379,12 @@ return [
 
         [
             'text' => 'Setting',
-            'icon' => 'fas fa-fw fa-cogs',
+            'icon' => 'fas fa-fw fa-cogs text-warning',
             'submenu' => [
                    [
     'text' => 'System Setting',
     'route'  => 'systemsetting.edit',
-    'icon' => 'fas fa-tools',
+    'icon' => 'fas fa-tools text-danger',
 ],
 
 

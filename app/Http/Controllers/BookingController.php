@@ -18,6 +18,10 @@ use Stripe\PaymentIntent;
 use Stripe\StripeClient;
 use App\Models\SystemSetting;
 use Validator;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BookingReceipt;
+use App\Mail\OwnerBookingAlert;
 
 
 class BookingController extends Controller
@@ -231,46 +235,112 @@ public function store(Request $request)
 
 
 
+/**
+ * Program the mailer from DB settings at runtime.
+ */
+private function configureMailerFromSettings(?SystemSetting $settings = null): bool
+{
+    $settings = $settings ?: SystemSetting::first();
+    if (!$settings || !$settings->mail_enabled) return false;
+
+    if (!$settings->mail_host || !$settings->mail_port || !$settings->mail_username || !$settings->mail_password) {
+        return false;
+    }
+
+    Config::set('mail.default', 'smtp');
+    Config::set('mail.from.address', $settings->mail_from_address ?: config('mail.from.address'));
+    Config::set('mail.from.name', $settings->mail_from_name ?: config('mail.from.name'));
+    Config::set('mail.mailers.smtp', [
+        'transport'  => 'smtp',
+        'host'       => $settings->mail_host,
+        'port'       => (int) $settings->mail_port,
+        'encryption' => $settings->mail_encryption ?: null, // 'tls'|'ssl'|null
+        'username'   => $settings->mail_username,
+        'password'   => $settings->mail_password,
+        'timeout'    => null,
+        'auth_mode'  => null,
+    ]);
+
+    return true;
+}
+
+/**
+ * Decide where the owner copy goes.
+ */
+private function resolveOwnerEmail(?SystemSetting $settings = null): ?string
+{
+    $settings = $settings ?: SystemSetting::first();
+
+    if (!empty($settings?->mail_owner_address)) {
+        return $settings->mail_owner_address;
+    }
+
+    return $settings?->mail_from_address
+        ?: (config('mail.from.address') ?: env('OWNER_EMAIL'));
+}
+
+/**
+ * Send booking emails (customer + owner).
+ */
+private function sendBookingEmails(\App\Models\Booking $booking, float $paidNow): void
+{
+    try {
+        $settings = SystemSetting::first();
+        $this->configureMailerFromSettings($settings);
+        $ownerEmail = $this->resolveOwnerEmail($settings);
+
+        // customer
+        if ($booking->customer?->email) {
+            Mail::to($booking->customer->email)
+                ->send(new BookingReceipt($booking->loadMissing('vehicle','customer'), $paidNow));
+        }
+
+        // owner
+        if ($ownerEmail) {
+            Mail::to($ownerEmail)
+                ->send(new OwnerBookingAlert($booking->loadMissing('vehicle','customer'), $paidNow));
+        }
+    } catch (\Throwable $e) {
+        Log::warning('Booking emails failed', [
+            'booking_id' => $booking->id ?? null,
+            'error'      => $e->getMessage(),
+        ]);
+    }
+}
+
+
+
+
+
+
 
 
 
 
 public function payWithStripe(Request $request, Booking $booking)
 {
-    $request->validate([
-        'payment_method_id' => 'required|string',
-    ]);
-
-    // load customer if missing
+    $request->validate(['payment_method_id' => 'required|string']);
     $booking->loadMissing('customer');
 
     $settings = \App\Models\SystemSetting::first();
-
-    if (! $settings || ! $settings->stripe_enabled) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Stripe is not configured or disabled.',
-        ], 500);
+    if (!$settings || !$settings->stripe_enabled) {
+        return response()->json(['success' => false, 'message' => 'Stripe is not configured or disabled.'], 500);
     }
 
-    // Stripe init
     $secret   = $settings->stripe_secret;
-    $currency = strtolower($booking->currency ?: 'zar'); // default to ZAR if missing
+    $currency = strtolower($booking->currency ?: 'zar');
     $amount   = (int) round($booking->total_price * 100);
     $receipt  = optional($booking->customer)->email;
 
     if ($amount < 50) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Amount too low to charge (minimum R0.50).',
-        ], 422);
+        return response()->json(['success' => false, 'message' => 'Amount too low to charge (minimum R0.50).'], 422);
     }
 
     $stripe = new \Stripe\StripeClient($secret);
 
     try {
-        if (! $booking->stripe_payment_intent_id) {
-            // Create new PI
+        if (!$booking->stripe_payment_intent_id) {
+            // Create PI
             $pi = $stripe->paymentIntents->create([
                 'amount'               => $amount,
                 'currency'             => $currency,
@@ -288,8 +358,10 @@ public function payWithStripe(Request $request, Booking $booking)
                 'expand'               => ['payment_method', 'charges.data.balance_transaction'],
             ]);
             $booking->update(['stripe_payment_intent_id' => $pi->id]);
+
+            // ❌ Do NOT send emails here — payment may require 3DS or may fail.
         } else {
-            // Retrieve & confirm existing PI
+            // Confirm existing PI if needed
             $pi = $stripe->paymentIntents->retrieve(
                 $booking->stripe_payment_intent_id,
                 ['expand' => ['payment_method', 'charges.data.balance_transaction']]
@@ -302,8 +374,7 @@ public function payWithStripe(Request $request, Booking $booking)
             }
         }
 
-        // Handle next actions
-        if ($pi->status === 'requires_action' && isset($pi->next_action) && $pi->next_action->type === 'use_stripe_sdk') {
+        if ($pi->status === 'requires_action' && ($pi->next_action->type ?? null) === 'use_stripe_sdk') {
             $booking->update(['status' => 'processing']);
             return response()->json([
                 'success'                      => false,
@@ -312,30 +383,29 @@ public function payWithStripe(Request $request, Booking $booking)
             ]);
         }
 
-        // Handle success
         if ($pi->status === 'succeeded') {
             $pm     = $pi->payment_method ?? null;
-            $card   = $pm && isset($pm->card) ? $pm->card : null;
+            $card   = $pm->card ?? null;
             $charge = $pi->charges->data[0] ?? null;
 
             $booking->update([
-                'status'                    => 'completed',
-                'payment_method'            => 'stripe',
-                'payment_status'            => 'succeeded',
-                'currency'                  => $pi->currency,
-                'paid_at'                   => now(),
-
-                'stripe_payment_intent_id'  => $pi->id,
-                'stripe_payment_method_id'  => $pm?->id,
-                'stripe_charge_id'          => $charge?->id,
-
-                'card_brand'                => $card?->brand,
-                'card_last4'                => $card?->last4,
-                'card_exp_month'            => $card?->exp_month,
-                'card_exp_year'             => $card?->exp_year,
-
-                'receipt_url'               => $charge?->receipt_url,
+                'status'                   => 'completed',
+                'payment_method'           => 'stripe',     // ✅ ensure saved
+                'payment_status'           => 'succeeded',
+                'currency'                 => $pi->currency,
+                'paid_at'                  => now(),
+                'stripe_payment_intent_id' => $pi->id,
+                'stripe_payment_method_id' => $pm?->id,
+                'stripe_charge_id'         => $charge?->id,
+                'card_brand'               => $card?->brand,
+                'card_last4'               => $card?->last4,
+                'card_exp_month'           => $card?->exp_month,
+                'card_exp_year'            => $card?->exp_year,
+                'receipt_url'              => $charge?->receipt_url,
             ]);
+
+            // ✅ Send emails ONLY after success
+            $this->sendBookingEmails($booking, (float) $booking->total_price);
 
             return response()->json([
                 'success'    => true,
@@ -344,7 +414,6 @@ public function payWithStripe(Request $request, Booking $booking)
             ]);
         }
 
-        // Fallback
         return response()->json([
             'success' => false,
             'message' => 'Payment could not be completed. Status: ' . $pi->status,
@@ -357,26 +426,12 @@ public function payWithStripe(Request $request, Booking $booking)
             'param'      => $e->getError()?->param,
             'message'    => $e->getMessage(),
         ]);
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage(),
-        ], 500);
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     } catch (\Throwable $e) {
-        \Log::error('Booking payWithStripe crashed', [
-            'booking_id' => $booking->id,
-            'message'    => $e->getMessage(),
-        ]);
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage(),
-        ], 500);
+        \Log::error('Booking payWithStripe crashed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
 }
-
-
-
-
-
 
 
 
@@ -447,7 +502,7 @@ public function initPayfastBooking(Request $request, $bookingId)
     }
 
     $cancelUrl = url('/payment/cancel');
-    $notifyUrl = url('/payment/notify');
+    $notifyUrl = route('payfast.booking.notify', [], true); // ✅ absolute URL
 
     // ---- Build fields using the correct DB column names ----
     $fields = [
@@ -455,7 +510,7 @@ public function initPayfastBooking(Request $request, $bookingId)
         'merchant_key'  => $pf->payfast_merchant_key,
         'return_url'    => $returnUrl,
         'cancel_url'    => $cancelUrl,
-        'notify_url'    => $notifyUrl,
+        'notify_url'    => $notifyUrl,                      // ✅
         'm_payment_id'  => $m_payment_id,
         'amount'        => $amount,
         'item_name'     => substr('Deposit for booking ' . ($booking->reference ?? $booking->id), 0, 100),
@@ -481,18 +536,14 @@ public function initPayfastBooking(Request $request, $bookingId)
     $fields['signature'] = md5(implode('&', $pairs));
 
     // ---- Update booking ----
+
     $booking->update([
-        'payment_method'     => 'payfast',
+        'payment_method'     => 'payfast',   // method user chose; final success set in ITN
         'payfast_payment_id' => $m_payment_id,
         'deposit_expected'   => $totalAmount,
     ]);
 
-    // ---- Return to client ----
-    return response()->json([
-        'success' => true,
-        'action'  => $action,
-        'fields'  => $fields,
-    ]);
+    return response()->json(['success' => true, 'action' => $action, 'fields' => $fields]);
 }
 
 
@@ -513,13 +564,54 @@ public function payfastBookingCancel(Request $request)
     return view('payments.cancel'); // same view as purchases
 }
 
-
 public function payfastBookingNotify(Request $request)
 {
-    // TODO: Verify signature, source IPs, and amount
-    // Then mark booking as paid (increment deposit_paid, etc.)
+    // Make sure this route is CSRF-exempt
+    Log::info('💡 PayFast Booking ITN received', $request->all());
+
+    $bookingId = $request->input('custom_str1');
+    $booking   = \App\Models\Booking::with(['vehicle','customer'])->find($bookingId);
+
+    if (!$booking) {
+        Log::error('PayFast Booking Notify: Booking not found', ['booking_id' => $bookingId]);
+        return response('Booking not found', 404);
+    }
+
+    // TODO: Verify signature, amount, and source IP per PayFast docs
+    $paymentStatus = strtolower($request->input('payment_status', ''));
+    $amountPaid    = (float) $request->input('amount_gross', 0);
+    $pfPaymentId   = $request->input('pf_payment_id');
+    $mPaymentId    = $request->input('m_payment_id');
+
+    if ($paymentStatus === 'complete' && $amountPaid > 0) {
+        $booking->update([
+            'status'             => 'completed',
+            'payment_method'     => 'payfast',   // ✅ ensure saved
+            'payment_status'     => 'succeeded',
+            'paid_at'            => now(),
+            'payfast_payment_id' => $mPaymentId ?: $booking->payfast_payment_id,
+            // optionally store $pfPaymentId in a generic gateway ref column
+        ]);
+
+        Log::info('✅ PayFast Booking ITN: marked completed', [
+            'booking_id' => $booking->id,
+            'amount'     => $amountPaid,
+        ]);
+
+        // ✅ Send emails after success
+        $this->sendBookingEmails($booking, (float) $amountPaid);
+
+    } else {
+        Log::warning('⚠️ PayFast Booking ITN: not complete', [
+            'booking_id'    => $booking->id,
+            'paymentStatus' => $paymentStatus,
+            'amount_gross'  => $request->input('amount_gross'),
+        ]);
+    }
+
     return response('OK');
 }
+
 
 
 

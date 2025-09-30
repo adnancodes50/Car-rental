@@ -119,11 +119,18 @@
                        value="{{ old('mail_username', $setting->mail_username ?? '') }}">
             </div>
 
-            <div class="col-md-6 mb-3">
-                <label class="form-label">SMTP Password</label>
-                <input type="password" name="mail_password" class="form-control"
-                       value="{{ old('mail_password', $setting->mail_password ?? '') }}">
-            </div>
+     <div class="col-md-6 mb-3">
+    <label class="form-label">SMTP Password</label>
+    <div class="input-group">
+        <input type="password" name="mail_password" id="mailPassword" class="form-control"
+               value="{{ old('mail_password', $setting->mail_password ?? '') }}">
+        <span class="input-group-text" id="togglePassword" style="cursor: pointer;">
+            <i class="fas fa-eye"></i>
+        </span>
+    </div>
+</div>
+
+
         </div>
 
         <div class="row">
@@ -166,7 +173,7 @@
         </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">Owner Address</label>
+                <label class="form-label">Owner Address(Optional)</label>
                 <input type="email" name="mail_owner_address" class="form-control"
                        value="{{ old('mail_owner_address', $setting->mail_owner_address ?? '') }}">
             </div>
@@ -185,11 +192,44 @@
 
 
             {{-- Save button --}}
-            <div class="d-flex justify-content-end mb-4">
-                <button type="submit" class="btn btn-dark">
+            <div class="d-flex justify-content-end mb-3 ">
+                <button type="submit" class="btn btn-dark mb-3">
                     Save Changes
                 </button>
             </div>
         </form>
     </div>
 @stop
+
+
+@section('js')
+<script>
+    document.getElementById('togglePassword').addEventListener('click', function () {
+        const input = document.getElementById('mailPassword');
+        const icon = this.querySelector('i');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye");
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: '{{ session('success') }}',
+            confirmButtonText: 'OK'
+        });
+    @endif
+</script>
+
+
+@endsection

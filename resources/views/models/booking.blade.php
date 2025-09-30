@@ -514,8 +514,14 @@
                        <div class="modal-footer">
                            <div class="d-flex justify-content-between w-100">
                                <button type="button" class="btn btn-outline-secondary"
-                                   data-bs-target="#multiStepBookingModal" data-bs-toggle="modal">Back</button>
-                               <button type="button" class="btn btn-dark rounded-3" data-bs-target="#customerStep"
+<button
+  type="button"
+  class="btn btn-outline-secondary"
+  data-bs-toggle="modal"
+  data-bs-target="#multiStepBookingModal"
+  data-bs-dismiss="modal">
+  Back
+</button>                               <button type="button" class="btn btn-dark rounded-3" data-bs-target="#customerStep"
                                    data-bs-toggle="modal">Continue to Details</button>
                            </div>
                        </div>
@@ -694,7 +700,7 @@
        </form> {{-- CLOSE booking form here --}}
 
 
-     
+
        @php
            use App\Models\SystemSetting;
            use Illuminate\Support\Facades\Cache;
@@ -727,7 +733,7 @@
                    <!-- Header -->
                    <div class="modal-header">
                        <h5 class="modal-title fw-bold">
-                           <i class="bi bi-credit-card me-2"></i> Select Payment Method
+                           <i class="bi bi-credit-card-fill me-2"></i> Select Payment Method
                        </h5>
                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                    </div>
@@ -803,7 +809,9 @@
            <div class="modal-dialog modal-md modal-dialog-centered">
                <div class="modal-content rounded-4 shadow">
                    <div class="modal-header">
-                       <h5 class="modal-title fw-bold">Stripe Payment</h5>
+<h5 class="modal-title fw-bold">
+    <i class="bi bi-credit-card-fill me-2"></i> Stripe Payment
+</h5>
                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                    </div>
                    <div class="modal-body">

@@ -4,6 +4,7 @@
 @section('title', $vehicle->name)
 
 @section('content')
+@include('frontend.partials.navbar')
     <div class="container py-4 py-lg-5 mt-5">
 
         <!-- Back link -->
