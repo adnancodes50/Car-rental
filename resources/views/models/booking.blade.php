@@ -1691,9 +1691,9 @@
                        if (!name.value.trim() || !email.value.trim() || !phone.value.trim() || !country
                            .value) {
                            notify('cust-missing', {
-                               icon: 'warning',
-                               title: 'Details required',
-                               text: 'Please complete your details.'
+                               icon: 'error',
+                               title: 'MIssing Information',
+                               text: 'Please fill all requied customer details.'
                            });
                            return;
                        }

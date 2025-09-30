@@ -4,6 +4,7 @@ use App\Http\Controllers\AddOnInventryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\EmailTempleteController;
 use App\Http\Controllers\LandingSettingController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -101,6 +102,22 @@ Route::group([
     Route::get('/{id}', [CustomerController::class, 'getCustomerDetails'])->name('details');
     Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
 
+});
+
+
+
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'email',
+    'as' => 'email.'
+], function () {
+    Route::get('/', [EmailTempleteController::class, 'index'])->name('index');
+    Route::get('/create', [EmailTempleteController::class, 'create'])->name('create');
+    Route::post('/', [EmailTempleteController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [EmailTempleteController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [EmailTempleteController::class, 'update'])->name('update');
 });
 
 

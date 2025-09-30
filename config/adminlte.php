@@ -368,6 +368,13 @@ return [
         'route' => 'customers.index',
         'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
     ],
+[
+    'text'  => 'Email Templates',
+    'route' => 'email.index',
+    'icon'  => 'fas fa-envelope-open-text text-success', // FA clock in light blue
+],
+
+
 
 
 
