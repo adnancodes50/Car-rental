@@ -375,6 +375,13 @@ return [
 ],
 
 
+ [
+        'text'  => 'Bookings',
+        'route' => 'bookings.index',
+        'icon'  => 'fas fa-calendar-plus text-danger', // daily appointments
+    ],
+
+
 
 
 

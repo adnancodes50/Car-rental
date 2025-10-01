@@ -19,7 +19,7 @@
     @endphp
 
     @foreach(array_chunk($cards, 3) as $rowIndex => $rowCards)
-        <div class="row g-4 align-items-start {{ $rowIndex > 0 ? 'mt-4' : '' }}"> <!-- mt-4 for margin between rows -->
+        <div class="row g-4 align-items-start {{ $rowIndex > 0 ? 'mt-2 mb-1' : '' }}"> <!-- mt-4 for margin between rows -->
             @foreach($rowCards as $card)
             <div class="col-md-4 col-sm-6 d-flex">
                 <div class="glass-card h-100 text-center p-4 rounded-4 flex-fill">

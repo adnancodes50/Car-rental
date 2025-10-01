@@ -121,6 +121,17 @@ Route::group([
 });
 
 
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'booking',
+    'as' => 'bookings.'
+], function () {
+    Route::get('/', [BookingController::class, 'index'])->name('index');
+        Route::get('bookings/{booking}', [BookingController::class, 'show'])->name('show');
+
+});
+
+
 
 Route::group([
     'middleware' => ['auth'],

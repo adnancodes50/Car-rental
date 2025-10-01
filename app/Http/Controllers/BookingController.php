@@ -26,6 +26,18 @@ use App\Mail\OwnerBookingAlert;
 
 class BookingController extends Controller
 {
+  public function index()
+    {
+        $bookings = Booking::with(['customer', 'vehicle'])->get();
+        return view('admin.booking.index', compact('bookings'));
+    }
+
+    public function show(Booking $booking)
+    {
+        $booking->load(['customer', 'vehicle', 'addOns']); // eager load relations
+        return view('admin.booking.show', compact('booking'));
+    }
+
     /**
      * Store a new booking (customer + booking + add_on_reservations).
      */
