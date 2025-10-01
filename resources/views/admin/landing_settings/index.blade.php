@@ -13,38 +13,21 @@
     <div class="card mb-4">
         <div class="card-header">
             <h3 class="card-title">Hero Background Image</h3>
-
-
-
-
         </div>
         <div class="card-body">
-            <form action="{{ route('admin.landing-settings.update') }}" method="POST" enctype="multipart/form-data">
+            <form id="landingForm" action="{{ route('admin.landing-settings.update') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 {{-- Current Hero Image --}}
                 <div class="form-group">
                     <label>Current Background Image</label>
                     <div class="position-relative w-100 mb-3" style="height: 250px;">
-@php
-    $preview = $settings && $settings->hero_image_path
-        ? asset($settings->hero_image_path)   // Already stores '/storage/hero-section/filename.jpg'
-        : asset('images/bg.jpg');
-@endphp
-
-
-
-
-
-                        <img id="hero_preview" src="{{ $preview }}" class="w-100 h-100 object-fit-cover rounded"
-                            alt="Hero">
-
-                        {{-- <div
-                            class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center bg-dark bg-opacity-50 text-center text-white rounded">
-                            <h2 class="mb-1" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">Built for where</h2>
-                            <span class="fw-bold text-warning"
-                                style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">adventure was born</span>
-                        </div> --}}
+                        @php
+                            $preview = $settings && $settings->hero_image_path
+                                ? asset($settings->hero_image_path)
+                                : asset('images/bg.jpg');
+                        @endphp
+                        <img id="hero_preview" src="{{ $preview }}" class="w-100 h-100 object-fit-cover rounded" alt="Hero">
                     </div>
                 </div>
 
@@ -67,17 +50,11 @@
                                 <label>Email Button Text</label>
                                 <input type="text" name="email_btn_text" class="form-control"
                                     value="{{ old('email_btn_text', $settings->email_btn_text ?? '') }}">
-                                @error('email_btn_text')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
                             </div>
                             <div class="col-md-6">
                                 <label>Email Link</label>
                                 <input type="text" name="email_link" class="form-control"
                                     value="{{ old('email_link', $settings->email_link ?? '') }}">
-                                @error('email_link')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
                             </div>
                         </div>
 
@@ -87,17 +64,11 @@
                                 <label>Phone Button Text</label>
                                 <input type="text" name="phone_btn_text" class="form-control"
                                     value="{{ old('phone_btn_text', $settings->phone_btn_text ?? '') }}">
-                                @error('phone_btn_text')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
                             </div>
                             <div class="col-md-6">
                                 <label>Phone Link</label>
                                 <input type="text" name="phone_link" class="form-control"
                                     value="{{ old('phone_link', $settings->phone_link ?? '') }}">
-                                @error('phone_link')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
                             </div>
                         </div>
 
@@ -107,17 +78,11 @@
                                 <label>WhatsApp Button Text</label>
                                 <input type="text" name="whatsapp_btn_text" class="form-control"
                                     value="{{ old('whatsapp_btn_text', $settings->whatsapp_btn_text ?? '') }}">
-                                @error('whatsapp_btn_text')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
                             </div>
                             <div class="col-md-6">
                                 <label>WhatsApp Link</label>
                                 <input type="text" name="whatsapp_link" class="form-control"
                                     value="{{ old('whatsapp_link', $settings->whatsapp_link ?? '') }}">
-                                @error('whatsapp_link')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
                             </div>
                         </div>
 
@@ -138,82 +103,99 @@
 
 @section('css')
 <style>
-    .object-fit-cover {
-        object-fit: cover;
-    }
-
-    .position-relative {
-        position: relative;
-    }
-
-    .position-absolute {
-        position: absolute;
-    }
-
-    .top-0 {
-        top: 0;
-    }
-
-    .start-0 {
-        left: 0;
-    }
-
-    .w-100 {
-        width: 100%;
-    }
-
-    .h-100 {
-        height: 100%;
-    }
-
-    .bg-opacity-50 {
-        background-color: rgba(0, 0, 0, 0.5);
-    }
+    .object-fit-cover { object-fit: cover; }
+    .error { color: #dc3545; font-size: 0.9em; margin-top: 4px; display: block; }
 </style>
 @stop
 
 @section('js')
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/additional-methods.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // ===== Preview Hero Image =====
-        const heroInput = document.getElementById('hero_image');
-        const heroPreview = document.getElementById('hero_preview');
+document.addEventListener('DOMContentLoaded', function () {
+    // ===== Preview Hero Image =====
+    const heroInput = document.getElementById('hero_image');
+    const heroPreview = document.getElementById('hero_preview');
 
-        if (heroInput && heroPreview) {
-            heroInput.addEventListener('change', function (e) {
-                const file = e.target.files[0];
-                if (!file) return;
+    if (heroInput && heroPreview) {
+        heroInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-                const reader = new FileReader();
-                reader.onload = function (ev) {
-                    heroPreview.src = ev.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                heroPreview.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ===== jQuery Validation (inline errors only) =====
+    $("#landingForm").validate({
+        rules: {
+            email_btn_text: { required: true, maxlength: 255 },
+            email_link: { required: true, email: true },
+
+            phone_btn_text: { required: true, maxlength: 255 },
+            phone_link: {
+                required: true,
+                pattern: /^\+\d{7,15}$/
+            },
+
+            whatsapp_btn_text: { required: true, maxlength: 255 },
+            whatsapp_link: {
+                required: true,
+                pattern: /^(\+\d{7,15}|https:\/\/wa\.me\/\d{7,15}|https:\/\/api\.whatsapp\.com\/send\?phone=\d{7,15})$/
+            },
+
+            hero_image: {
+                accept: "jpg,jpeg,png,gif",
+                filesize: 4 * 1024 * 1024 // 4MB
+            }
+        },
+        messages: {
+            email_btn_text: { required: "Email button text is required" },
+            email_link: { required: "Email is required", email: "Enter a valid email address" },
+
+            phone_btn_text: { required: "Phone button text is required" },
+            phone_link: { required: "Phone is required", pattern: "Phone must be like +923001234567" },
+
+            whatsapp_btn_text: { required: "WhatsApp button text is required" },
+            whatsapp_link: { required: "WhatsApp link is required", pattern: "Enter valid number or wa.me/api link" },
+
+            hero_image: { accept: "Only image formats allowed (jpg, jpeg, png, gif)", filesize: "Max size 4MB" }
+        },
+        errorPlacement: function(error, element) {
+            error.insertAfter(element);
+        },
+        submitHandler: function(form) {
+            form.submit();
         }
+    });
 
-        // ===== SweetAlert Success Message =====
-        @if(session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: @json(session('success')),
-                timer: 2500,
-                showConfirmButton: false
-            });
-        @endif
+    // ===== SweetAlert ONLY for backend messages =====
+    @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: @json(session('success')),
+            timer: 2500,
+            showConfirmButton: false
+        });
+    @endif
 
-            // ===== SweetAlert Error Message =====
-            @if($errors->any())
-                let errorMessages = @json($errors->all());
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops! Something went wrong',
-                    html: errorMessages.map(msg => `<p>${msg}</p>`).join(''),
-                    confirmButtonText: 'OK',
-                });
-            @endif
+    @if($errors->any())
+        let errorMessages = @json($errors->all());
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops! Something went wrong',
+            html: errorMessages.map(msg => `<p>${msg}</p>`).join(''),
+            confirmButtonText: 'OK',
+        });
+    @endif
 });
 </script>
 @stop

@@ -699,6 +699,33 @@
   const VEHICLE_PRICE    = {{ (float) ($vehicle->purchase_price ?? 0) }};
   const VEHICLE_DEPOSIT  = {{ (float) ($vehicle->deposit_amount ?? 0) }};
   const ZAR              = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
+  const WHATSAPP_LINK    = "https://wa.link/koo7b6"; // Your WhatsApp link
+
+  // Function to open WhatsApp in new tab without popup blocker
+  function openWhatsAppNewTab() {
+    // Method 1: Create and click a visible link (most reliable)
+    const link = document.createElement('a');
+    link.href = WHATSAPP_LINK;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+
+    // Add to DOM and make it briefly visible to simulate user interaction
+    link.style.position = 'fixed';
+    link.style.top = '0';
+    link.style.left = '0';
+    link.style.width = '1px';
+    link.style.height = '1px';
+    link.style.opacity = '0.01';
+    document.body.appendChild(link);
+
+    // Trigger click
+    link.click();
+
+    // Clean up after a short delay
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
+  }
 
   document.addEventListener("DOMContentLoaded", () => {
     const el    = id => document.getElementById(id);
@@ -894,24 +921,30 @@
         // ===== SUCCESS (no 3DS) =====
         if (data.success) {
           const go = data.redirect_to || '/?purchase=success';
+
+          // Show success message but don't wait for timer
           Swal.fire({
             icon: 'success',
-            title: 'Deposit received',
+            title: 'Payment Successful!',
             html: `
               <div class="text-start">
                 <p class="mb-1"><strong>Vehicle:</strong> ${VEHICLE_NAME}</p>
-                <p class="mb-1"><strong>Amount paid now:</strong> ${ZAR.format(data.paid ?? VEHICLE_DEPOSIT)}</p>
+                <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(data.paid ?? VEHICLE_DEPOSIT)}</p>
                 <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id}</p>
                 ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
               </div>
               <hr class="my-2">
-              <p class="mb-0">We’ll redirect you to the homepage in <b>10 seconds</b>…</p>
+              <p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>
             `,
-            timer: 10000,                // 10s
-            timerProgressBar: true,
             showConfirmButton: true,
-            confirmButtonText: 'Go now'
-          }).then(() => window.location.assign(go));
+            confirmButtonText: 'Continue to WhatsApp',
+            allowOutsideClick: false
+          }).then((result) => {
+            // When user clicks the button, open WhatsApp and redirect
+            openWhatsAppNewTab();
+            window.location.href = go;
+          });
+
           return;
         }
 
@@ -923,22 +956,25 @@
           } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
             Swal.fire({
               icon: 'success',
-              title: 'Payment confirmed',
+              title: 'Payment Successful!',
               html: `
                 <div class="text-start">
                   <p class="mb-1"><strong>Vehicle:</strong> ${VEHICLE_NAME}</p>
-                  <p class="mb-1"><strong>Amount paid now:</strong> ${ZAR.format(VEHICLE_DEPOSIT)}</p>
+                  <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(VEHICLE_DEPOSIT)}</p>
                   <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id ?? ''}</p>
                   ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
                 </div>
                 <hr class="my-2">
-                <p class="mb-0">We’ll redirect you to the homepage in <b>10 seconds</b>…</p>
+                <p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>
               `,
-              timer: 10000,
-              timerProgressBar: true,
               showConfirmButton: true,
-              confirmButtonText: 'Go now'
-            }).then(() => window.location.assign('/?purchase=success'));
+              confirmButtonText: 'Continue to WhatsApp',
+              allowOutsideClick: false
+            }).then((result) => {
+              // When user clicks the button, open WhatsApp and redirect
+              openWhatsAppNewTab();
+              window.location.href = '/?purchase=success';
+            });
           } else {
             Swal.fire({ icon: 'warning', title: 'Payment status unknown', text: 'Please check your email for a receipt.' });
           }
@@ -955,24 +991,52 @@
       }
     });
 
-    // ---------------- Optional: show toast on homepage after redirect ----
+    // ---------------- Handle PayFast return success ----------------
+    // This will catch when user returns from PayFast with success
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('purchase') === 'success') {
+      if (params.get('purchase') === 'success' || params.get('payfast_success')) {
         Swal.fire({
           icon: 'success',
-          title: 'Purchase started',
-          text: 'Thanks! We’ll be in touch to complete your purchase.',
-          timer: 5000,
-          showConfirmButton: false,
-          toast: true,
-          position: 'top-end'
+          title: 'Payment Successful!',
+          html: `
+            <p>Your deposit payment was successful!</p>
+            <p><strong>Click below to open WhatsApp chat</strong></p>
+          `,
+          showConfirmButton: true,
+          confirmButtonText: 'Open WhatsApp Chat',
+          allowOutsideClick: false
+        }).then((result) => {
+          // When user clicks the button, open WhatsApp and redirect
+          openWhatsAppNewTab();
+          window.location.href = '/';
         });
+
         // Remove param from URL without reloading
         params.delete('purchase');
+        params.delete('payfast_success');
         const newUrl = `${location.pathname}${params.toString() ? '?' + params.toString() : ''}${location.hash}`;
         window.history.replaceState({}, '', newUrl);
       }
     } catch (_) {}
+
+    // ---------------- Handle session flash messages for PayFast -----
+    @if(session('payfast_success'))
+      Swal.fire({
+        icon: 'success',
+        title: 'Payment Successful!',
+        html: `
+          <p>{{ session('payfast_success') }}</p>
+          <p><strong>Click below to open WhatsApp chat</strong></p>
+        `,
+        showConfirmButton: true,
+        confirmButtonText: 'Open WhatsApp Chat',
+        allowOutsideClick: false
+      }).then((result) => {
+        // When user clicks the button, open WhatsApp and redirect
+        openWhatsAppNewTab();
+        window.location.href = '/';
+      });
+    @endif
   });
 </script>
