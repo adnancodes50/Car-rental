@@ -206,597 +206,632 @@
     array_unshift($countries, 'South Africa');
 @endphp
 
-{{-- Booking FORM (only data collection - we won't submit to go to payment) --}}
-<form id="bookingForm" method="POST" action="{{ route('bookings.store') }}">
-    @csrf
-    <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
-    <input type="hidden" name="rental_unit" id="inputRentalUnit">
-    <input type="hidden" name="rental_quantity" id="inputRentalQuantity">
-    <input type="hidden" name="rental_start_date" id="inputRentalStartDate">
-    <input type="hidden" name="extra_days" id="inputExtraDays" value="0">
-    <input type="hidden" name="total_price" id="inputTotalPrice">
-    <input type="hidden" name="booking_id" id="bookingId">
+       {{-- Booking FORM (only data collection - we won't submit to go to payment) --}}
+       <form id="bookingForm" method="POST" action="{{ route('bookings.store') }}">
+           @csrf
+           <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
+           <input type="hidden" name="rental_unit" id="inputRentalUnit">
+           <input type="hidden" name="rental_quantity" id="inputRentalQuantity">
+           <input type="hidden" name="rental_start_date" id="inputRentalStartDate">
+           <input type="hidden" name="extra_days" id="inputExtraDays" value="0">
+           <input type="hidden" name="total_price" id="inputTotalPrice">
+           <input type="hidden" name="booking_id" id="bookingId">
 
-    <!-- Step 1: Multi-Step Booking Modal -->
-    <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content rounded-4 shadow-lg">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book
-                        {{ $vehicle->name }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <h5 class="mb-3 text-center">Select Rental Duration</h5>
-                    <div class="row text-center g-3 text-muted">
-                        @if ($vehicle->rental_price_day)
-                            <div class="col-md-4">
-                                <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
-                                    data-price="{{ $vehicle->rental_price_day }}">
-                                    <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
-                                    <h6 class="mt-2">Daily Rental</h6>
-                                    <p class="small text-muted mb-1">Perfect for short trips</p>
-                                    <div class="text-dark">R{{ number_format($vehicle->rental_price_day) }}/day
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                        @if ($vehicle->rental_price_week)
-                            <div class="col-md-4">
-                                <div class="option-card p-3 border rounded-4 h-100" data-type="week"
-                                    data-price="{{ $vehicle->rental_price_week }}">
-                                    <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
-                                    <h6 class="mt-2">Weekly Rental</h6>
-                                    <p class="small text-muted mb-1">Great for 1-4 weeks</p>
-                                    <div class="text-dark">R{{ number_format($vehicle->rental_price_week) }}/week
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                        @if ($vehicle->rental_price_month)
-                            <div class="col-md-4">
-                                <div class="option-card p-3 border rounded-4 h-100" data-type="month"
-                                    data-price="{{ $vehicle->rental_price_month }}">
-                                    <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
-                                    <h6 class="mt-2">Monthly Rental</h6>
-                                    <p class="small text-muted mb-1">Best for long stays</p>
-                                    <div class="text-dark">
-                                        R{{ number_format($vehicle->rental_price_month) }}/month
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
+           <!-- Step 1: Multi-Step Booking Modal -->
+           <div class="modal fade " id="multiStepBookingModal" tabindex="-1" aria-hidden="true"
+               style="height: 90vh; margin-top: 4rem;">
+               <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                   <div class="modal-content rounded-4 shadow-lg">
+                       <div class="modal-header">
+                           <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book
+                               {{ $vehicle->name }}</h5>
+                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                       </div>
+                       <div class="modal-body">
+                           <h5 class="mb-3 text-center">Select Rental Duration</h5>
+                           <div class="row text-center g-3 text-muted">
+                               @if ($vehicle->rental_price_day)
+                                   <div class="col-md-4">
+                                       <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
+                                           data-price="{{ $vehicle->rental_price_day }}">
+                                           <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
+                                           <h6 class="mt-2">Daily Rental</h6>
+                                           <p class="small text-muted mb-1">Perfect for short trips</p>
+                                           <div class="text-dark">R{{ number_format($vehicle->rental_price_day) }}/day
+                                           </div>
+                                       </div>
+                                   </div>
+                               @endif
+                               @if ($vehicle->rental_price_week)
+                                   <div class="col-md-4">
+                                       <div class="option-card p-3 border rounded-4 h-100" data-type="week"
+                                           data-price="{{ $vehicle->rental_price_week }}">
+                                           <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
+                                           <h6 class="mt-2">Weekly Rental</h6>
+                                           <p class="small text-muted mb-1">Great for 1-4 weeks</p>
+                                           <div class="text-dark">R{{ number_format($vehicle->rental_price_week) }}/week
+                                           </div>
+                                       </div>
+                                   </div>
+                               @endif
+                               @if ($vehicle->rental_price_month)
+                                   <div class="col-md-4">
+                                       <div class="option-card p-3 border rounded-4 h-100" data-type="month"
+                                           data-price="{{ $vehicle->rental_price_month }}">
+                                           <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
+                                           <h6 class="mt-2">Monthly Rental</h6>
+                                           <p class="small text-muted mb-1">Best for long stays</p>
+                                           <div class="text-dark">
+                                               R{{ number_format($vehicle->rental_price_month) }}/month
+                                           </div>
+                                       </div>
+                                   </div>
+                               @endif
+                           </div>
 
-                    <hr class="my-4">
+                           <hr class="my-4">
 
-                    <div id="dateSection" class="mb-3 d-none">
-                        <div class="position-relative">
-                            <input type="text" id="rentalStartDate" class="form-control ps-5"
-                                placeholder="Select a start date" readonly>
-                            <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
-                                <i class="bi bi-calendar-event"></i>
-                            </span>
-                        </div>
-                    </div>
+                           <div id="dateSection" class="mb-3 d-none">
+                               <div class="position-relative">
+                                   <input type="text" id="rentalStartDate" class="form-control ps-5"
+                                       placeholder="Select a start date" readonly>
+                                   <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
+                                       <i class="bi bi-calendar-event"></i>
+                                   </span>
+                               </div>
+                           </div>
 
-                    <!-- Quantity -->
-                    <div class="mb-3 d-none" id="quantitySection">
-                        <label for="rentalQuantity" class="form-label" id="quantityLabel"></label>
-                        <select id="rentalQuantity" class="form-select rounded-3"></select>
-                    </div>
+                           <!-- Quantity -->
+                           <div class="mb-3 d-none" id="quantitySection">
+                               <label for="rentalQuantity" class="form-label" id="quantityLabel"></label>
+                               <select id="rentalQuantity" class="form-select rounded-3"></select>
+                           </div>
 
-                    <!-- Total Price -->
-                    <div class="alert alert-info fw-bold d-none" id="totalPrice"></div>
-                    <!-- Rental Period -->
-                    <div class="alert alert-secondary fw-bold d-none" id="rentalPeriod"></div>
-                </div>
-                <div class="modal-footer d-block">
-                    <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100">
-                        Continue to Add-Ons
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                           <!-- Total Price -->
+                           <div class="alert alert-info fw-bold d-none" id="totalPrice"></div>
+                           <!-- Rental Period -->
+                           <div class="alert alert-secondary fw-bold d-none" id="rentalPeriod"></div>
+                       </div>
+                       <div class="modal-footer d-block">
+                           <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100">
+                               Continue to Add-Ons
+                           </button>
+                       </div>
 
-    <!-- Step 2: Add-Ons Modal -->
-    <div class="modal fade mt-5" id="addonsStep" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content rounded-4 shadow-lg">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-box-seam"></i> Select Add-Ons</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    @foreach ($addOns as $addOn)
-                        @php
-                            $blockedRanges = $addonFullyBooked[$addOn->id] ?? [];
-                            $availableToday = max((int) ($addOn->available_today ?? $addOn->qty_total), 0);
-                            $totalStock = (int) $addOn->qty_total;
-                            $availabilityClass = $availableToday > 0 ? 'bg-success' : 'bg-danger';
-                            $availabilityText =
-                                $availableToday > 0
-                                    ? $availableToday . ' available today'
-                                    : 'Fully booked today';
-                            $blockedPreview = array_slice($blockedRanges, 0, 3);
-                            $blockedTextParts = [];
-                            foreach ($blockedPreview as $range) {
-                                if (!empty($range['from']) && !empty($range['to'])) {
-                                    $blockedTextParts[] =
-                                        $range['from'] === $range['to']
-                                            ? $range['from']
-                                            : $range['from'] . ' to ' . $range['to'];
-                                }
-                            }
-                            $blockedText = implode(', ', $blockedTextParts);
-                            $remainingBlocked = max(count($blockedRanges) - count($blockedPreview), 0);
-                        @endphp
-                        <div class="addon-card border rounded p-3 mb-3 shadow-sm" data-id="{{ $addOn->id }}"
-                            data-name="{{ e($addOn->name) }}" data-total="{{ $totalStock }}"
-                            data-available="{{ $availableToday }}" data-blocked='@json($blockedRanges)'
-                            style="cursor:pointer;">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div class="me-3">
-                                    <img src="{{ asset($addOn->image_url) }}" alt="{{ $addOn->name }}"
-                                        class="rounded border"
-                                        style="width:60px; height:60px; object-fit:cover;">
-                                </div>
-                                <div class="flex-grow-1 pe-3">
-                                    <h5 class="fw-semibold mb-1">{{ $addOn->name }}</h5>
-                                    <p class="text-muted mb-1">{{ $addOn->description }}</p>
-                                    <p class="small text-muted mb-0">
-                                        R{{ number_format($addOn->price_day, 2) }}/day /
-                                        R{{ number_format($addOn->price_week, 2) }}/week /
-                                        R{{ number_format($addOn->price_month, 2) }}/month
-                                    </p>
-                                </div>
-                                <div class="text-end">
-                                    <span
-                                        class="badge availability-badge {{ $availabilityClass }} mb-2">{{ $availabilityText }}</span>
-                                    <small class="text-muted d-block">Total stock: {{ $totalStock }}</small>
-                                </div>
-                            </div>
+                   </div>
+               </div>
+           </div>
 
-                            <div class="addon-details mt-3 d-none border-top pt-3">
-                                @if ($blockedText)
-                                    <div
-                                        class="alert alert-warning small py-2 px-3 addon-unavailable-dates mb-3">
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                        <span class="blocked-text">{{ $blockedText }}</span>
-                                        @if ($remainingBlocked > 0)
-                                            <span class="text-muted">+ {{ $remainingBlocked }} more
-                                                period{{ $remainingBlocked > 1 ? 's' : '' }}</span>
-                                        @endif
-                                    </div>
-                                @else
-                                    <div
-                                        class="alert alert-warning small py-2 px-3 addon-unavailable-dates mb-3 d-none">
-                                    </div>
-                                @endif
+           <!-- Step 2: Add-Ons Modal -->
+           <!-- Step 2: Add-Ons Modal -->
+           <div class="modal fade mt-5" id="addonsStep" tabindex="-1" aria-hidden="true"
+               style="height: 90vh; margin-top: 4rem;">
+               <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                   <div class="modal-content rounded-4 shadow-lg">
+                       <div class="modal-header">
+                           <h5 class="modal-title fw-bold"><i class="bi bi-box-seam"></i> Select Add-Ons</h5>
+                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                       </div>
+                       <div class="modal-body">
+                           @foreach ($addOns as $addOn)
+                               @php
+                                   $blockedRanges = $addonFullyBooked[$addOn->id] ?? [];
+                                   $availableToday = max((int) ($addOn->available_today ?? $addOn->qty_total), 0);
+                                   $totalStock = (int) $addOn->qty_total;
+                                   $availabilityClass = $availableToday > 0 ? 'bg-success' : 'bg-danger';
+                                   $availabilityText =
+                                       $availableToday > 0
+                                           ? $availableToday . ' available today'
+                                           : 'Fully booked today';
+                                   $blockedPreview = array_slice($blockedRanges, 0, 3);
+                                   $blockedTextParts = [];
+                                   foreach ($blockedPreview as $range) {
+                                       if (!empty($range['from']) && !empty($range['to'])) {
+                                           $blockedTextParts[] =
+                                               $range['from'] === $range['to']
+                                                   ? $range['from']
+                                                   : $range['from'] . ' to ' . $range['to'];
+                                       }
+                                   }
+                                   $blockedText = implode(', ', $blockedTextParts);
+                                   $remainingBlocked = max(count($blockedRanges) - count($blockedPreview), 0);
+                               @endphp
+                               <div class="addon-card border rounded p-3 mb-3 shadow-sm" data-id="{{ $addOn->id }}"
+                                   data-name="{{ e($addOn->name) }}" data-total="{{ $totalStock }}"
+                                   data-available="{{ $availableToday }}" data-blocked='@json($blockedRanges)'
+                                   style="cursor:pointer;">
+                                   <div class="d-flex align-items-center justify-content-between">
+                                       <div class="me-3">
+                                           <img src="{{ asset($addOn->image_url) }}" alt="{{ $addOn->name }}"
+                                               class="rounded border"
+                                               style="width:60px; height:60px; object-fit:cover;">
+                                       </div>
+                                       <div class="flex-grow-1 pe-3">
+                                           <h5 class="fw-semibold mb-1">{{ $addOn->name }}</h5>
+                                           <p class="text-muted mb-1">{{ $addOn->description }}</p>
+                                           <p class="small text-muted mb-0">
+                                               R{{ number_format($addOn->price_day, 2) }}/day /
+                                               R{{ number_format($addOn->price_week, 2) }}/week /
+                                               R{{ number_format($addOn->price_month, 2) }}/month
+                                           </p>
+                                       </div>
+                                       <div class="text-end">
+                                           <span
+                                               class="badge availability-badge {{ $availabilityClass }} mb-2">{{ $availabilityText }}</span>
+                                           <small class="text-muted d-block">Total stock: {{ $totalStock }}</small>
+                                       </div>
+                                   </div>
 
-                                <div class="row g-2 mb-2">
-                                    <div class="col-sm-4">
-                                        <div class="card text-center shadow-sm h-100 addon-type-card"
-                                            data-type="day" data-price="{{ $addOn->price_day }}">
-                                            <div
-                                                class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                                                <div class="addon-type-icon mb-2">
-                                                    <i class="bi bi-clock display-6"
-                                                        style="color: #CF9B4D"></i>
-                                                </div>
-                                                <h6 class="card-title mb-1">Daily</h6>
-                                                <p class="card-text fw-bold text-primary mb-0">
-                                                    R{{ number_format($addOn->price_day, 2) }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="card text-center shadow-sm h-100 addon-type-card"
-                                            data-type="week" data-price="{{ $addOn->price_week }}">
-                                            <div class="card-body">
-                                                <div class="addon-type-icon mb-2">
-                                                    <i class="bi bi-calendar-event display-6"
-                                                        style="color: #CF9B4D"></i>
-                                                </div>
-                                                <h6 class="card-title">Weekly</h6>
-                                                <p class="card-text fw-bold text-primary">
-                                                    R{{ number_format($addOn->price_week, 2) }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="card text-center shadow-sm h-100 addon-type-card"
-                                            data-type="month" data-price="{{ $addOn->price_month }}">
-                                            <div class="card-body">
-                                                <div class="addon-type-icon mb-2">
-                                                    <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
-                                                </div>
-                                                <h6 class="card-title">Monthly</h6>
-                                                <p class="card-text fw-bold text-primary">
-                                                    R{{ number_format($addOn->price_month, 2) }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                   <div class="addon-details mt-3 d-none border-top pt-3">
+                                       @if ($blockedText)
+                                           <div
+                                               class="alert alert-warning small py-2 px-3 addon-unavailable-dates mb-3">
+                                               <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                               <span class="blocked-text">{{ $blockedText }}</span>
+                                               @if ($remainingBlocked > 0)
+                                                   <span class="text-muted">+ {{ $remainingBlocked }} more
+                                                       period{{ $remainingBlocked > 1 ? 's' : '' }}</span>
+                                               @endif
+                                           </div>
+                                       @else
+                                           <div
+                                               class="alert alert-warning small py-2 px-3 addon-unavailable-dates mb-3 d-none">
+                                           </div>
+                                       @endif
 
-                                <div class="row g-2">
-                                    <div class="col-md-12">
-                                        <label class="form-label small">Quantity</label>
-                                        <select class="form-select form-select-sm addon-qty"
-                                            data-id="{{ $addOn->id }}"
-                                            @if ($totalStock <= 0) disabled @endif>
-                                            @for ($i = 0; $i <= $addOn->qty_total; $i++)
-                                                <option value="{{ $i }}">{{ $i }}
-                                                </option>
-                                            @endfor
-                                        </select>
-                                    </div>
-                                </div>
+                                       <div class="row g-2 mb-2">
+                                           <div class="col-sm-4">
+                                               <div class="card text-center shadow-sm h-100 addon-type-card"
+                                                   data-type="day" data-price="{{ $addOn->price_day }}">
+                                                   <div
+                                                       class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                                                       <!-- Icon (center & top) -->
+                                                       <div class="addon-type-icon mb-2">
+                                                           <i class="bi bi-clock display-6"
+                                                               style="color: #CF9B4D"></i>
+                                                           <!-- Or: <i class="bi bi-sun"></i> -->
+                                                       </div>
 
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][type]"
-                                    id="addon-type-{{ $addOn->id }}">
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][quantity]"
-                                    id="addon-quantity-{{ $addOn->id }}">
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][start_date]"
-                                    id="addon-start-{{ $addOn->id }}">
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][end_date]"
-                                    id="addon-end-{{ $addOn->id }}">
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][extra_days]"
-                                    id="addon-extra-{{ $addOn->id }}" value="0">
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][total]"
-                                    id="addon-total-{{ $addOn->id }}">
-                                <input type="hidden" name="add_ons[{{ $addOn->id }}][days]"
-                                    id="addon-days-{{ $addOn->id }}" value="0">
+                                                       <h6 class="card-title mb-1">Daily</h6>
+                                                       <p class="card-text fw-bold text-primary mb-0">
+                                                           R{{ number_format($addOn->price_day, 2) }}
+                                                       </p>
+                                                   </div>
 
-                                <div class="small text-muted mt-2" id="addon-period-{{ $addOn->id }}">
-                                </div>
-                                <div class="fw-bold text-primary mt-1" id="addon-price-{{ $addOn->id }}">
-                                    R0.00</div>
+                                               </div>
+                                           </div>
+                                           <div class="col-sm-4">
+                                               <div class="card text-center shadow-sm h-100 addon-type-card"
+                                                   data-type="week" data-price="{{ $addOn->price_week }}">
+                                                   <div class="card-body">
 
-                                <div class="addon-live-summary d-none">
-                                    <div class="alert alert-info border-0 rounded-3 py-3 px-3 mb-3">
-                                        <div class="fw-semibold mb-1">
-                                            <span class="als-line-1-label">Days</span>:
-                                            <span class="als-qty">0</span>
-                                            × <span class="als-unit">R0.00</span>
-                                        </div>
-                                        <div class="fw-semibold">
-                                            Total Cost: <span class="als-total">R0.00</span>
-                                        </div>
-                                    </div>
+                                                       <div class="addon-type-icon mb-2">
+                                                           <i class="bi bi-calendar-event display-6"
+                                                               style="color: #CF9B4D"></i>
+                                                           <!-- Or: <i class="bi bi-sun"></i> -->
+                                                       </div>
+                                                       <h6 class="card-title">Weekly</h6>
+                                                       <p class="card-text fw-bold text-primary">
+                                                           R{{ number_format($addOn->price_week, 2) }}</p>
+                                                   </div>
+                                               </div>
+                                           </div>
+                                           <div class="col-sm-4">
+                                               <div class="card text-center shadow-sm h-100 addon-type-card"
+                                                   data-type="month" data-price="{{ $addOn->price_month }}">
+                                                   <div class="card-body">
 
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <div class="addon-date-pill bg-light border rounded-3 p-3 h-100">
-                                                <div class="text-muted fw-semibold mb-1">Start Date</div>
-                                                <div class="als-start">—</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="addon-date-pill bg-light border rounded-3 p-3 h-100">
-                                                <div class="text-muted fw-semibold mb-1">End Date</div>
-                                                <div class="als-end">—</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
+                                                       <div class="addon-type-icon mb-2">
+                                                           <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
+                                                           <!-- Or: <i class="bi bi-sun"></i> -->
+                                                       </div>
 
-                <div class="modal-footer">
-                    <div class="d-flex justify-content-between w-100">
-                        <button type="button" class="btn btn-outline-secondary" id="backToStep1">
-                            Back
-                        </button>
-                        <button type="button" class="btn btn-dark rounded-3"
-                                data-bs-target="#customerStep" data-bs-toggle="modal">
-                            Continue to Details
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Step 3: Customer Details Modal -->
-    <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true"
-        style="margin-bottom: 10rem">
-        <div class="modal-dialog modal-md modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-person-circle me-2"></i>Enter Your Details
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                                                       <h6 class="card-title">Monthly</h6>
+                                                       <p class="card-text fw-bold text-primary">
+                                                           R{{ number_format($addOn->price_month, 2) }}</p>
+                                                   </div>
+                                               </div>
+                                           </div>
+                                       </div>
 
-                <!-- Body -->
-                <div class="modal-body px-4">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control rounded-3" name="name"
-                                placeholder="John Doe" required>
-                        </div>
+                                       <div class="row g-2">
+                                           <div class="col-md-12">
+                                               <label class="form-label small">Quantity</label>
+                                               <select class="form-select form-select-sm addon-qty"
+                                                   data-id="{{ $addOn->id }}"
+                                                   @if ($totalStock <= 0) disabled @endif>
+                                                   @for ($i = 0; $i <= $addOn->qty_total; $i++)
+                                                       <option value="{{ $i }}">{{ $i }}
+                                                       </option>
+                                                   @endfor
+                                               </select>
+                                           </div>
+                                       </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control rounded-3" name="email"
-                                placeholder="you@example.com" required>
-                        </div>
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][type]"
+                                           id="addon-type-{{ $addOn->id }}">
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][quantity]"
+                                           id="addon-quantity-{{ $addOn->id }}">
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][start_date]"
+                                           id="addon-start-{{ $addOn->id }}">
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][end_date]"
+                                           id="addon-end-{{ $addOn->id }}">
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][extra_days]"
+                                           id="addon-extra-{{ $addOn->id }}" value="0">
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][total]"
+                                           id="addon-total-{{ $addOn->id }}">
+                                       <input type="hidden" name="add_ons[{{ $addOn->id }}][days]"
+                                           id="addon-days-{{ $addOn->id }}" value="0">
 
-                        <div class="col-12">
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control rounded-3" name="phone"
-                                placeholder="+27 123 456 7890" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Country</label>
-                            <select name="country" class="form-select rounded-3" required>
-                                <option value="" disabled selected>Select your country</option>
-                                @foreach ($countries as $country)
-                                    <option value="{{ $country }}">{{ $country }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Footer -->
-                <div class="modal-footer border-0 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary rounded-3" id="backToStep2">
-                        Back
-                    </button>
-                    <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">
-                        Review Booking
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                                       <div class="small text-muted mt-2" id="addon-period-{{ $addOn->id }}">
+                                       </div>
+                                       <div class="fw-bold text-primary mt-1" id="addon-price-{{ $addOn->id }}">
+                                           R0.00</div>
 
-    <!-- Step 4: Booking Summary -->
-    <div class="modal fade mt-5" id="summaryStep" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content rounded-4 shadow-lg">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard-check me-2"></i> Booking Summary
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <h4 class="fw-bold mb-3 text-center">Review Your Booking</h4>
-                    <p class="text-center text-muted">Please review your booking details before proceeding to
-                        payment</p>
+                                       <div class="addon-live-summary d-none">
+                                           <div class="alert alert-info border-0 rounded-3 py-3 px-3 mb-3">
+                                               <div class="fw-semibold mb-1">
+                                                   <span class="als-line-1-label">Days</span>:
+                                                   <span class="als-qty">0</span>
+                                                   × <span class="als-unit">R0.00</span>
+                                               </div>
+                                               <div class="fw-semibold">
+                                                   Total Cost: <span class="als-total">R0.00</span>
+                                               </div>
+                                           </div>
 
-                    <div class="border rounded p-3 mb-3 bg-light">
-                        <h6 class="fw-semibold">Vehicle</h6>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="{{ $vehicle->mainImage() }}" class="rounded"
-                                style="width:80px; height:80px; object-fit:cover;">
-                            <div>
-                                <p class="fw-bold mb-1">{{ $vehicle->name }}</p>
-                                <p class="text-muted small">{{ $vehicle->description ?? '' }}</p>
-                            </div>
-                        </div>
-                    </div>
+                                           <div class="row g-3">
+                                               <div class="col-md-6">
+                                                   <div class="addon-date-pill bg-light border rounded-3 p-3 h-100">
+                                                       <div class="text-muted fw-semibold mb-1">Start Date</div>
+                                                       <div class="als-start">—</div>
+                                                   </div>
+                                               </div>
+                                               <div class="col-md-6">
+                                                   <div class="addon-date-pill bg-light border rounded-3 p-3 h-100">
+                                                       <div class="text-muted fw-semibold mb-1">End Date</div>
+                                                       <div class="als-end">—</div>
+                                                   </div>
+                                               </div>
+                                           </div>
+                                       </div>
 
-                    <div class="border rounded p-3 mb-3 bg-light">
-                        <h6 class="fw-semibold">Rental Details</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="text-muted small mb-1">Rental Type</p>
-                                <p class="fw-bold" id="summaryType"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="text-muted small mb-1">Period</p>
-                                <p class="fw-bold" id="summaryPeriod"></p>
-                            </div>
-                        </div>
-                    </div>
+                                   </div>
+                               </div>
+                           @endforeach
+                       </div>
 
-                    <div class="border rounded p-3 mb-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="fw-semibold mb-0">Price Breakdown</h6>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Vehicle rental</span>
-                            <span id="summaryVehicleTotal">R0.00</span>
-                        </div>
-                        <div class="d-flex justify-content-between small mb-2">
-                            <span>Add-ons</span>
-                            <span id="summaryAddonTotal">R0.00</span>
-                        </div>
-                        <div class="d-flex justify-content-between fw-semibold border-top pt-2">
-                            <span>Grand total</span>
-                            <span class="text-success" id="summaryGrandTotal">R0.00</span>
-                        </div>
-                    </div>
-
-                    <div class="border rounded p-3 mb-3 bg-light">
-                        <h6 class="fw-semibold">Add-Ons</h6>
-                        <div id="summaryAddOnList" class="small text-muted">No add-ons selected.</div>
-                    </div>
-
-                    <div class="border rounded p-3 mb-3 bg-light">
-                        <h6 class="fw-semibold">Customer Details</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="small text-muted mb-1">Name</p>
-                                <p class="fw-bold" id="summaryCustomerName"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="small text-muted mb-1">Email</p>
-                                <p class="fw-bold" id="summaryCustomerEmail"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="small text-muted mb-1">Phone</p>
-                                <p class="fw-bold" id="summaryCustomerPhone"></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="small text-muted mb-1">Country</p>
-                                <p class="fw-bold" id="summaryCustomerCountry"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="d-flex justify-content-between w-100">
-                        <button type="button" class="btn btn-outline-secondary" id="backToStep3">
-                            Back
-                        </button>
-                        <button type="button" id="openPayment" class="btn btn-dark rounded-3">
-                            Continue to Payment
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</form>
-
-@php
-    use App\Models\SystemSetting;
-    use App\Models\StripeSetting;
-    use Illuminate\Support\Facades\Cache;
-
-    if (app()->environment('local')) {
-        $settings =
-            SystemSetting::first() ?:
-            new SystemSetting([
-                'stripe_enabled' => false,
-                'payfast_enabled' => false,
-            ]);
-    } else {
-        $settings = Cache::remember('payments.settings', 60, function () {
-            return SystemSetting::first() ?:
-                new SystemSetting([
-                    'stripe_enabled' => false,
-                    'payfast_enabled' => false,
-                ]);
-        });
-    }
-
-    $stripeConfig = StripeSetting::first();
-
-    // Count enabled payment methods
-    $enabledCount = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
-@endphp
-
-<div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content rounded-4 shadow">
-            <!-- Header -->
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-credit-card-fill me-2"></i> Select Payment Method
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <!-- Body -->
-            <div class="modal-body">
-                <div class="row g-3 align-items-stretch justify-content-center">
-                    @if ($settings->stripe_enabled)
-                        <!-- Stripe -->
-                        <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
-                            <input type="radio" name="booking_payment_method" id="bookingStripe"
-                                value="stripe" class="btn-check" autocomplete="off" required>
-                            <label for="bookingStripe"
-                                class="card btn w-100 booking-pay-option p-3 flex-column">
-                                <div class="text-center mb-2">
-                                    <img src="{{ asset('images/stripe.png') }}" class="rounded-3"
-                                        alt="Stripe" style="width: 80px;">
-                                </div>
-                                <div class="booking-pay-text text-center">
-                                    <div class="fw-bold">Stripe (Card)</div>
-                                    <small class="text-muted">Visa • Mastercard • Amex</small>
-                                </div>
-                            </label>
-                        </div>
-                    @endif
-
-                    @if ($settings->payfast_enabled)
-                        <!-- PayFast -->
-                        <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
-                            <input type="radio" name="booking_payment_method" id="bookingPayfast"
-                                value="payfast" class="btn-check" autocomplete="off" required>
-                            <label for="bookingPayfast"
-                                class="card btn w-100 booking-pay-option p-3 flex-column">
-                                <div class="text-center mb-2">
-                                    <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
-                                        alt="PayFast" style="width: 80px;">
-                                </div>
-                                <div class="booking-pay-text text-center">
-                                    <div class="fw-bold">PayFast</div>
-                                    <small class="text-muted">South Africa payments</small>
-                                </div>
-                            </label>
-                        </div>
-                    @endif
-
-                    @if ($enabledCount === 0)
-                        <div class="col-12">
-                            <div class="alert alert-warning text-center mb-0">
-                                No payment methods are currently available.
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-secondary" id="backToStep4">
-                    Back
-                </button>
-            </div>
-        </div>
+                      <div class="modal-footer">
+    <div class="d-flex justify-content-between w-100">
+        <button type="button" class="btn btn-outline-secondary"
+                data-bs-target="#multiStepBookingModal" data-bs-toggle="modal">
+            Back
+        </button>
+        <button type="button" class="btn btn-dark rounded-3"
+                data-bs-target="#customerStep" data-bs-toggle="modal">
+            Continue to Details
+        </button>
     </div>
 </div>
+                   </div>
+               </div>
+           </div>
 
-<!-- Step 5b: Stripe Card -->
-<div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
-    style="margin-top: 4rem; height:90vh;">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-        <div class="modal-content rounded-4 shadow">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-credit-card-fill me-2"></i> Stripe Payment
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="booking-card-element" class="mt-3">
-                    <div id="booking-card-number" class="form-control mb-3"></div>
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <div id="booking-card-expiry" class="form-control"></div>
-                        </div>
-                        <div class="col-md-6">
-                            <div id="booking-card-cvc" class="form-control"></div>
-                        </div>
-                    </div>
-                    <div id="booking-card-errors" class="text-danger mt-2"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary me-auto" id="backToPayment">
-                    Back
-                </button>
-                <button type="button" id="bookingStripePayButton" class="btn btn-dark">
-                    Pay with Stripe
-                </button>
-            </div>
-        </div>
-    </div>
+
+           <!-- Step 3: Customer Details Modal -->
+           <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true"
+               style="margin-bottom: 10rem">
+               <div class="modal-dialog modal-md modal-dialog-centered">
+                   <div class="modal-content rounded-4 shadow">
+                       <div class="modal-header">
+                           <h5 class="modal-title fw-bold"><i class="bi bi-person-circle me-2"></i>Enter Your Details
+                           </h5>
+                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                       </div>
+
+
+
+
+                       <!-- Body -->
+                       <div class="modal-body px-4">
+                           <div class="row g-3">
+
+                               <div class="col-12">
+                                   <label class="form-label">Full Name</label>
+                                   <input type="text" class="form-control rounded-3" name="name"
+                                       placeholder="John Doe" required>
+                               </div>
+
+                               <div class="col-12">
+                                   <label class="form-label">Email</label>
+                                   <input type="email" class="form-control rounded-3" name="email"
+                                       placeholder="you@example.com" required>
+                               </div>
+
+                               <div class="col-12">
+                                   <label class="form-label">Phone Number</label>
+                                   <input type="tel" class="form-control rounded-3" name="phone"
+                                       placeholder="+27 123 456 7890" required>
+                               </div>
+<div class="col-12">
+    <label class="form-label">Country</label>
+    <select name="country" class="form-select rounded-3" required>
+        <option value="" disabled selected>Select your country</option>
+        @foreach ($countries as $country)
+            <option value="{{ $country }}">{{ $country }}</option>
+        @endforeach
+    </select>
 </div>
+
+                           </div>
+                       </div>
+
+                       <!-- Footer -->
+                       <div class="modal-footer border-0 d-flex justify-content-between">
+                           <button type="button" class="btn btn-outline-secondary rounded-3"
+                               data-bs-target="#addonsStep" data-bs-toggle="modal">
+                               Back
+                           </button>
+                           <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">
+                               Review Booking
+                           </button>
+                       </div>
+
+                   </div>
+               </div>
+           </div>
+
+
+           <!-- Step 4: Booking Summary -->
+           <div class="modal fade mt-5" id="summaryStep" tabindex="-1" aria-hidden="true"
+               style="height: 90vh; margin-top: 4rem;">
+               <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                   <div class="modal-content rounded-4 shadow-lg">
+                       <div class="modal-header">
+                           <h5 class="modal-title fw-bold"><i class="bi bi-clipboard-check me-2"></i> Booking Summary
+                           </h5>
+                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                       </div>
+                       <div class="modal-body">
+                           <h4 class="fw-bold mb-3 text-center">Review Your Booking</h4>
+                           <p class="text-center text-muted">Please review your booking details before proceeding to
+                               payment</p>
+
+                           <div class="border rounded p-3 mb-3 bg-light">
+                               <h6 class="fw-semibold">Vehicle</h6>
+                               <div class="d-flex align-items-center gap-3">
+                                   <img src="{{ $vehicle->mainImage() }}" class="rounded"
+                                       style="width:80px; height:80px; object-fit:cover;">
+                                   <div>
+                                       <p class="fw-bold mb-1">{{ $vehicle->name }}</p>
+                                       <p class="text-muted small">{{ $vehicle->description ?? '' }}</p>
+                                   </div>
+                               </div>
+                           </div>
+
+                           <div class="border rounded p-3 mb-3 bg-light">
+                               <h6 class="fw-semibold">Rental Details</h6>
+                               <div class="row">
+                                   <div class="col-md-6">
+                                       <p class="text-muted small mb-1">Rental Type</p>
+                                       <p class="fw-bold" id="summaryType"></p>
+                                   </div>
+                                   <div class="col-md-6">
+                                       <p class="text-muted small mb-1">Period</p>
+                                       <p class="fw-bold" id="summaryPeriod"></p>
+                                   </div>
+                               </div>
+                           </div>
+
+                           <div class="border rounded p-3 mb-3 bg-light">
+                               <div class="d-flex justify-content-between align-items-center mb-2">
+                                   <h6 class="fw-semibold mb-0">Price Breakdown</h6>
+                               </div>
+                               <div class="d-flex justify-content-between small mb-1">
+                                   <span>Vehicle rental</span>
+                                   <span id="summaryVehicleTotal">R0.00</span>
+                               </div>
+                               <div class="d-flex justify-content-between small mb-2">
+                                   <span>Add-ons</span>
+                                   <span id="summaryAddonTotal">R0.00</span>
+                               </div>
+                               <div class="d-flex justify-content-between fw-semibold border-top pt-2">
+                                   <span>Grand total</span>
+                                   <span class="text-success" id="summaryGrandTotal">R0.00</span>
+                               </div>
+                           </div>
+
+                           <div class="border rounded p-3 mb-3 bg-light">
+                               <h6 class="fw-semibold">Add-Ons</h6>
+                               <div id="summaryAddOnList" class="small text-muted">No add-ons selected.</div>
+                           </div>
+
+                           <div class="border rounded p-3 mb-3 bg-light">
+                               <h6 class="fw-semibold">Customer Details</h6>
+                               <div class="row">
+                                   <div class="col-md-6">
+                                       <p class="small text-muted mb-1">Name</p>
+                                       <p class="fw-bold" id="summaryCustomerName"></p>
+                                   </div>
+                                   <div class="col-md-6">
+                                       <p class="small text-muted mb-1">Email</p>
+                                       <p class="fw-bold" id="summaryCustomerEmail"></p>
+                                   </div>
+                                   <div class="col-md-6">
+                                       <p class="small text-muted mb-1">Phone</p>
+                                       <p class="fw-bold" id="summaryCustomerPhone"></p>
+                                   </div>
+                                   <div class="col-md-6">
+                                       <p class="small text-muted mb-1">Country</p>
+                                       <p class="fw-bold" id="summaryCustomerCountry"></p>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                       <div class="modal-footer">
+                           <div class="d-flex justify-content-between w-100">
+                               <button type="button" class="btn btn-outline-secondary"
+                                   data-bs-target="#customerStep" data-bs-toggle="modal">Back</button>
+
+                               {{-- IMPORTANT: do not submit here. We will create booking via AJAX and then open payment
+                                --}}
+                               <button type="button" id="openPayment" class="btn btn-dark rounded-3">
+                                   Continue to Payment
+                               </button>
+                           </div>
+                       </div>
+
+                   </div>
+               </div>
+           </div>
+       </form> {{-- CLOSE booking form here --}}
+
+
+
+       @php
+           use App\Models\SystemSetting;
+           use App\Models\StripeSetting;
+           use Illuminate\Support\Facades\Cache;
+
+           if (app()->environment('local')) {
+               $settings =
+                   SystemSetting::first() ?:
+                   new SystemSetting([
+                       'stripe_enabled' => false,
+                       'payfast_enabled' => false,
+                   ]);
+           } else {
+               $settings = Cache::remember('payments.settings', 60, function () {
+                   return SystemSetting::first() ?:
+                       new SystemSetting([
+                           'stripe_enabled' => false,
+                           'payfast_enabled' => false,
+                       ]);
+               });
+           }
+
+           $stripeConfig = StripeSetting::first();
+
+           // Count enabled payment methods
+           $enabledCount = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
+       @endphp
+
+       <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
+           <div class="modal-dialog modal-lg modal-dialog-centered">
+               <div class="modal-content rounded-4 shadow">
+
+                   <!-- Header -->
+                   <div class="modal-header">
+                       <h5 class="modal-title fw-bold">
+                           <i class="bi bi-credit-card-fill me-2"></i> Select Payment Method
+                       </h5>
+                       <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                   </div>
+
+                   <!-- Body -->
+                   <div class="modal-body">
+                       <div class="row g-3 align-items-stretch justify-content-center">
+
+                           @if ($settings->stripe_enabled)
+                               <!-- Stripe -->
+                               <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+                                   <input type="radio" name="booking_payment_method" id="bookingStripe"
+                                       value="stripe" class="btn-check" autocomplete="off" required>
+                                   <label for="bookingStripe"
+                                       class="card btn w-100 booking-pay-option p-3 flex-column">
+                                       <div class="text-center mb-2">
+                                           <img src="{{ asset('images/stripe.png') }}" class="rounded-3"
+                                               alt="Stripe" style="width: 80px;">
+                                       </div>
+                                       <div class="booking-pay-text text-center">
+                                           <div class="fw-bold">Stripe (Card)</div>
+                                           <small class="text-muted">Visa • Mastercard • Amex</small>
+                                       </div>
+                                   </label>
+                               </div>
+                           @endif
+
+                           @if ($settings->payfast_enabled)
+                               <!-- PayFast -->
+                               <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+                                   <input type="radio" name="booking_payment_method" id="bookingPayfast"
+                                       value="payfast" class="btn-check" autocomplete="off" required>
+                                   <label for="bookingPayfast"
+                                       class="card btn w-100 booking-pay-option p-3 flex-column">
+                                       <div class="text-center mb-2">
+                                           <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
+                                               alt="PayFast" style="width: 80px;">
+                                       </div>
+                                       <div class="booking-pay-text text-center">
+                                           <div class="fw-bold">PayFast</div>
+                                           <small class="text-muted">South Africa payments</small>
+                                       </div>
+                                   </label>
+                               </div>
+                           @endif
+
+                           @if ($enabledCount === 0)
+                               <div class="col-12">
+                                   <div class="alert alert-warning text-center mb-0">
+                                       No payment methods are currently available.
+                                   </div>
+                               </div>
+                           @endif
+
+                       </div>
+                   </div>
+
+                   <!-- Footer -->
+                   <div class="modal-footer justify-content-between">
+                       <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                           data-bs-target="#summaryStep">
+                           Back
+                       </button>
+                   </div>
+               </div>
+           </div>
+       </div>
+
+
+       <!-- Step 5b: Stripe Card -->
+       <div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
+           style="margin-top: 4rem; height:90vh;">
+           <div class="modal-dialog modal-md modal-dialog-centered">
+               <div class="modal-content rounded-4 shadow">
+                   <div class="modal-header">
+                       <h5 class="modal-title fw-bold">
+                           <i class="bi bi-credit-card-fill me-2"></i> Stripe Payment
+                       </h5>
+                       <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                   </div>
+                   <div class="modal-body">
+                       <div id="booking-card-element" class="mt-3">
+                           <div id="booking-card-number" class="form-control mb-3"></div>
+                           <div class="row g-2">
+                               <div class="col-md-6">
+                                   <div id="booking-card-expiry" class="form-control"></div>
+                               </div>
+                               <div class="col-md-6">
+                                   <div id="booking-card-cvc" class="form-control"></div>
+                               </div>
+                           </div>
+                           <div id="booking-card-errors" class="text-danger mt-2"></div>
+                       </div>
+                   </div>
+                   <div class="modal-footer">
+                       <button type="button" class="btn btn-outline-secondary me-auto" data-bs-toggle="modal"
+                           data-bs-target="#bookingPayment">
+                           Back
+                       </button>
+                       <button type="button" id="bookingStripePayButton" class="btn btn-dark">
+                           Pay with Stripe
+                       </button>
+                   </div>
+               </div>
+           </div>
+       </div>
 
 <!-- Step 6: Thank You -->
 <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
@@ -805,7 +840,7 @@
             <div class="modal-body p-4">
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <div class="bg-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center"
-                        style="width:48px;height:48px;">
+                         style="width:48px;height:48px;">
                         <i class="bi bi-check-lg text-success fs-4"></i>
                     </div>
                     <div>
@@ -814,21 +849,7 @@
                     </div>
                 </div>
 
-                <div class="border rounded-3 p-3 mb-3 bg-light">
-                    <div class="d-flex align-items-center gap-3">
-                        <img id="tyVehicleImage" src="{{ $vehicle->mainImage() }}" class="rounded"
-                            style="width:64px;height:64px;object-fit:cover;" alt="{{ $vehicle->name }}">
-                        <div>
-                            <div class="fw-semibold" id="tyVehicleName">{{ $vehicle->name }}</div>
-                            <div class="small text-muted">
-                                <span id="tyPeriod">—</span>
-                                <span class="mx-1">•</span>
-                                Ref: <span id="tyReference">—</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- Amount & Payment Info -->
                 <div class="border rounded-3 p-3 mb-3">
                     <div class="d-flex justify-content-between small mb-1">
                         <span>Amount paid</span>
@@ -840,27 +861,29 @@
                     </div>
                 </div>
 
+                <!-- Customer Info -->
                 <div class="border rounded-3 p-3 mb-3 bg-light">
                     <div class="small text-muted mb-1">Booked by</div>
                     <div class="fw-semibold" id="tyCustomerName">—</div>
                     <div class="small text-muted" id="tyCustomerContact">—</div>
                 </div>
+            </div>
 
-                <div class="alert alert-success d-flex align-items-center gap-2 mb-0">
-                           <i class="bi bi-telephone-forward-fill"></i>
-                           <div class="small">
-                               Our team will reach out shortly to confirm handover details.
-                           </div>
-                       </div>
-                   </div>
-
-                   <div class="modal-footer border-0 pt-0">
-                       <button type="button" class="btn btn-success fw-bold rounded-pill px-4" id="tyGoHomeNow">Go
-                           to Home</button>
-                   </div>
-               </div>
-           </div>
-       </div>
+            <!-- Footer Buttons -->
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-3" id="tyGoHome">
+                    Go to Home
+                </button>
+                <a href="https://wa.me/27612345678?text=Hi! I just completed my booking (Reference: %23) and need assistance."
+                   class="btn btn-success fw-bold rounded-3 d-flex align-items-center gap-2"
+                   target="_blank" id="whatsappButton">
+                    <i class="bi bi-whatsapp fs-5"></i>
+                    Chat with Us
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 
