@@ -88,6 +88,14 @@ public function adminBookings()
     return $this->hasMany(AdminBooking::class, 'vehicle_id'); // ✅ correct
 }
 
+// app/Models/Vehicle.php  (rename class from Vehicles to Vehicle)
+public function scopeAvailable($q){
+    return $q->where(function($qq){
+        $qq->whereNull('status')->orWhere('status','!=','sold');
+    });
+}
+
+
 
 
     /**

@@ -1,201 +1,37 @@
-    @php
-        $countries = [
-            'Afghanistan',
-            'Albania',
-            'Algeria',
-            'Andorra',
-            'Angola',
-            'Antigua and Barbuda',
-            'Argentina',
-            'Armenia',
-            'Australia',
-            'Austria',
-            'Azerbaijan',
-            'Bahamas',
-            'Bahrain',
-            'Bangladesh',
-            'Barbados',
-            'Belarus',
-            'Belgium',
-            'Belize',
-            'Benin',
-            'Bhutan',
-            'Bolivia',
-            'Bosnia and Herzegovina',
-            'Botswana',
-            'Brazil',
-            'Brunei',
-            'Bulgaria',
-            'Burkina Faso',
-            'Burundi',
-            'Cabo Verde',
-            'Cambodia',
-            'Cameroon',
-            'Canada',
-            'Central African Republic',
-            'Chad',
-            'Chile',
-            'China',
-            'Colombia',
-            'Comoros',
-            'Congo (Congo-Brazzaville)',
-            'Costa Rica',
-            'Croatia',
-            'Cuba',
-            'Cyprus',
-            'Czechia',
-            'Democratic Republic of the Congo',
-            'Denmark',
-            'Djibouti',
-            'Dominica',
-            'Dominican Republic',
-            'Ecuador',
-            'Egypt',
-            'El Salvador',
-            'Equatorial Guinea',
-            'Eritrea',
-            'Estonia',
-            'Eswatini',
-            'Ethiopia',
-            'Fiji',
-            'Finland',
-            'France',
-            'Gabon',
-            'Gambia',
-            'Georgia',
-            'Germany',
-            'Ghana',
-            'Greece',
-            'Grenada',
-            'Guatemala',
-            'Guinea',
-            'Guinea-Bissau',
-            'Guyana',
-            'Haiti',
-            'Holy See',
-            'Honduras',
-            'Hungary',
-            'Iceland',
-            'India',
-            'Indonesia',
-            'Iran',
-            'Iraq',
-            'Ireland',
-            'Israel',
-            'Italy',
-            'Jamaica',
-            'Japan',
-            'Jordan',
-            'Kazakhstan',
-            'Kenya',
-            'Kiribati',
-            'Kuwait',
-            'Kyrgyzstan',
-            'Laos',
-            'Latvia',
-            'Lebanon',
-            'Lesotho',
-            'Liberia',
-            'Libya',
-            'Liechtenstein',
-            'Lithuania',
-            'Luxembourg',
-            'Madagascar',
-            'Malawi',
-            'Malaysia',
-            'Maldives',
-            'Mali',
-            'Malta',
-            'Marshall Islands',
-            'Mauritania',
-            'Mauritius',
-            'Mexico',
-            'Micronesia',
-            'Moldova',
-            'Monaco',
-            'Mongolia',
-            'Montenegro',
-            'Morocco',
-            'Mozambique',
-            'Myanmar',
-            'Namibia',
-            'Nauru',
-            'Nepal',
-            'Netherlands',
-            'New Zealand',
-            'Nicaragua',
-            'Niger',
-            'Nigeria',
-            'North Korea',
-            'North Macedonia',
-            'Norway',
-            'Oman',
-            'Pakistan',
-            'Palau',
-            'Palestine State',
-            'Panama',
-            'Papua New Guinea',
-            'Paraguay',
-            'Peru',
-            'Philippines',
-            'Poland',
-            'Portugal',
-            'Qatar',
-            'Romania',
-            'Russia',
-            'Rwanda',
-            'Saint Kitts and Nevis',
-            'Saint Lucia',
-            'Saint Vincent and the Grenadines',
-            'Samoa',
-            'San Marino',
-            'Sao Tome and Principe',
-            'Saudi Arabia',
-            'Senegal',
-            'Serbia',
-            'Seychelles',
-            'Sierra Leone',
-            'Singapore',
-            'Slovakia',
-            'Slovenia',
-            'Solomon Islands',
-            'Somalia',
-            'South Africa',
-            'South Korea',
-            'South Sudan',
-            'Spain',
-            'Sri Lanka',
-            'Sudan',
-            'Suriname',
-            'Sweden',
-            'Switzerland',
-            'Syria',
-            'Tajikistan',
-            'Tanzania',
-            'Thailand',
-            'Timor-Leste',
-            'Togo',
-            'Tonga',
-            'Trinidad and Tobago',
-            'Tunisia',
-            'Turkey',
-            'Turkmenistan',
-            'Tuvalu',
-            'Uganda',
-            'Ukraine',
-            'United Arab Emirates',
-            'United Kingdom',
-            'United States',
-            'Uruguay',
-            'Uzbekistan',
-            'Vanuatu',
-            'Venezuela',
-            'Vietnam',
-            'Yemen',
-            'Zambia',
-            'Zimbabwe',
-        ];
-    @endphp
+@php
+    $countries = [
+        'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia',
+        'Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin',
+        'Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi',
+        'Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia',
+        'Comoros','Congo (Congo-Brazzaville)','Costa Rica','Croatia','Cuba','Cyprus','Czechia','Democratic Republic of the Congo',
+        'Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea',
+        'Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece',
+        'Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Holy See','Honduras','Hungary','Iceland','India',
+        'Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati',
+        'Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg',
+        'Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico',
+        'Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal',
+        'Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan',
+        'Palau','Palestine State','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar',
+        'Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa',
+        'San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore',
+        'Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka',
+        'Sudan','Suriname','Sweden','Switzerland','Syria','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga',
+        'Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates',
+        'United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
+    ];
+
+    // Remove South Africa temporarily
+    $countries = array_diff($countries, ['South Africa']);
+
+    // Sort the rest alphabetically
+    sort($countries);
+
+    // Put South Africa at the top
+    array_unshift($countries, 'South Africa');
+@endphp
+
 
     <form id="purchaseForm" method="POST">
         @csrf
@@ -299,17 +135,17 @@
                                     placeholder="+27 123 456 7890" required>
                             </div>
 
-                            <div class="col-12">
-                                <label class="form-label">
-                                    <i class=" me-2 text-secondary"></i> Country
-                                </label>
-                                <select name="country" class="form-select rounded-3" required>
-                                    <option value="" disabled selected>Select your country</option>
-                                    @foreach ($countries as $country)
-                                        <option value="{{ $country }}">{{ $country }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                           <div class="col-12">
+    <label class="form-label">
+        <i class="me-2 text-secondary"></i> Country
+    </label>
+    <select name="country" class="form-select rounded-3" required>
+        <option value="" disabled selected>Select your country</option>
+        @foreach ($countries as $country)
+            <option value="{{ $country }}">{{ $country }}</option>
+        @endforeach
+    </select>
+</div>
 
                         </div>
                     </div>
@@ -853,333 +689,290 @@
         }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous">
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://js.stripe.com/v3/"></script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const el = id => document.getElementById(id);
-            const modal = id => bootstrap.Modal.getOrCreateInstance(el(id));
+<script>
+  // ===== Blade → JS values =====
+  const VEHICLE_NAME     = @json($vehicle->name);
+  const VEHICLE_PRICE    = {{ (float) ($vehicle->purchase_price ?? 0) }};
+  const VEHICLE_DEPOSIT  = {{ (float) ($vehicle->deposit_amount ?? 0) }};
+  const ZAR              = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
 
-            const form = el("purchaseForm");
+  document.addEventListener("DOMContentLoaded", () => {
+    const el    = id => document.getElementById(id);
+    const modal = id => bootstrap.Modal.getOrCreateInstance(el(id));
+    const form  = el("purchaseForm");
 
-            // ---------------- Step 1 -> Step 2 ----------------
-            el("purchaseStep1Next").addEventListener("click", () => {
-                modal('purchaseModal').hide();
-                modal('purchaseCustomer').show();
-            });
+    // ---------------- Step 1 -> Step 2 ----------------
+    el("purchaseStep1Next").addEventListener("click", () => {
+      modal('purchaseModal').hide();
+      modal('purchaseCustomer').show();
+    });
 
-            // ---------------- Save customer -> open payment ----------------
-            el("purchaseStep2Next").addEventListener("click", async () => {
-                const name = (form.name.value || '').trim();
-                const email = (form.email.value || '').trim();
-                const phone = (form.phone.value || '').trim();
-                const country = form.country.value;
+    // ---------------- Save customer -> open payment ----------------
+    el("purchaseStep2Next").addEventListener("click", async () => {
+      const name = (form.name.value || '').trim();
+      const email = (form.email.value || '').trim();
+      const phone = (form.phone.value || '').trim();
+      const country = form.country.value;
 
-                if (!name || !email || !phone || !country) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Missing Information',
-                        text: 'Please fill in all required customer details.'
-                    });
-                    return;
-                }
+      if (!name || !email || !phone || !country) {
+        Swal.fire({ icon: 'error', title: 'Missing Information', text: 'Please fill in all required customer details.' });
+        return;
+      }
 
-                try {
-                    const res = await fetch("{{ route('purchase.store') }}", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify({
-                            name,
-                            email,
-                            phone,
-                            country,
-                            vehicle_id: form.vehicle_id.value,
-                            total_price: form.total_price.value
-                        })
-                    });
-                    const data = await res.json();
-                    if (!res.ok || !data.success) throw new Error(data.message ||
-                        'Unable to save details.');
-
-                    let hid = form.querySelector('input[name="purchase_id"]');
-                    if (!hid) {
-                        hid = document.createElement('input');
-                        hid.type = 'hidden';
-                        hid.name = 'purchase_id';
-                        form.appendChild(hid);
-                    }
-                    hid.value = data.purchase_id;
-
-                    modal('purchaseCustomer').hide();
-                    modal('purchasePayment').show();
-                } catch (e) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: e.message || 'Network error.'
-                    });
-                }
-            });
-
-            // ---------------- reset radios when payment modal opens ----------
-            el("purchasePayment").addEventListener("show.bs.modal", () => {
-                document.querySelectorAll('#purchasePayment input[name="payment_method"]').forEach(r => r
-                    .checked = false);
-            });
-
-            // ---------------- Lazy Stripe init (only when chosen) -----------
-            let stripe, elements, cardNumber, cardExpiry, cardCvc;
-            async function ensureStripeMounted() {
-                if (stripe) return;
-                const publishableKey = "{{ $settings->stripe_key ?? (config('services.stripe.key') ?? '') }}";
-                if (!publishableKey) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Stripe not configured',
-                        text: 'Publishable key is missing.'
-                    });
-                    return false;
-                }
-                try {
-                    stripe = Stripe(publishableKey);
-                    elements = stripe.elements();
-                    const style = {
-                        base: {
-                            fontSize: '16px',
-                            color: '#32325d',
-                            '::placeholder': {
-                                color: '#a0aec0'
-                            }
-                        }
-                    };
-                    cardNumber = elements.create('cardNumber', {
-                        style
-                    });
-                    cardExpiry = elements.create('cardExpiry', {
-                        style
-                    });
-                    cardCvc = elements.create('cardCvc', {
-                        style
-                    });
-                    cardNumber.mount('#card-number');
-                    cardExpiry.mount('#card-expiry');
-                    cardCvc.mount('#card-cvc');
-                    return true;
-                } catch (e) {
-                    console.error(e);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Stripe error',
-                        text: e.message || 'Failed to initialize Stripe.'
-                    });
-                    return false;
-                }
-            }
-
-            // ---------------- Payment method chooser -----------------------
-            document.querySelectorAll('input[name="payment_method"]').forEach(r => {
-                r.addEventListener('change', async function() {
-                    const choice = this.value;
-                    modal('purchasePayment').hide();
-
-                    // STRIPE
-                    if (choice === 'stripe') {
-                        const ok = await ensureStripeMounted();
-                        if (!ok) {
-                            // re-open payment chooser so the user can pick PayFast
-                            modal('purchasePayment').show();
-                            this.checked = false;
-                            return;
-                        }
-                        modal('stripePaymentModal').show();
-                        return;
-                    }
-
-                    // PAYFAST
-                    const purchaseIdInput = form.querySelector('input[name="purchase_id"]');
-                    if (!purchaseIdInput || !purchaseIdInput.value) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Missing purchase',
-                            text: 'Please save your details first.'
-                        });
-                        modal('purchasePayment').show();
-                        this.checked = false;
-                        return;
-                    }
-
-                    const confirmed = await Swal.fire({
-                        icon: 'question',
-                        title: 'Proceed with PayFast?',
-                        text: 'You will be redirected to PayFast to complete your payment.',
-                        showCancelButton: true,
-                        confirmButtonText: 'Continue',
-                        cancelButtonText: 'Back',
-                        reverseButtons: true,
-                        buttonsStyling: false,
-                        customClass: {
-                            confirmButton: 'btn btn-dark',
-                            cancelButton: 'btn btn-outline-secondary me-3'
-                        }
-                    });
-                    if (!confirmed.isConfirmed) {
-                        this.checked = false;
-                        modal('purchasePayment').show();
-                        return;
-                    }
-
-                    try {
-                        const res = await fetch(
-                            `/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                                },
-                                body: JSON.stringify({
-                                    name: form.name?.value || '',
-                                    email: form.email?.value || ''
-                                })
-                            });
-                        const data = await res.json();
-                        if (!res.ok || !data.success) throw new Error(data.message ||
-                            'Failed to initialize PayFast.');
-
-                        const pfForm = document.createElement('form');
-                        pfForm.method = 'POST';
-                        pfForm.action = data.action;
-                        pfForm.style.display = 'none';
-                        Object.entries(data.fields).forEach(([k, v]) => {
-                            const inp = document.createElement('input');
-                            inp.type = 'hidden';
-                            inp.name = k;
-                            inp.value = v;
-                            pfForm.appendChild(inp);
-                        });
-                        document.body.appendChild(pfForm);
-                        pfForm.submit();
-                    } catch (e) {
-                        console.error(e);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'PayFast error',
-                            text: e.message || 'Could not redirect to PayFast.'
-                        });
-                        modal('purchasePayment').show();
-                        this.checked = false;
-                    }
-                });
-            });
-
-            // ---------------- Stripe "Purchase Now" ------------------------
-            el("purchaseStripePayButton").addEventListener("click", async () => {
-                const purchaseIdInput = form.querySelector('input[name="purchase_id"]');
-                if (!purchaseIdInput || !purchaseIdInput.value) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Missing booking',
-                        text: 'Purchase ID is missing. Please save your details again.'
-                    });
-                    return;
-                }
-                if (!stripe || !cardNumber) {
-                    const ok = await ensureStripeMounted();
-                    if (!ok) return;
-                }
-
-                Swal.fire({
-                    title: 'Processing payment',
-                    html: 'Please do not close this window.',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
-                });
-
-                const {
-                    paymentMethod: pm,
-                    error
-                } = await stripe.createPaymentMethod({
-                    type: 'card',
-                    card: cardNumber,
-                    billing_details: {
-                        name: form.name.value,
-                        email: form.email.value
-                    }
-                });
-                if (error) {
-                    Swal.close();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Card error',
-                        text: error.message
-                    });
-                    return;
-                }
-
-                try {
-                    const res = await fetch(`/purchase/${purchaseIdInput.value}/pay-with-stripe`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify({
-                            payment_method_id: pm.id
-                        })
-                    });
-                    const data = await res.json();
-                    Swal.close();
-
-                    if (data.success) {
-                        Swal.fire({
-                                icon: 'success',
-                                title: 'Payment successful',
-                                timer: 1400,
-                                showConfirmButton: false
-                            })
-                            .then(() => {
-                                modal('stripePaymentModal').hide();
-                                modal('purchaseThankYou').show();
-                            });
-                    } else if (data.requires_action) {
-                        const result = await stripe.confirmCardPayment(data
-                            .payment_intent_client_secret);
-                        if (result.error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Authentication failed',
-                                text: result.error.message
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Payment confirmed'
-                            }).then(() => {
-                                modal('stripePaymentModal').hide();
-                                modal('purchaseThankYou').show();
-                            });
-                        }
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Payment failed',
-                            text: data.message || 'There was a problem processing your payment.'
-                        });
-                    }
-                } catch (e) {
-                    console.error(e);
-                    Swal.close();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Network error',
-                        text: 'Unable to complete payment. Please try again.'
-                    });
-                }
-            });
+      try {
+        const res = await fetch("{{ route('purchase.store') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
+          body: JSON.stringify({
+            name, email, phone, country,
+            vehicle_id: form.vehicle_id.value,
+            total_price: form.total_price.value
+          })
         });
-    </script>
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Unable to save details.');
+
+        let hid = form.querySelector('input[name="purchase_id"]');
+        if (!hid) {
+          hid = document.createElement('input');
+          hid.type = 'hidden';
+          hid.name = 'purchase_id';
+          form.appendChild(hid);
+        }
+        hid.value = data.purchase_id;
+
+        modal('purchaseCustomer').hide();
+        modal('purchasePayment').show();
+      } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: e.message || 'Network error.' });
+      }
+    });
+
+    // ---------------- reset radios when payment modal opens ----------
+    el("purchasePayment").addEventListener("show.bs.modal", () => {
+      document.querySelectorAll('#purchasePayment input[name="payment_method"]').forEach(r => r.checked = false);
+    });
+
+    // ---------------- Lazy Stripe init (only when chosen) -----------
+    let stripe, elements, cardNumber, cardExpiry, cardCvc;
+    async function ensureStripeMounted() {
+      if (stripe) return true;
+      const publishableKey = "{{ $settings->stripe_key ?? (config('services.stripe.key') ?? '') }}";
+      if (!publishableKey) {
+        Swal.fire({ icon: 'error', title: 'Stripe not configured', text: 'Publishable key is missing.' });
+        return false;
+      }
+      try {
+        stripe   = Stripe(publishableKey);
+        elements = stripe.elements();
+        const style = { base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } } };
+        cardNumber = elements.create('cardNumber', { style });
+        cardExpiry = elements.create('cardExpiry', { style });
+        cardCvc    = elements.create('cardCvc',    { style });
+        cardNumber.mount('#card-number');
+        cardExpiry.mount('#card-expiry');
+        cardCvc.mount('#card-cvc');
+        return true;
+      } catch (e) {
+        console.error(e);
+        Swal.fire({ icon: 'error', title: 'Stripe error', text: e.message || 'Failed to initialize Stripe.' });
+        return false;
+      }
+    }
+
+    // ---------------- Payment method chooser -----------------------
+    document.querySelectorAll('input[name="payment_method"]').forEach(r => {
+      r.addEventListener('change', async function() {
+        const choice = this.value;
+        modal('purchasePayment').hide();
+
+        // STRIPE
+        if (choice === 'stripe') {
+          const ok = await ensureStripeMounted();
+          if (!ok) {
+            modal('purchasePayment').show();
+            this.checked = false;
+            return;
+          }
+          modal('stripePaymentModal').show();
+          return;
+        }
+
+        // PAYFAST
+        const purchaseIdInput = form.querySelector('input[name="purchase_id"]');
+        if (!purchaseIdInput || !purchaseIdInput.value) {
+          Swal.fire({ icon: 'error', title: 'Missing purchase', text: 'Please save your details first.' });
+          modal('purchasePayment').show();
+          this.checked = false;
+          return;
+        }
+
+        const confirmed = await Swal.fire({
+          icon: 'question',
+          title: 'Proceed with PayFast?',
+          text: 'You will be redirected to PayFast to complete your payment.',
+          showCancelButton: true,
+          confirmButtonText: 'Continue',
+          cancelButtonText: 'Back',
+          reverseButtons: true,
+          buttonsStyling: false,
+          customClass: { confirmButton: 'btn btn-dark', cancelButton: 'btn btn-outline-secondary me-3' }
+        });
+        if (!confirmed.isConfirmed) {
+          this.checked = false;
+          modal('purchasePayment').show();
+          return;
+        }
+
+        try {
+          const res = await fetch(`/purchase/${encodeURIComponent(purchaseIdInput.value)}/payfast/init`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+            body: JSON.stringify({ name: form.name?.value || '', email: form.email?.value || '' })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.message || 'Failed to initialize PayFast.');
+
+          const pfForm = document.createElement('form');
+          pfForm.method = 'POST';
+          pfForm.action = data.action;
+          pfForm.style.display = 'none';
+          Object.entries(data.fields).forEach(([k, v]) => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = k; inp.value = v;
+            pfForm.appendChild(inp);
+          });
+          document.body.appendChild(pfForm);
+          pfForm.submit();
+        } catch (e) {
+          console.error(e);
+          Swal.fire({ icon: 'error', title: 'PayFast error', text: e.message || 'Could not redirect to PayFast.' });
+          modal('purchasePayment').show();
+          this.checked = false;
+        }
+      });
+    });
+
+    // ---------------- Stripe "Purchase Now" ------------------------
+    el("purchaseStripePayButton").addEventListener("click", async () => {
+      const purchaseIdInput = form.querySelector('input[name="purchase_id"]');
+      if (!purchaseIdInput || !purchaseIdInput.value) {
+        Swal.fire({ icon: 'error', title: 'Missing purchase', text: 'Purchase ID is missing. Please save your details again.' });
+        return;
+      }
+      if (!stripe || !cardNumber) {
+        const ok = await ensureStripeMounted();
+        if (!ok) return;
+      }
+
+      Swal.fire({ title: 'Processing payment', html: 'Please do not close this window.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      const { paymentMethod: pm, error } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardNumber,
+        billing_details: { name: form.name.value, email: form.email.value }
+      });
+      if (error) {
+        Swal.close();
+        Swal.fire({ icon: 'error', title: 'Card error', text: error.message });
+        return;
+      }
+
+      try {
+        const res = await fetch(`/purchase/${purchaseIdInput.value}/pay-with-stripe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+          body: JSON.stringify({ payment_method_id: pm.id })
+        });
+        const data = await res.json();
+        Swal.close();
+
+        // ===== SUCCESS (no 3DS) =====
+        if (data.success) {
+          const go = data.redirect_to || '/?purchase=success';
+          Swal.fire({
+            icon: 'success',
+            title: 'Deposit received',
+            html: `
+              <div class="text-start">
+                <p class="mb-1"><strong>Vehicle:</strong> ${VEHICLE_NAME}</p>
+                <p class="mb-1"><strong>Amount paid now:</strong> ${ZAR.format(data.paid ?? VEHICLE_DEPOSIT)}</p>
+                <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id}</p>
+                ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
+              </div>
+              <hr class="my-2">
+              <p class="mb-0">We’ll redirect you to the homepage in <b>10 seconds</b>…</p>
+            `,
+            timer: 10000,                // 10s
+            timerProgressBar: true,
+            showConfirmButton: true,
+            confirmButtonText: 'Go now'
+          }).then(() => window.location.assign(go));
+          return;
+        }
+
+        // ===== 3DS REQUIRED =====
+        if (data.requires_action) {
+          const result = await stripe.confirmCardPayment(data.payment_intent_client_secret);
+          if (result.error) {
+            Swal.fire({ icon: 'error', title: 'Authentication failed', text: result.error.message });
+          } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+            Swal.fire({
+              icon: 'success',
+              title: 'Payment confirmed',
+              html: `
+                <div class="text-start">
+                  <p class="mb-1"><strong>Vehicle:</strong> ${VEHICLE_NAME}</p>
+                  <p class="mb-1"><strong>Amount paid now:</strong> ${ZAR.format(VEHICLE_DEPOSIT)}</p>
+                  <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id ?? ''}</p>
+                  ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
+                </div>
+                <hr class="my-2">
+                <p class="mb-0">We’ll redirect you to the homepage in <b>10 seconds</b>…</p>
+              `,
+              timer: 10000,
+              timerProgressBar: true,
+              showConfirmButton: true,
+              confirmButtonText: 'Go now'
+            }).then(() => window.location.assign('/?purchase=success'));
+          } else {
+            Swal.fire({ icon: 'warning', title: 'Payment status unknown', text: 'Please check your email for a receipt.' });
+          }
+          return;
+        }
+
+        // ===== FAILURE =====
+        Swal.fire({ icon: 'error', title: 'Payment failed', text: data.message || 'There was a problem processing your payment.' });
+
+      } catch (e) {
+        console.error(e);
+        Swal.close();
+        Swal.fire({ icon: 'error', title: 'Network error', text: 'Unable to complete payment. Please try again.' });
+      }
+    });
+
+    // ---------------- Optional: show toast on homepage after redirect ----
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('purchase') === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Purchase started',
+          text: 'Thanks! We’ll be in touch to complete your purchase.',
+          timer: 5000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+        // Remove param from URL without reloading
+        params.delete('purchase');
+        const newUrl = `${location.pathname}${params.toString() ? '?' + params.toString() : ''}${location.hash}`;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (_) {}
+  });
+</script>

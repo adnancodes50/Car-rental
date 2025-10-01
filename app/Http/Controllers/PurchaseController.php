@@ -199,46 +199,52 @@ public function payWithStripe(Request $request, $purchaseId)
         ]);
 
         // 4) Handle 3DS
-        if ($paymentIntent->status !== 'succeeded') {
-            return response()->json([
-                'success' => false,
-                'requires_action' => true,
-                'payment_intent_client_secret' => $paymentIntent->client_secret,
-            ]);
-        }
+       // 4) Handle 3DS
+if ($paymentIntent->status !== 'succeeded') {
+    return response()->json([
+        'success' => false,
+        'requires_action' => true,
+        'payment_intent_client_secret' => $paymentIntent->client_secret,
+    ]);
+}
 
-        // 5) Update purchase
-        $newDepositPaid = $alreadyPaid + $toCharge;
+// 5) Update purchase + vehicle
+$newDepositPaid = $alreadyPaid + $toCharge;
+$pmId   = $paymentIntent->payment_method ?? null;
+$charge = $paymentIntent->charges->data[0] ?? null;
 
-        // NOTE: PaymentIntent->payment_method is just the ID string.
-        $pmId   = $paymentIntent->payment_method ?? null;
-        $charge = $paymentIntent->charges->data[0] ?? null;
+$purchase->update([
+    'payment_method'             => 'stripe',
+    'deposit_paid'               => $newDepositPaid,
+    'payment_status'             => 'paid', // finalize deposit
+    'stripe_payment_intent_id'   => $paymentIntent->id,
+    'stripe_payment_method_id'   => is_string($pmId) ? $pmId : null,
+    'stripe_charge_id'           => $charge->id ?? null,
+    'card_brand'                 => $charge?->payment_method_details?->card?->brand,
+    'card_last4'                 => $charge?->payment_method_details?->card?->last4,
+    'card_exp_month'             => $charge?->payment_method_details?->card?->exp_month,
+    'card_exp_year'              => $charge?->payment_method_details?->card?->exp_year,
+    'receipt_url'                => $charge?->receipt_url,
+]);
 
-        $purchase->update([
-            'payment_method'             => 'stripe',
-            'deposit_paid'               => $newDepositPaid,
-            'payment_status'             => 'deposit_paid',
-            'stripe_payment_intent_id'   => $paymentIntent->id,
-            'stripe_payment_method_id'   => is_string($pmId) ? $pmId : null,
-            'stripe_charge_id'           => $charge->id ?? null,
-            'card_brand'                 => $charge?->payment_method_details?->card?->brand,
-            'card_last4'                 => $charge?->payment_method_details?->card?->last4,
-            'card_exp_month'             => $charge?->payment_method_details?->card?->exp_month,
-            'card_exp_year'              => $charge?->payment_method_details?->card?->exp_year,
-            'receipt_url'                => $charge?->receipt_url,
-        ]);
+// mark vehicle as sold/unavailable
+if ($purchase->vehicle && in_array('status', $purchase->vehicle->getFillable() ?? [])) {
+    $purchase->vehicle->status = 'sold';
+    $purchase->vehicle->save();
+}
 
-        // 6) Emails (customer + owner) using SMTP from DB
-        $this->sendPurchaseEmails($purchase, $toCharge);
+// 6) Emails (customer + owner) using SMTP from DB
+$this->sendPurchaseEmails($purchase, $toCharge);
 
-        return response()->json([
-            'success'      => true,
-            'message'      => 'Deposit payment successful.',
-            'purchase_id'  => $purchase->id,
-            'paid'         => $toCharge,
-            'deposit_due'  => max($requiredDeposit - $newDepositPaid, 0),
-            'receipt_url'  => $charge?->receipt_url,
-        ]);
+// 7) Tell the frontend where to go next
+return response()->json([
+    'success'      => true,
+    'message'      => 'Deposit payment successful.',
+    'purchase_id'  => $purchase->id,
+    'paid'         => $toCharge,
+    'receipt_url'  => $charge?->receipt_url,
+    'redirect_to'  => url('/'), // main URL
+]);
 
     } catch (\Stripe\Exception\CardException $ce) {
         Log::error('Stripe card error', ['purchase_id' => $purchase->id, 'error' => $ce->getMessage()]);
@@ -330,19 +336,16 @@ public function payfastReturn(Request $request)
     $purchase   = \App\Models\Purchase::with('vehicle','customer')->find($purchaseId);
 
     if (!$purchase) {
-        return redirect()->route('fleet.index')
-            ->with('error', 'Purchase not found.');
+        return redirect(url('/'))->with('error', 'Purchase not found.');
     }
 
-    // DO NOT mutate amounts here; ITN is the source of truth.
     $message = $purchase->payment_status === 'paid'
         ? 'Your deposit payment was successful!'
         : 'We are processing your payment. You’ll receive email confirmation shortly.';
 
-    return redirect()
-        ->route('fleet.view', ['vehicle' => $purchase->vehicle->id])
-        ->with('payfast_success', $message);
+    return redirect(url('/'))->with('payfast_success', $message);
 }
+
 
 public function payfastCancel(Request $request)
 {
@@ -369,34 +372,21 @@ Log::info('ITN HIT', $request->all());
     $pfPaymentId   = $request->input('pf_payment_id'); // PayFast reference
     $mPaymentId    = $request->input('m_payment_id');  // your unique ref
 
-    if ($paymentStatus === 'complete' && $amountPaid > 0) {
-        // Basic idempotency guard example (if you track last txn id):
-        // if ($purchase->last_gateway_txn_id === $pfPaymentId) { return response('OK'); }
+   if ($paymentStatus === 'complete' && $amountPaid > 0) {
+    $purchase->payment_status     = 'paid';
+    $purchase->payment_method     = 'payfast';
+    $purchase->save();
 
-        $currentPaid = (float) ($purchase->deposit_paid ?? 0);
+    // also mark vehicle as sold/unavailable
+    if ($purchase->vehicle && in_array('status', $purchase->vehicle->getFillable() ?? [])) {
+        $purchase->vehicle->status = 'sold';
+        $purchase->vehicle->save();
+    }
 
-        $purchase->deposit_paid       = $currentPaid + $amountPaid;
-        $purchase->payment_status     = 'paid';
-        $purchase->payment_method     = 'payfast';
-        // If you keep these columns:
-        if (Schema::hasColumn($purchase->getTable(), 'last_gateway_txn_id')) {
-            $purchase->last_gateway_txn_id = $pfPaymentId;
-        }
-        if (Schema::hasColumn($purchase->getTable(), 'payfast_payment_id') && $mPaymentId) {
-            $purchase->payfast_payment_id = $mPaymentId;
-        }
-        $purchase->save();
-
-        Log::info("✅ PayFast Notify: Deposit updated", [
-            'purchase_id'       => $purchase->id,
-            'amount_paid'       => $amountPaid,
-            'new_deposit_paid'  => $purchase->deposit_paid,
-        ]);
-
-        // Send emails via SMTP from DB
-        $this->sendPurchaseEmails($purchase, $amountPaid);
-
-    } else {
+    // Send emails via SMTP from DB
+    $this->sendPurchaseEmails($purchase, $amountPaid);
+}
+ else {
         Log::warning("⚠️ PayFast Notify: Payment not complete or amount missing", [
             'purchase_id'   => $purchase->id,
             'payment_status'=> $paymentStatus,

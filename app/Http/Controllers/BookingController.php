@@ -129,69 +129,59 @@ public function store(Request $request)
             return 0;
         };
 
-        /* ---------- 3) Add-ons ---------- */
-        $addonsTotal        = 0.0;
-        $addOnReservations  = [];
+       /* ---------- 3) Add-ons (FORCE same dates as vehicle) ---------- */
+$addonsTotal        = 0.0;
+$addOnReservations  = [];
 
-        // Support BOTH shapes:
-        // (A) nested: add_ons[ID][type|quantity|start_date|end_date]
-        // (B) legacy: add_ons[ID] = quantity
-        $rawAddOns = $request->input('add_ons', []);
-        // $rawAddOns = $validated['add_ons'] ?? [];
+$rawAddOns = $request->input('add_ons', []); // from the form
 
-        foreach ($rawAddOns as $addOnId => $payload) {
-            // Normalize to a structure
-            if (is_array($payload)) {
-                $aType   = $payload['type']        ?? null;                   // day|week|month
-                $aQty    = (int) ($payload['quantity'] ?? 0);
-                $aStart  = !empty($payload['start_date']) ? \Carbon\Carbon::parse($payload['start_date'])->startOfDay() : null;
-                $aEnd    = !empty($payload['end_date'])   ? \Carbon\Carbon::parse($payload['end_date'])->startOfDay()   : null;
-            } else {
-                // legacy integer -> treat as quantity, reuse main booking unit & dates
-                $aType  = $unit;
-                $aQty   = (int) $payload;
-                $aStart = $start->copy();
-                $aEnd   = $end->copy();
-            }
+$unitsBetween = function(\Carbon\Carbon $s, \Carbon\Carbon $e, string $u): int {
+    $days = $s->diffInDays($e) + 1; // inclusive
+    if ($u === 'day')   return $days;
+    if ($u === 'week')  return (int) ceil($days / 7);
+    if ($u === 'month') return (int) ceil($days / 30);
+    return 0;
+};
 
-            if ($aQty <= 0) {
-                continue;
-            }
+foreach ($rawAddOns as $addOnId => $payload) {
+    // normalized payload (we only care about type + quantity)
+    $aType = is_array($payload) ? ($payload['type'] ?? null) : $unit;     // fallback: main unit
+    $aQty  = (int) (is_array($payload) ? ($payload['quantity'] ?? 0) : (int) $payload);
 
-            /** @var AddOn|null $addOn */
-            $addOn = AddOn::lockForUpdate()->find($addOnId);
-            if (!$addOn) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => "Add-on not found: {$addOnId}"], 422);
-            }
-            if ($addOn->qty_total < $aQty) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => "Not enough stock for add-on ID {$addOnId}."], 422);
-            }
+    if ($aQty <= 0) continue;
 
-            // If user didn't give their own dates, fall back to main booking date window
-            if (!$aStart || !$aEnd) { $aStart = $start->copy(); $aEnd = $end->copy(); }
-            if (!$aType)            { $aType = $unit; }
+    /** @var AddOn|null $addOn */
+    $addOn = AddOn::lockForUpdate()->find($addOnId);
+    if (!$addOn) {
+        DB::rollBack();
+        return response()->json(['success' => false, 'message' => "Add-on not found: {$addOnId}"], 422);
+    }
+    if ($addOn->qty_total < $aQty) {
+        DB::rollBack();
+        return response()->json(['success' => false, 'message' => "Not enough stock for add-on ID {$addOnId}."], 422);
+    }
 
-            // Unit price by the add-on’s own type
-            $aPriceField = 'price_' . $aType;         // price_day|price_week|price_month
-            $unitPrice   = (float) ($addOn->{$aPriceField} ?? 0.0);
+    // ✅ force add-on dates to main booking dates
+    $aStart = $start->copy();
+    $aEnd   = $end->copy();
+    if (!$aType) $aType = $unit;
 
-            // Units (per its own type) across its own dates
-            $units = $unitsBetween($aStart, $aEnd, $aType);
-            $priceTotal = $units * $unitPrice * $aQty;
+    $aPriceField = 'price_' . $aType;         // price_day|price_week|price_month
+    $unitPrice   = (float) ($addOn->{$aPriceField} ?? 0.0);
 
-            $addonsTotal += $priceTotal;
+    $units = $unitsBetween($aStart, $aEnd, $aType);
+    $priceTotal = $units * $unitPrice * $aQty;
 
-        $addOnReservations[] = [
-    'add_on_id'   => (int) $addOn->id,
-    'qty'         => (int) $aQty,
-    'price_total' => (int) round($priceTotal),
-    'start_date'  => $aStart->toDateString(),
-    'end_date'    => $aEnd->toDateString(),
-    'extra_days'  => isset($payload['extra_days']) ? (int)$payload['extra_days'] : 0, // ← now preserved
-];
+    $addonsTotal += $priceTotal;
 
+    $addOnReservations[] = [
+        'add_on_id'   => (int) $addOn->id,
+        'qty'         => (int) $aQty,
+        'price_total' => (int) round($priceTotal),
+        'start_date'  => $aStart->toDateString(),  // saved for reference = main booking dates
+        'end_date'    => $aEnd->toDateString(),
+        'extra_days'  => 0,
+    ];
 
         }
 
@@ -563,11 +553,24 @@ public function initPayfastBooking(Request $request, $bookingId)
 public function payfastBookingReturn(Request $request)
 {
     $bookingId = $request->input('custom_str1');
-    $booking = Booking::with('vehicle')->find($bookingId);
+    $booking = Booking::with(['vehicle', 'customer'])->find($bookingId);
 
-    return redirect()
-        ->route('fleet.view', ['vehicle' => $booking->vehicle->id])
-        ->with('payfast_success', 'Your booking deposit payment was successful!');
+    if (! $booking) {
+        return redirect('/')
+            ->with('payfast_error', 'We could not locate your booking after payment. Please contact support with your PayFast receipt.');
+    }
+
+    $vehicleName = optional($booking->vehicle)->name ?? 'your vehicle';
+    $amount = number_format((float) ($booking->deposit_expected ?? 0), 2);
+    $reference = $booking->reference ?? $booking->id;
+
+    return redirect('/')
+        ->with('payfast_success', [
+            'title' => 'Payment Successful',
+            'message' => "Your booking deposit for {$vehicleName} has been received.",
+            'reference' => $reference,
+            'amount' => 'R' . $amount,
+        ]);
 }
 
 

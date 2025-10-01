@@ -203,6 +203,39 @@
 </div>
 
 
+@if(session('payfast_success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const data = @json(session('payfast_success'));
+            const lines = [];
+            if (data?.message) lines.push(data.message);
+            if (data?.reference) lines.push(`<strong>Booking Reference:</strong> ${data.reference}`);
+            if (data?.amount) lines.push(`<strong>Amount Paid:</strong> ${data.amount}`);
+            Swal.fire({
+                icon: 'success',
+                title: data?.title ?? 'Payment Successful',
+                html: lines.join('<br>'),
+                confirmButtonText: 'Go to Home'
+            }).then(() => {
+                window.location.href = '{{ url('/') }}';
+            });
+        });
+    </script>
+@endif
+@if(session('payfast_error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const message = @json(session('payfast_error'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment Notice',
+                text: message,
+                confirmButtonText: 'OK'
+            });
+        });
+    </script>
+@endif
+
 @include('frontend.partials.footer')
 
 @section('content')

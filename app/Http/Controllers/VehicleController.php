@@ -15,7 +15,7 @@ class VehicleController extends Controller
 
     public function frontendIndex()
     {
-        $vehicles = Vehicles::latest()->get();
+        $vehicles = Vehicles::available()->latest()->paginate(12);
         $addOns = \App\Models\AddOn::all();
         $settings = Landing::first();
 
@@ -75,21 +75,21 @@ class VehicleController extends Controller
 
         // Handle main image
         if ($request->hasFile('main_image')) {
-    $file = $request->file('main_image');
-    $filename = time() . '_' . $file->getClientOriginalName();
-    $file->move(public_path('storage/vehicles'), $filename); // Move directly to public/storage/vehicles
-    $vehicle->update(['main_image_url' => "/storage/vehicles/{$filename}"]);
-}
+            $file = $request->file('main_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('storage/vehicles'), $filename); // Move directly to public/storage/vehicles
+            $vehicle->update(['main_image_url' => "/storage/vehicles/{$filename}"]);
+        }
 
 
         // Handle additional images
         if ($request->hasFile('images')) {
-    foreach ($request->file('images') as $index => $image) {
-        $filename = time() . '_' . $image->getClientOriginalName();
-        $image->move(public_path('storage/vehicles'), $filename);
-        $vehicle->addImage("/storage/vehicles/{$filename}", $index + 1);
-    }
-}
+            foreach ($request->file('images') as $index => $image) {
+                $filename = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('storage/vehicles'), $filename);
+                $vehicle->addImage("/storage/vehicles/{$filename}", $index + 1);
+            }
+        }
 
 
         return redirect()->route('vehicles.index')
@@ -140,16 +140,17 @@ class VehicleController extends Controller
         $vehicle->update($validated);
 
         if ($request->hasFile('main_image')) {
-    if ($vehicle->main_image_url) {
-        // Delete old image
-        $oldPath = public_path($vehicle->main_image_url);
-        if (file_exists($oldPath)) unlink($oldPath);
-    }
-    $file = $request->file('main_image');
-    $filename = time() . '_' . $file->getClientOriginalName();
-    $file->move(public_path('storage/vehicles'), $filename);
-    $vehicle->update(['main_image_url' => "/storage/vehicles/{$filename}"]);
-}
+            if ($vehicle->main_image_url) {
+                // Delete old image
+                $oldPath = public_path($vehicle->main_image_url);
+                if (file_exists($oldPath))
+                    unlink($oldPath);
+            }
+            $file = $request->file('main_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('storage/vehicles'), $filename);
+            $vehicle->update(['main_image_url' => "/storage/vehicles/{$filename}"]);
+        }
 
 
         // Step 5: Remove images marked for deletion
@@ -164,12 +165,12 @@ class VehicleController extends Controller
         }
 
         if ($request->hasFile('images')) {
-    foreach ($request->file('images') as $index => $image) {
-        $filename = time() . '_' . $image->getClientOriginalName();
-        $image->move(public_path('storage/vehicles'), $filename);
-        $vehicle->addImage("/storage/vehicles/{$filename}", $index + 1);
-    }
-}
+            foreach ($request->file('images') as $index => $image) {
+                $filename = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('storage/vehicles'), $filename);
+                $vehicle->addImage("/storage/vehicles/{$filename}", $index + 1);
+            }
+        }
 
 
         return redirect()->route('vehicles.index')
@@ -177,106 +178,107 @@ class VehicleController extends Controller
     }
 
 
-   // App\Http\Controllers\YourController.php
-public function view(Vehicles $vehicle)
-{
-    $addOns = \App\Models\AddOn::with([
-        'reservations' => function ($query) {
-            $query->whereHas('booking', function ($bookingQuery) {
-                $bookingQuery->where('status', '!=', 'cancelled');
-            })->select('id', 'add_on_id', 'booking_id', 'qty', 'start_date', 'end_date');
-        },
-    ])->get();
+    // App\Http\Controllers\YourController.php
+    public function view(Vehicles $vehicle)
+    {
+        $addOns = \App\Models\AddOn::with([
+            'reservations' => function ($query) {
+                $query->whereHas('booking', function ($bookingQuery) {
+                    $bookingQuery->where('status', '!=', 'cancelled');
+                })->select('id', 'add_on_id', 'booking_id', 'qty', 'start_date', 'end_date');
+            },
+        ])->get();
 
-    $bookedRanges = Booking::where('vehicle_id', $vehicle->id)
-        ->where('status', '!=', 'cancelled')
-        ->get(['start_date', 'end_date'])
-        ->map(fn($b) => ['from' => $b->start_date, 'to' => $b->end_date]);
+        $bookedRanges = Booking::where('vehicle_id', $vehicle->id)
+            ->where('status', '!=', 'cancelled')
+            ->get(['start_date', 'end_date'])
+            ->map(fn($b) => ['from' => $b->start_date, 'to' => $b->end_date]);
 
-    $landing = Landing::first();
+        $landing = Landing::first();
 
-    $addonFullyBooked = [];
-    $today = Carbon::today();
+        $addonFullyBooked = [];
+        $today = Carbon::today();
 
-    foreach ($addOns as $addOn) {
-        if ($addOn->qty_total <= 0) {
-            $addonFullyBooked[$addOn->id] = [];
-            $addOn->setAttribute('available_today', 0);
-            continue;
-        }
-
-        $dailyTotals = [];
-        $reservedToday = 0;
-
-        foreach ($addOn->reservations as $reservation) {
-            if (!$reservation->start_date || !$reservation->end_date) continue;
-
-            $start = Carbon::parse($reservation->start_date)->startOfDay();
-            $end   = Carbon::parse($reservation->end_date)->startOfDay();
-
-            if ($start->lte($today) && $end->gte($today)) {
-                $reservedToday += (int) $reservation->qty;
-            }
-
-            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                $key = $date->toDateString();
-                $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (int) $reservation->qty;
-            }
-        }
-
-        $addOn->setAttribute('available_today', max($addOn->qty_total - $reservedToday, 0));
-
-        if (empty($dailyTotals)) {
-            $addonFullyBooked[$addOn->id] = [];
-            continue;
-        }
-
-        $fullyBookedDates = array_keys(array_filter(
-            $dailyTotals,
-            fn($count) => $count >= $addOn->qty_total
-        ));
-
-        sort($fullyBookedDates);
-
-        $ranges = [];
-        $currentRange = null;
-
-        foreach ($fullyBookedDates as $dateStr) {
-            if ($currentRange === null) {
-                $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+        foreach ($addOns as $addOn) {
+            if ($addOn->qty_total <= 0) {
+                $addonFullyBooked[$addOn->id] = [];
+                $addOn->setAttribute('available_today', 0);
                 continue;
             }
 
-            $expectedNext = Carbon::parse($currentRange['to'])->addDay()->toDateString();
-            if ($expectedNext === $dateStr) {
-                $currentRange['to'] = $dateStr;
-            } else {
-                $ranges[] = $currentRange;
-                $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+            $dailyTotals = [];
+            $reservedToday = 0;
+
+            foreach ($addOn->reservations as $reservation) {
+                if (!$reservation->start_date || !$reservation->end_date)
+                    continue;
+
+                $start = Carbon::parse($reservation->start_date)->startOfDay();
+                $end = Carbon::parse($reservation->end_date)->startOfDay();
+
+                if ($start->lte($today) && $end->gte($today)) {
+                    $reservedToday += (int) $reservation->qty;
+                }
+
+                for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                    $key = $date->toDateString();
+                    $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (int) $reservation->qty;
+                }
             }
+
+            $addOn->setAttribute('available_today', max($addOn->qty_total - $reservedToday, 0));
+
+            if (empty($dailyTotals)) {
+                $addonFullyBooked[$addOn->id] = [];
+                continue;
+            }
+
+            $fullyBookedDates = array_keys(array_filter(
+                $dailyTotals,
+                fn($count) => $count >= $addOn->qty_total
+            ));
+
+            sort($fullyBookedDates);
+
+            $ranges = [];
+            $currentRange = null;
+
+            foreach ($fullyBookedDates as $dateStr) {
+                if ($currentRange === null) {
+                    $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+                    continue;
+                }
+
+                $expectedNext = Carbon::parse($currentRange['to'])->addDay()->toDateString();
+                if ($expectedNext === $dateStr) {
+                    $currentRange['to'] = $dateStr;
+                } else {
+                    $ranges[] = $currentRange;
+                    $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+                }
+            }
+
+            if ($currentRange !== null) {
+                $ranges[] = $currentRange;
+            }
+
+            $addonFullyBooked[$addOn->id] = $ranges;
         }
 
-        if ($currentRange !== null) {
-            $ranges[] = $currentRange;
-        }
+        // ✅ fetch payment configs from DB
+        $stripeConfig = \App\Models\StripeSetting::first();
+        $payfastConfig = \App\Models\PayfastSetting::first();
 
-        $addonFullyBooked[$addOn->id] = $ranges;
+        return view('view', compact(
+            'vehicle',
+            'addOns',
+            'bookedRanges',
+            'landing',
+            'addonFullyBooked',
+            'stripeConfig',
+            'payfastConfig'
+        ));
     }
-
-    // ✅ fetch payment configs from DB
-    $stripeConfig  = \App\Models\StripeSetting::first();
-    $payfastConfig = \App\Models\PayfastSetting::first();
-
-    return view('view', compact(
-        'vehicle',
-        'addOns',
-        'bookedRanges',
-        'landing',
-        'addonFullyBooked',
-        'stripeConfig',
-        'payfastConfig'
-    ));
-}
 
 
 

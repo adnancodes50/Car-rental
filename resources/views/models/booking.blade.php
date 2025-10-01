@@ -1,202 +1,210 @@
-﻿       {{-- BOOKING MODALS --}}
-       @php
-           $countries = [
-               'Afghanistan',
-               'Albania',
-               'Algeria',
-               'Andorra',
-               'Angola',
-               'Antigua and Barbuda',
-               'Argentina',
-               'Armenia',
-               'Australia',
-               'Austria',
-               'Azerbaijan',
-               'Bahamas',
-               'Bahrain',
-               'Bangladesh',
-               'Barbados',
-               'Belarus',
-               'Belgium',
-               'Belize',
-               'Benin',
-               'Bhutan',
-               'Bolivia',
-               'Bosnia and Herzegovina',
-               'Botswana',
-               'Brazil',
-               'Brunei',
-               'Bulgaria',
-               'Burkina Faso',
-               'Burundi',
-               'Cabo Verde',
-               'Cambodia',
-               'Cameroon',
-               'Canada',
-               'Central African Republic',
-               'Chad',
-               'Chile',
-               'China',
-               'Colombia',
-               'Comoros',
-               'Congo (Congo-Brazzaville)',
-               'Costa Rica',
-               'Croatia',
-               'Cuba',
-               'Cyprus',
-               'Czechia',
-               'Democratic Republic of the Congo',
-               'Denmark',
-               'Djibouti',
-               'Dominica',
-               'Dominican Republic',
-               'Ecuador',
-               'Egypt',
-               'El Salvador',
-               'Equatorial Guinea',
-               'Eritrea',
-               'Estonia',
-               'Eswatini',
-               'Ethiopia',
-               'Fiji',
-               'Finland',
-               'France',
-               'Gabon',
-               'Gambia',
-               'Georgia',
-               'Germany',
-               'Ghana',
-               'Greece',
-               'Grenada',
-               'Guatemala',
-               'Guinea',
-               'Guinea-Bissau',
-               'Guyana',
-               'Haiti',
-               'Holy See',
-               'Honduras',
-               'Hungary',
-               'Iceland',
-               'India',
-               'Indonesia',
-               'Iran',
-               'Iraq',
-               'Ireland',
-               'Israel',
-               'Italy',
-               'Jamaica',
-               'Japan',
-               'Jordan',
-               'Kazakhstan',
-               'Kenya',
-               'Kiribati',
-               'Kuwait',
-               'Kyrgyzstan',
-               'Laos',
-               'Latvia',
-               'Lebanon',
-               'Lesotho',
-               'Liberia',
-               'Libya',
-               'Liechtenstein',
-               'Lithuania',
-               'Luxembourg',
-               'Madagascar',
-               'Malawi',
-               'Malaysia',
-               'Maldives',
-               'Mali',
-               'Malta',
-               'Marshall Islands',
-               'Mauritania',
-               'Mauritius',
-               'Mexico',
-               'Micronesia',
-               'Moldova',
-               'Monaco',
-               'Mongolia',
-               'Montenegro',
-               'Morocco',
-               'Mozambique',
-               'Myanmar',
-               'Namibia',
-               'Nauru',
-               'Nepal',
-               'Netherlands',
-               'New Zealand',
-               'Nicaragua',
-               'Niger',
-               'Nigeria',
-               'North Korea',
-               'North Macedonia',
-               'Norway',
-               'Oman',
-               'Pakistan',
-               'Palau',
-               'Palestine State',
-               'Panama',
-               'Papua New Guinea',
-               'Paraguay',
-               'Peru',
-               'Philippines',
-               'Poland',
-               'Portugal',
-               'Qatar',
-               'Romania',
-               'Russia',
-               'Rwanda',
-               'Saint Kitts and Nevis',
-               'Saint Lucia',
-               'Saint Vincent and the Grenadines',
-               'Samoa',
-               'San Marino',
-               'Sao Tome and Principe',
-               'Saudi Arabia',
-               'Senegal',
-               'Serbia',
-               'Seychelles',
-               'Sierra Leone',
-               'Singapore',
-               'Slovakia',
-               'Slovenia',
-               'Solomon Islands',
-               'Somalia',
-               'South Africa',
-               'South Korea',
-               'South Sudan',
-               'Spain',
-               'Sri Lanka',
-               'Sudan',
-               'Suriname',
-               'Sweden',
-               'Switzerland',
-               'Syria',
-               'Tajikistan',
-               'Tanzania',
-               'Thailand',
-               'Timor-Leste',
-               'Togo',
-               'Tonga',
-               'Trinidad and Tobago',
-               'Tunisia',
-               'Turkey',
-               'Turkmenistan',
-               'Tuvalu',
-               'Uganda',
-               'Ukraine',
-               'United Arab Emirates',
-               'United Kingdom',
-               'United States',
-               'Uruguay',
-               'Uzbekistan',
-               'Vanuatu',
-               'Venezuela',
-               'Vietnam',
-               'Yemen',
-               'Zambia',
-               'Zimbabwe',
-           ];
-       @endphp
+﻿@php
+    $countries = [
+        'Afghanistan',
+        'Albania',
+        'Algeria',
+        'Andorra',
+        'Angola',
+        'Antigua and Barbuda',
+        'Argentina',
+        'Armenia',
+        'Australia',
+        'Austria',
+        'Azerbaijan',
+        'Bahamas',
+        'Bahrain',
+        'Bangladesh',
+        'Barbados',
+        'Belarus',
+        'Belgium',
+        'Belize',
+        'Benin',
+        'Bhutan',
+        'Bolivia',
+        'Bosnia and Herzegovina',
+        'Botswana',
+        'Brazil',
+        'Brunei',
+        'Bulgaria',
+        'Burkina Faso',
+        'Burundi',
+        'Cabo Verde',
+        'Cambodia',
+        'Cameroon',
+        'Canada',
+        'Central African Republic',
+        'Chad',
+        'Chile',
+        'China',
+        'Colombia',
+        'Comoros',
+        'Congo (Congo-Brazzaville)',
+        'Costa Rica',
+        'Croatia',
+        'Cuba',
+        'Cyprus',
+        'Czechia',
+        'Democratic Republic of the Congo',
+        'Denmark',
+        'Djibouti',
+        'Dominica',
+        'Dominican Republic',
+        'Ecuador',
+        'Egypt',
+        'El Salvador',
+        'Equatorial Guinea',
+        'Eritrea',
+        'Estonia',
+        'Eswatini',
+        'Ethiopia',
+        'Fiji',
+        'Finland',
+        'France',
+        'Gabon',
+        'Gambia',
+        'Georgia',
+        'Germany',
+        'Ghana',
+        'Greece',
+        'Grenada',
+        'Guatemala',
+        'Guinea',
+        'Guinea-Bissau',
+        'Guyana',
+        'Haiti',
+        'Holy See',
+        'Honduras',
+        'Hungary',
+        'Iceland',
+        'India',
+        'Indonesia',
+        'Iran',
+        'Iraq',
+        'Ireland',
+        'Israel',
+        'Italy',
+        'Jamaica',
+        'Japan',
+        'Jordan',
+        'Kazakhstan',
+        'Kenya',
+        'Kiribati',
+        'Kuwait',
+        'Kyrgyzstan',
+        'Laos',
+        'Latvia',
+        'Lebanon',
+        'Lesotho',
+        'Liberia',
+        'Libya',
+        'Liechtenstein',
+        'Lithuania',
+        'Luxembourg',
+        'Madagascar',
+        'Malawi',
+        'Malaysia',
+        'Maldives',
+        'Mali',
+        'Malta',
+        'Marshall Islands',
+        'Mauritania',
+        'Mauritius',
+        'Mexico',
+        'Micronesia',
+        'Moldova',
+        'Monaco',
+        'Mongolia',
+        'Montenegro',
+        'Morocco',
+        'Mozambique',
+        'Myanmar',
+        'Namibia',
+        'Nauru',
+        'Nepal',
+        'Netherlands',
+        'New Zealand',
+        'Nicaragua',
+        'Niger',
+        'Nigeria',
+        'North Korea',
+        'North Macedonia',
+        'Norway',
+        'Oman',
+        'Pakistan',
+        'Palau',
+        'Palestine State',
+        'Panama',
+        'Papua New Guinea',
+        'Paraguay',
+        'Peru',
+        'Philippines',
+        'Poland',
+        'Portugal',
+        'Qatar',
+        'Romania',
+        'Russia',
+        'Rwanda',
+        'Saint Kitts and Nevis',
+        'Saint Lucia',
+        'Saint Vincent and the Grenadines',
+        'Samoa',
+        'San Marino',
+        'Sao Tome and Principe',
+        'Saudi Arabia',
+        'Senegal',
+        'Serbia',
+        'Seychelles',
+        'Sierra Leone',
+        'Singapore',
+        'Slovakia',
+        'Slovenia',
+        'Solomon Islands',
+        'Somalia',
+        'South Africa',
+        'South Korea',
+        'South Sudan',
+        'Spain',
+        'Sri Lanka',
+        'Sudan',
+        'Suriname',
+        'Sweden',
+        'Switzerland',
+        'Syria',
+        'Tajikistan',
+        'Tanzania',
+        'Thailand',
+        'Timor-Leste',
+        'Togo',
+        'Tonga',
+        'Trinidad and Tobago',
+        'Tunisia',
+        'Turkey',
+        'Turkmenistan',
+        'Tuvalu',
+        'Uganda',
+        'Ukraine',
+        'United Arab Emirates',
+        'United Kingdom',
+        'United States',
+        'Uruguay',
+        'Uzbekistan',
+        'Vanuatu',
+        'Venezuela',
+        'Vietnam',
+        'Yemen',
+        'Zambia',
+        'Zimbabwe',
+    ];
+
+    // Remove South Africa from the array
+    $countries = array_diff($countries, ['South Africa']);
+
+    // Sort the remaining countries alphabetically
+    sort($countries);
+
+    // Add South Africa at the beginning
+    array_unshift($countries, 'South Africa');
+@endphp
 
        {{-- Booking FORM (only data collection - we won't submit to go to payment) --}}
        <form id="bookingForm" method="POST" action="{{ route('bookings.store') }}">
@@ -439,22 +447,10 @@
                                                    @endfor
                                                </select>
                                            </div>
-                                           <div class="col-sm-4">
-                                               <label class="form-label small">Rental Dates</label>
-                                               <input type="text" class="form-control form-control-sm addon-dates"
-                                                   placeholder="Select rental dates" data-id="{{ $addOn->id }}"
-                                                   @if ($totalStock <= 0) disabled @endif readonly>
+                                           <div class="col-sm-8 d-flex align-items-center">
+                                               <div class="small text-muted">Add-on follows the selected vehicle rental dates.</div>
                                            </div>
-                                           <div class="col-sm-4">
-                                               <label class="form-label small">Extra Days</label>
-                                               <select class="form-select form-select-sm addon-extra-days"
-                                                   data-id="{{ $addOn->id }}" disabled>
-                                                   @for ($i = 0; $i <= 6; $i++)
-                                                       <option value="{{ $i }}">{{ $i }}
-                                                       </option>
-                                                   @endfor
-                                               </select>
-                                           </div>
+
                                        </div>
 
                                        <input type="hidden" name="add_ons[{{ $addOn->id }}][type]"
@@ -514,15 +510,14 @@
                        <div class="modal-footer">
                            <div class="d-flex justify-content-between w-100">
                                <button type="button" class="btn btn-outline-secondary"
-<button
-  type="button"
-  class="btn btn-outline-secondary"
-  data-bs-toggle="modal"
-  data-bs-target="#multiStepBookingModal"
-  data-bs-dismiss="modal">
-  Back
-</button>                               <button type="button" class="btn btn-dark rounded-3" data-bs-target="#customerStep"
-                                   data-bs-toggle="modal">Continue to Details</button>
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#multiStepBookingModal" data-bs-dismiss="modal">
+                                   Back
+                               </button>
+                               <button type="button" class="btn btn-dark rounded-3"
+                                   data-bs-target="#customerStep" data-bs-toggle="modal">
+                                   Continue to Details
+                               </button>
                            </div>
                        </div>
                    </div>
@@ -565,16 +560,15 @@
                                    <input type="tel" class="form-control rounded-3" name="phone"
                                        placeholder="+27 123 456 7890" required>
                                </div>
-
-                               <div class="col-12">
-                                   <label class="form-label">Country</label>
-                                   <select name="country" class="form-select rounded-3" required>
-                                       <option value="" disabled selected>Select your country</option>
-                                       @foreach ($countries as $country)
-                                           <option value="{{ $country }}">{{ $country }}</option>
-                                       @endforeach
-                                   </select>
-                               </div>
+<div class="col-12">
+    <label class="form-label">Country</label>
+    <select name="country" class="form-select rounded-3" required>
+        <option value="" disabled selected>Select your country</option>
+        @foreach ($countries as $country)
+            <option value="{{ $country }}">{{ $country }}</option>
+        @endforeach
+    </select>
+</div>
 
                            </div>
                        </div>
@@ -703,6 +697,7 @@
 
        @php
            use App\Models\SystemSetting;
+           use App\Models\StripeSetting;
            use Illuminate\Support\Facades\Cache;
 
            if (app()->environment('local')) {
@@ -721,6 +716,8 @@
                        ]);
                });
            }
+
+           $stripeConfig = StripeSetting::first();
 
            // Count enabled payment methods
            $enabledCount = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
@@ -809,9 +806,9 @@
            <div class="modal-dialog modal-md modal-dialog-centered">
                <div class="modal-content rounded-4 shadow">
                    <div class="modal-header">
-<h5 class="modal-title fw-bold">
-    <i class="bi bi-credit-card-fill me-2"></i> Stripe Payment
-</h5>
+                       <h5 class="modal-title fw-bold">
+                           <i class="bi bi-credit-card-fill me-2"></i> Stripe Payment
+                       </h5>
                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                    </div>
                    <div class="modal-body">
@@ -844,16 +841,67 @@
        <!-- Step 6: Thank You -->
        <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
            <div class="modal-dialog modal-md modal-dialog-centered">
-               <div class="modal-content rounded-4 shadow text-center p-4 border-0">
-                   <div class="modal-body">
-                       <h4 class="fw-bold mb-2 text-success">Thank You!</h4>
-                       <p class="text-muted mb-4">Your booking payment has been received.</p>
-                       <button type="button" class="btn btn-success fw-bold px-4 rounded-pill"
-                           data-bs-dismiss="modal">Close</button>
+               <div class="modal-content rounded-4 shadow border-0">
+                   <div class="modal-body p-4">
+                       <div class="d-flex align-items-center gap-3 mb-3">
+                           <div class="bg-success-subtle rounded-circle d-inline-flex align-items-center justify-content-center"
+                               style="width:48px;height:48px;">
+                               <i class="bi bi-check-lg text-success fs-4"></i>
+                           </div>
+                           <div>
+                               <h4 class="fw-bold mb-1 text-success">Payment received</h4>
+                               <p class="text-muted mb-0">Thanks! We’ll contact you soon with next steps.</p>
+                           </div>
+                       </div>
+
+                       <div class="border rounded-3 p-3 mb-3 bg-light">
+                           <div class="d-flex align-items-center gap-3">
+                               <img id="tyVehicleImage" src="{{ $vehicle->mainImage() }}" class="rounded"
+                                   style="width:64px;height:64px;object-fit:cover;" alt="{{ $vehicle->name }}">
+                               <div>
+                                   <div class="fw-semibold" id="tyVehicleName">{{ $vehicle->name }}</div>
+                                   <div class="small text-muted">
+                                       <span id="tyPeriod">—</span>
+                                       <span class="mx-1">•</span>
+                                       Ref: <span id="tyReference">—</span>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+
+                       <div class="border rounded-3 p-3 mb-3">
+                           <div class="d-flex justify-content-between small mb-1">
+                               <span>Amount paid</span>
+                               <span class="fw-semibold" id="tyAmount">R0.00</span>
+                           </div>
+                           <div class="d-flex justify-content-between small">
+                               <span>Payment method</span>
+                               <span id="tyMethod">—</span>
+                           </div>
+                       </div>
+
+                       <div class="border rounded-3 p-3 mb-3 bg-light">
+                           <div class="small text-muted mb-1">Booked by</div>
+                           <div class="fw-semibold" id="tyCustomerName">—</div>
+                           <div class="small text-muted" id="tyCustomerContact">—</div>
+                       </div>
+
+                       <div class="alert alert-success d-flex align-items-center gap-2 mb-0">
+                           <i class="bi bi-telephone-forward-fill"></i>
+                           <div class="small">
+                               Our team will reach out shortly to confirm handover details.
+                           </div>
+                       </div>
+                   </div>
+
+                   <div class="modal-footer border-0 pt-0">
+                       <button type="button" class="btn btn-success fw-bold rounded-pill px-4" id="tyGoHomeNow">Go
+                           to Home</button>
                    </div>
                </div>
            </div>
        </div>
+
 
 
 
@@ -951,6 +999,7 @@
                }
            }
        </style>
+       <script src="https://js.stripe.com/v3/"></script>
        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
        <!-- ADD-ONS + SUMMARY (keeps SweetAlerts + overlap checks) -->
@@ -1021,6 +1070,51 @@
                    o.textContent = vs;
                    sel.appendChild(o);
                }
+
+               function getRentalContext() {
+                   const unitEl = document.getElementById('inputRentalUnit');
+                   const qtyEl = document.getElementById('inputRentalQuantity');
+                   const startEl = document.getElementById('inputRentalStartDate');
+                   const extraEl = document.getElementById('inputExtraDays');
+
+                   const unit = (unitEl?.value || '').toLowerCase();
+                   const quantity = parseInt(qtyEl?.value || '0', 10);
+                   const extraDays = Math.max(0, parseInt(extraEl?.value || '0', 10));
+                   const startYMD = startEl?.value || '';
+                   const startDate = startYMD ? fromYMD(startYMD) : null;
+
+                   let totalDays = 0;
+                   if (quantity > 0) {
+                       if (unit === 'week') {
+                           totalDays = (quantity * 7) + extraDays;
+                       } else if (unit === 'month') {
+                           totalDays = (quantity * 30) + extraDays;
+                       } else {
+                           totalDays = quantity + extraDays;
+                       }
+                   }
+
+                   const endDate = (startDate && totalDays > 0) ? addDays(startDate, totalDays - 1) : null;
+
+                   return {
+                       unit,
+                       quantity,
+                       extraDays,
+                       startDate,
+                       endDate,
+                       startYMD: startDate ? toYMD(startDate) : '',
+                       endYMD: endDate ? toYMD(endDate) : '',
+                       totalDays: totalDays > 0 ? totalDays : 0
+                   };
+               }
+
+               function computeAddonUnits(unit, totalDays) {
+                   if (!totalDays || totalDays <= 0) return 0;
+                   if (unit === 'week') return Math.max(1, Math.ceil(totalDays / 7));
+                   if (unit === 'month') return Math.max(1, Math.ceil(totalDays / 30));
+                   return Math.max(1, totalDays);
+               }
+
 
                // SweetAlert2 helper (debounced)
                const alertDebounce = new Map();
@@ -1134,6 +1228,13 @@
                    return Math.round(addonTotal * 100) / 100;
                }
 
+               function updateSummaryAddonTotals() {
+                   const total = computeAddonsTotal();
+                   const summaryAddonTotal = document.getElementById('summaryAddonTotal');
+                   if (summaryAddonTotal) summaryAddonTotal.textContent = money(total);
+                   return total;
+               }
+
                function enableSelectedAddonHiddenFields() {
                    document.querySelectorAll('.addon-details').forEach(details => {
                        const totalH = details.querySelector('input[id^="addon-total-"]');
@@ -1159,11 +1260,7 @@
 
                    const details = card.querySelector('.addon-details');
                    const qtySel = details.querySelector('.addon-qty');
-                   const dateInput = details.querySelector('.addon-dates');
                    const planCards = details.querySelectorAll('.addon-type-card');
-                   const extraSel = details.querySelector('.addon-extra-days');
-                   const extraCol = extraSel.closest('.col-sm-4');
-                   const extraLbl = extraCol ? extraCol.querySelector('.form-label') : null;
                    const badgeEl = card.querySelector('.availability-badge');
 
                    // hidden fields
@@ -1175,10 +1272,9 @@
                    const totalH = details.querySelector(`#addon-total-${addonId}`);
                    const daysH = details.querySelector(`#addon-days-${addonId}`);
 
-                   // UI
                    const priceEl = details.querySelector(`#addon-price-${addonId}`);
+                   const periodEl = details.querySelector(`#addon-period-${addonId}`);
 
-                   // Live summary
                    const live = details.querySelector('.addon-live-summary');
                    const alsQty = live ? live.querySelector('.als-qty') : null;
                    const alsUnit = live ? live.querySelector('.als-unit') : null;
@@ -1187,7 +1283,6 @@
                    const alsEnd = live ? live.querySelector('.als-end') : null;
                    const alsLbl = live ? live.querySelector('.als-line-1-label') : null;
 
-                   // Blocked ranges (from backend)
                    let blockedRanges = [];
                    try {
                        blockedRanges = JSON.parse(card.dataset.blocked || '[]') || [];
@@ -1195,29 +1290,9 @@
                        blockedRanges = [];
                    }
                    blockedRanges = blockedRanges.filter(r => r && r.from && r.to);
-                   const disabledRanges = blockedRanges.map(r => ({
-                       from: r.from,
-                       to: r.to
-                   }));
 
-                   // Hiddens off until valid
                    setAddonHiddenDisabled(details, true);
-
-                   // reentrancy guard
-                   let syncing = false;
-                   const runSilent = (fn) => {
-                       if (syncing) return;
-                       syncing = true;
-                       try {
-                           fn();
-                       } finally {
-                           syncing = false;
-                       }
-                   };
-                   const setRangeSilently = (fp, start, end) => {
-                       if (!fp) return;
-                       runSilent(() => fp.setDate([start, end], false));
-                   };
+                   let currentCtx = null;
 
                    const rangeOverlapsBlocked = (startYMD, endYMD) => hasOverlap(startYMD, endYMD,
                        blockedRanges);
@@ -1245,13 +1320,13 @@
                                notify(`noqty-${addonId}-${startYMD}-${endYMD}`, {
                                    icon: 'warning',
                                    title: 'Out of stock',
-                                   text: `${blockedTxt ? blockedTxt+'\n' : ''}Available quantity for these dates: 0.`
+                                   text: `${blockedTxt ? blockedTxt + '\n' : ''}Available quantity for these dates: 0.`
                                });
                            } else if (prev > newVal) {
                                notify(`clamped-${addonId}-${startYMD}-${endYMD}`, {
                                    icon: 'warning',
                                    title: 'Limited availability',
-                                   text: `${blockedTxt ? blockedTxt+'\n' : ''}Only ${newMax} unit${newMax>1?'s':''} are available for these dates. Your quantity was adjusted.`
+                                   text: `${blockedTxt ? blockedTxt + '\n' : ''}Only ${newMax} unit${newMax > 1 ? 's' : ''} are available for these dates. Your quantity was adjusted.`
                                });
                            }
                        }
@@ -1279,362 +1354,114 @@
                                return totalStock;
                            }
                        } else {
-                           if (availToday > 0) setBadge(`${availToday} available today`, true);
-                           else setBadge('Fully booked today', false);
+                           setBadge('Select rental dates first', false);
                            clampQtyTo(Math.max(0, availToday));
                            return availToday;
                        }
                    }
 
-                   // open/close
-                   card.addEventListener('click', (e) => {
-                       if (e.target.closest('.addon-details')) return;
-                       details.classList.toggle('d-none');
-                       if (!details.classList.contains('d-none')) {
-                           ensureActivePlan();
-                           initPicker();
-                           const fp = dateInput._flatpickr;
-                           if (fp) {
-                               let start = startH.value ? fromYMD(startH.value) : null;
-                               if (!start) {
-                                   const next = nextAvailableFrom(new Date(), blockedRanges);
-                                   if (next) start = next;
-                               } else if (blockedRanges.some(r => inRange(start, r))) {
-                                   const next = nextAvailableFrom(start, blockedRanges);
-                                   if (next) start = next;
-                               }
-                               if (start) {
-                                   const unit = typeH.value || 'day';
-                                   if (unit === 'day') {
-                                       const d = Math.max(1, parseInt(daysH.value || extraSel.value ||
-                                           '1', 10));
-                                       setRangeSilently(fp, start, addDays(start, d - 1));
-                                   } else {
-                                       const extra = Math.max(0, parseInt(extraH.value || extraSel
-                                           .value || '0', 10));
-                                       const overlapped = warnIfPlannedRangeOverlaps({
-                                           unit,
-                                           startDate: start,
-                                           extraDays: extra,
-                                           addonId,
-                                           blockedRanges,
-                                           availableQty: totalStock
-                                       });
-                                       if (!overlapped) setRangeSilently(fp, start, addDays(
-                                           snapEndForUnit(start, unit), extra));
-                                   }
-                               }
-                               updateAvailabilityForDates(startH.value, endH.value);
-                               fp.open();
-                           }
-                           updateTotal();
+                   function ensureActivePlan(ctx) {
+                       let active = [...planCards].find(c => c.classList.contains('active'));
+                       const desired = typeH.value || ctx?.unit;
+                       if (!active && desired) {
+                           active = [...planCards].find(c => c.dataset.type === desired);
                        }
-                   });
-
-                   function configureTimeControlsForUnit(unit) {
-                       if (extraLbl) extraLbl.textContent = (unit === 'day') ? 'Days' : 'Extra Days';
-
-                       const fp = dateInput._flatpickr;
-                       const selectedStart = fp?.selectedDates?.[0] || null;
-
-                       if (unit === 'day') {
-                           const daysSel = Math.max(1, parseInt(daysH.value || '1', 10));
-                           extraSel.disabled = false;
-                           fillSelect(extraSel, 1, 30, daysSel);
-                           extraH.value = '0';
-                           if (selectedStart) setRangeSilently(fp, selectedStart, addDays(selectedStart,
-                               daysSel - 1));
-                       } else {
-                           const maxExtra = (unit === 'week') ? 6 : 29;
-                           const cur = Math.max(0, Math.min(maxExtra, parseInt(extraH.value || '0', 10)));
-                           extraSel.disabled = false;
-                           fillSelect(extraSel, 0, maxExtra, cur);
-                           if (selectedStart) {
-                               const overlapped = warnIfPlannedRangeOverlaps({
-                                   unit,
-                                   startDate: selectedStart,
-                                   extraDays: cur,
-                                   addonId,
-                                   blockedRanges,
-                                   availableQty: totalStock
-                               });
-                               if (!overlapped) setRangeSilently(fp, selectedStart, addDays(snapEndForUnit(
-                                   selectedStart, unit), cur));
-                           }
+                       if (!active) {
+                           active = planCards[0];
                        }
-                   }
-
-                   function ensureActivePlan() {
-                       const cards = [...planCards];
-                       let active = cards.find(c => c.classList.contains('active')) || (typeH.value ? cards
-                           .find(c => c.dataset.type === typeH.value) : null) || cards[0];
-                       cards.forEach(c => c.classList.remove('active'));
-                       active.classList.add('active');
-
-                       const unit = active.dataset.type;
-                       typeH.value = unit;
-                       if (!qtySel.value || qtySel.value === '0') qtySel.value = '1';
-                       qtyH.value = qtySel.value;
-                       configureTimeControlsForUnit(unit);
-                   }
-
-                   function initPicker() {
-                       if (dateInput._flatpickr) return;
-                       flatpickr(dateInput, {
-                           mode: 'range',
-                           dateFormat: 'Y-m-d',
-                           minDate: 'today',
-                           disable: disabledRanges,
-                           onChange(selectedDates, _str, instance) {
-                               if (syncing) return;
-                               handleDateSelection(selectedDates, instance);
-                           },
-                           onOpen: (_sel, _str, inst) => {
-                               const next = nextAvailableFrom(new Date(), blockedRanges);
-                               if (next && (!inst.selectedDates || inst.selectedDates.length ===
-                                       0)) {
-                                   const unit = typeH.value || 'day';
-                                   if (unit === 'day') {
-                                       const d = Math.max(1, parseInt(daysH.value || extraSel
-                                           .value || '1', 10));
-                                       inst.setDate([next, addDays(next, d - 1)], false);
-                                   } else {
-                                       const extra = Math.max(0, parseInt(extraH.value || extraSel
-                                           .value || '0', 10));
-                                       const overlapped = warnIfPlannedRangeOverlaps({
-                                           unit,
-                                           startDate: next,
-                                           extraDays: extra,
-                                           addonId,
-                                           blockedRanges,
-                                           availableQty: totalStock
-                                       });
-                                       if (!overlapped) inst.setDate([next, addDays(snapEndForUnit(
-                                           next, unit), extra)], false);
-                                   }
-                               }
-                           },
-                           onClose() {
-                               updateTotal();
-                           }
-                       });
-                   }
-
-                   function handleDateSelection(selectedDates, instance) {
-                       const unit = (details.querySelector('.addon-type-card.active') || {}).dataset?.type ||
-                           typeH.value || 'day';
-
-                       if (selectedDates.length === 1) {
-                           runSilent(() => {
-                               if (unit === 'day') {
-                                   const d = Math.max(1, parseInt(extraSel.value || daysH.value || '1',
-                                       10));
-                                   instance.setDate([selectedDates[0], addDays(selectedDates[0], d -
-                                       1)], false);
-                               } else {
-                                   const extra = Math.max(0, parseInt(extraH.value || extraSel.value ||
-                                       '0', 10));
-                                   const overlapped = warnIfPlannedRangeOverlaps({
-                                       unit,
-                                       startDate: selectedDates[0],
-                                       extraDays: extra,
-                                       addonId,
-                                       blockedRanges,
-                                       availableQty: totalStock
-                                   });
-                                   if (!overlapped) instance.setDate([selectedDates[0], addDays(
-                                       snapEndForUnit(selectedDates[0], unit), extra)], false);
-                               }
-                           });
-                       }
-
-                       if (selectedDates.length === 2) {
-                           startH.value = toYMD(selectedDates[0]);
-                           endH.value = toYMD(selectedDates[1]);
-
-                           if (unit === 'day') {
-                               const d = diffDaysIncl(startH.value, endH.value);
-                               daysH.value = String(Math.max(1, d));
-                               ensureOpt(extraSel, daysH.value);
-                               extraSel.value = daysH.value;
-                               extraH.value = '0';
-                           } else {
-                               const baseEnd = snapEndForUnit(selectedDates[0], unit);
-                               const diff = diffDaysIncl(toYMD(baseEnd), endH.value) - unitDays(unit);
-                               const extra = Math.max(0, diff);
-                               ensureOpt(extraSel, extra);
-                               extraSel.value = String(extra);
-                               extraH.value = String(extra);
-                               daysH.value = String(diffDaysIncl(startH.value, endH.value));
-                           }
-
-                           updateAvailabilityForDates(startH.value, endH.value);
-                           updateTotal();
-                       }
-                   }
-
-                   // Plan click
-                   planCards.forEach(pc => {
-                       pc.addEventListener('click', (e) => {
-                           e.stopPropagation();
+                       if (active) {
                            planCards.forEach(c => c.classList.remove('active'));
-                           pc.classList.add('active');
-                           typeH.value = pc.dataset.type;
-
-                           if (!qtySel.value || qtySel.value === '0') qtySel.value = '1';
-                           qtyH.value = qtySel.value;
-
-                           initPicker();
-                           configureTimeControlsForUnit(typeH.value);
-
-                           const fp = dateInput._flatpickr;
-                           if (fp) {
-                               let start = fp.selectedDates?.[0];
-                               if (!start) {
-                                   const next = nextAvailableFrom(new Date(), blockedRanges);
-                                   if (next) {
-                                       start = next;
-                                       runSilent(() => fp.setDate([start], false));
-                                   }
-                               }
-                               const u = typeH.value;
-                               if (u === 'day') {
-                                   const d = Math.max(1, parseInt(extraSel.value || daysH
-                                       .value || '1', 10));
-                                   setRangeSilently(fp, start, addDays(start, d - 1));
-                               } else {
-                                   const extra = Math.max(0, parseInt(extraH.value || extraSel
-                                       .value || '0', 10));
-                                   const overlapped = warnIfPlannedRangeOverlaps({
-                                       unit: u,
-                                       startDate: start,
-                                       extraDays: extra,
-                                       addonId,
-                                       blockedRanges,
-                                       availableQty: totalStock
-                                   });
-                                   if (!overlapped) setRangeSilently(fp, start, addDays(
-                                       snapEndForUnit(start, u), extra));
-                               }
-                           }
-
-                           updateAvailabilityForDates(startH.value, endH.value);
-                           updateTotal();
-                       });
-                   });
-
-                   // Quantity change
-                   qtySel.addEventListener('change', () => {
-                       qtyH.value = qtySel.value || '0';
-                       updateTotal();
-                   });
-
-                   // Days / extra-days change
-                   extraSel.addEventListener('change', () => {
-                       const unit = typeH.value || 'day';
-                       const fp = dateInput._flatpickr;
-
-                       details.querySelectorAll('input[type="hidden"]').forEach(h => h.disabled =
-                           false);
-
-                       if (unit === 'day') {
-                           const days = Math.max(1, parseInt(extraSel.value || '1', 10));
-                           daysH.value = String(days);
-                           extraH.value = '0';
-
-                           if (fp && fp.selectedDates[0]) {
-                               const s = fp.selectedDates[0];
-                               const e = addDays(s, days - 1);
-                               setRangeSilently(fp, s, e);
-                               startH.value = toYMD(s);
-                               endH.value = toYMD(e);
-                           }
-                       } else {
-                           const extra = Math.max(0, parseInt(extraSel.value || '0', 10));
-                           extraH.value = String(extra);
-
-                           if (fp && fp.selectedDates[0]) {
-                               const s = fp.selectedDates[0];
-                               const overlapped = warnIfPlannedRangeOverlaps({
-                                   unit,
-                                   startDate: s,
-                                   extraDays: extra,
-                                   addonId,
-                                   blockedRanges,
-                                   availableQty: totalStock
-                               });
-                               if (overlapped) {
-                                   updateAvailabilityForDates(startH.value, endH.value);
-                                   updateTotal();
-                                   return;
-                               }
-
-                               const snapEnd = snapEndForUnit(s, unit);
-                               const e = addDays(snapEnd, extra);
-                               setRangeSilently(fp, s, e);
-                               startH.value = toYMD(s);
-                               endH.value = toYMD(e);
-                               daysH.value = String(diffDaysIncl(startH.value, endH.value));
-                           }
+                           active.classList.add('active');
+                           typeH.value = active.dataset.type;
                        }
+                       return active;
+                   }
 
-                       updateAvailabilityForDates(startH.value, endH.value);
-                       updateTotal();
-                   });
+                   function updatePeriodDisplay(ctx) {
+                       if (!periodEl) return;
+                       if (!ctx || !ctx.startYMD || !ctx.endYMD) {
+                           periodEl.textContent = 'Select your rental dates first.';
+                       } else {
+                           const days = ctx.totalDays || 0;
+                           periodEl.textContent =
+                               `${niceDate(ctx.startYMD)} -> ${niceDate(ctx.endYMD)} (${days} day${days === 1 ? '' : 's'})`;
+                       }
+                   }
+
+                   function setPrice(amount) {
+                       if (priceEl) priceEl.textContent = money(amount);
+                   }
+
+                   function removeSelection(clearPeriod) {
+                       delete addonSelections[addonId];
+                       totalH.value = '';
+                       qtyH.value = '0';
+                       if (qtySel) qtySel.value = '0';
+                       if (clearPeriod) {
+                           startH.value = '';
+                           endH.value = '';
+                           daysH.value = '0';
+                       }
+                       setAddonHiddenDisabled(details, true);
+                       setPrice(0);
+                       if (live) {
+                           live.classList.add('d-none');
+                           if (alsQty) alsQty.textContent = '0';
+                           if (alsUnit) alsUnit.textContent = money(0);
+                           if (alsTotal) alsTotal.textContent = money(0);
+                           if (alsStart) alsStart.textContent = '-';
+                           if (alsEnd) alsEnd.textContent = '-';
+                       }
+                       if (clearPeriod && periodEl) periodEl.textContent = 'Select your rental dates first.';
+                       const startY = startH.value || null;
+                       const endY = endH.value || null;
+                       updateAvailabilityForDates(startY, endY);
+                   }
+
+                   function updateLiveSummary(unit, ctx, unitPrice, units, quantity, total) {
+                       if (!live) return;
+                       const labelMap = {
+                           day: 'Days',
+                           week: 'Weeks',
+                           month: 'Months'
+                       };
+                       const qtyVal = unit === 'day' ? ctx.totalDays : units;
+                       if (alsLbl) alsLbl.textContent = labelMap[unit] || 'Units';
+                       if (alsQty) alsQty.textContent = String(qtyVal);
+                       if (alsUnit) alsUnit.textContent = money(unitPrice);
+                       if (alsTotal) alsTotal.textContent = money(total);
+                       if (alsStart) alsStart.textContent = ctx.startYMD ? niceDate(ctx.startYMD) : '-';
+                       if (alsEnd) alsEnd.textContent = ctx.endYMD ? niceDate(ctx.endYMD) : '-';
+                       live.classList.remove('d-none');
+                   }
 
                    function updateTotal() {
-                       const unit = typeH.value || 'day';
-                       const activePlan = details.querySelector('.addon-type-card.active') || [...details
-                           .querySelectorAll('.addon-type-card')
-                       ].find(c => c.dataset.type === unit);
-                       const unitPrice = activePlan ? parseFloat(activePlan.dataset.price || '0') : 0;
+                       const ctx = currentCtx;
+                       const activePlan = ensureActivePlan(ctx);
+                       const unit = (activePlan?.dataset.type || typeH.value || 'day').toLowerCase();
+                       const unitPrice = parseFloat(activePlan?.dataset.price || '0');
                        const quantity = parseInt(qtySel.value || '0', 10);
-                       const start = startH.value;
-                       const end = endH.value;
-                       const extraDays = (unit === 'week' || unit === 'month') ? parseInt((extraH.value ||
-                           '0'), 10) : 0;
 
-                       if (!quantity || !start || !end) {
-                           setPrice(0);
-                           setAddonHiddenDisabled(details, true);
+                       if (!ctx || !ctx.startYMD || !ctx.endYMD || !quantity) {
                            removeSelection(true);
+                           updateSummaryAddonTotals();
                            return;
                        }
 
-                       const days = diffDaysIncl(start, end);
-                       const uDays = unitDays(unit);
-                       const fullUnits = uDays > 0 ? Math.floor(days / uDays) : 0;
-                       const remainder = Math.max(0, days - (fullUnits * uDays));
+                       const units = computeAddonUnits(unit, ctx.totalDays);
+                       const totalPerAddon = unitPrice * units;
+                       const total = Number((totalPerAddon * quantity).toFixed(2));
 
-                       let proratePerDay = unitPrice;
-                       if (unit === 'week') proratePerDay = unitPrice / 7;
-                       if (unit === 'month') proratePerDay = unitPrice / 30;
-
-                       const totalForOne = (fullUnits * unitPrice) + ((remainder + (unit === 'day' ? 0 :
-                           extraDays)) * proratePerDay);
-                       const total = Number((totalForOne * quantity).toFixed(2));
-
+                       startH.value = ctx.startYMD;
+                       endH.value = ctx.endYMD;
+                       daysH.value = String(ctx.totalDays);
+                       extraH.value = '0';
                        totalH.value = total.toFixed(2);
-                       qtyH.value = quantity;
-                       daysH.value = String(days);
-                       if (unit === 'day') extraH.value = '0';
+                       qtyH.value = String(quantity);
 
                        setAddonHiddenDisabled(details, false);
                        setPrice(total);
-
-                       // live summary
-                       if (live) {
-                           const niceStart = niceDate(start),
-                               niceEnd = niceDate(end);
-                           const rateForLine = (unit === 'day') ? unitPrice : proratePerDay;
-                           if (alsLbl) alsLbl.textContent = 'Days';
-                           if (alsQty) alsQty.textContent = String(days);
-                           if (alsUnit) alsUnit.textContent = money(rateForLine);
-                           if (alsTotal) alsTotal.textContent = money(total);
-                           if (alsStart) alsStart.textContent = niceStart;
-                           if (alsEnd) alsEnd.textContent = niceEnd;
-                           live.classList.remove('d-none');
-                       }
+                       updateLiveSummary(unit, ctx, unitPrice, units, quantity, total);
 
                        addonSelections[addonId] = {
                            id: addonId,
@@ -1642,43 +1469,491 @@
                            type: unit,
                            qty: quantity,
                            unitPrice,
-                           perUnitTotal: Number(totalForOne.toFixed(2)),
+                           perUnitTotal: Number((totalPerAddon).toFixed(2)),
                            total,
-                           start,
-                           end,
-                           days,
-                           extraDays,
-                           remainderDays: remainder,
-                           fullUnits
+                           start: ctx.startYMD,
+                           end: ctx.endYMD,
+                           days: ctx.totalDays,
+                           extraDays: 0,
+                           remainderDays: 0,
+                           fullUnits: units
                        };
+
+                       if (badgeEl && quantity > 0) {
+                           const label =
+                               `Selected ${quantity} unit${quantity !== 1 ? 's' : ''}${totalStock ? ` (of ${totalStock})` : ''}`;
+                           setBadge(label, true);
+                       }
+
+                       updateSummaryAddonTotals();
                    }
 
-                   function setPrice(amount) {
-                       priceEl.textContent = money(amount);
-                   }
-
-                   function removeSelection(keepDates) {
-                       delete addonSelections[addonId];
-                       qtyH.value = '0';
-                       extraH.value = '0';
-                       totalH.value = '';
-                       daysH.value = '0';
-                       if (!keepDates) {
+                   function applyContext(ctx) {
+                       currentCtx = (ctx && ctx.totalDays > 0 && ctx.startYMD && ctx.endYMD) ? ctx : null;
+                       if (!currentCtx) {
                            startH.value = '';
                            endH.value = '';
+                           daysH.value = '0';
+                           extraH.value = '0';
                        }
-                       setPrice(0);
-                       if (live) {
-                           live.classList.add('d-none');
-                           if (alsQty) alsQty.textContent = '0';
-                           if (alsUnit) alsUnit.textContent = money(0);
-                           if (alsTotal) alsTotal.textContent = money(0);
-                           if (alsStart) alsStart.textContent = '—';
-                           if (alsEnd) alsEnd.textContent = '—';
+                       ensureActivePlan(currentCtx);
+                       updatePeriodDisplay(currentCtx);
+                       const available = updateAvailabilityForDates(currentCtx?.startYMD || null, currentCtx
+                           ?.endYMD || null);
+                       let currentQty = parseInt(qtySel.value || '0', 10);
+                       if (available > 0 && (!currentQty || currentQty <= 0)) {
+                           qtySel.value = '1';
+                           currentQty = 1;
+                       } else if (available <= 0) {
+                           qtySel.value = '0';
+                           currentQty = 0;
+                       } else if (currentQty > available) {
+                           qtySel.value = String(available);
+                           currentQty = available;
+                       }
+                       qtyH.value = String(currentQty);
+                       updateTotal();
+                   }
+
+                   card.addEventListener('click', (e) => {
+                       if (e.target.closest('.addon-details')) return;
+                       details.classList.toggle('d-none');
+                       if (!details.classList.contains('d-none')) {
+                           applyContext(currentCtx || getRentalContext());
+                       }
+                   });
+
+                   planCards.forEach(pc => {
+                       pc.addEventListener('click', (e) => {
+                           e.stopPropagation();
+                           planCards.forEach(c => c.classList.remove('active'));
+                           pc.classList.add('active');
+                           typeH.value = pc.dataset.type;
+                           if (!qtySel.value || qtySel.value === '0') {
+                               qtySel.value = '1';
+                               qtyH.value = '1';
+                           }
+                           updateTotal();
+                       });
+                   });
+
+                   qtySel.addEventListener('change', () => {
+                       qtyH.value = qtySel.value || '0';
+                       updateTotal();
+                   });
+
+                   card.__applyRentalContext = applyContext;
+               });
+
+               function refreshAllAddons() {
+                   const ctx = getRentalContext();
+                   document.querySelectorAll('.addon-card').forEach(card => {
+                       const applyCtx = card.__applyRentalContext;
+                       if (typeof applyCtx === 'function') applyCtx(ctx);
+                   });
+                   updateSummaryAddonTotals();
+               }
+
+               ['inputRentalUnit', 'inputRentalQuantity', 'inputExtraDays', 'inputRentalStartDate'].forEach(id => {
+                   const el = document.getElementById(id);
+                   if (el) el.addEventListener('change', refreshAllAddons);
+               });
+               document.addEventListener('rental:updated', refreshAllAddons);
+               refreshAllAddons();
+
+
+               /* ─────────────────────────── Booking + Payment flow ─────────────────────────── */
+               const bookingFormEl = document.getElementById('bookingForm');
+               const bookingIdField = document.getElementById('bookingId');
+               const openPaymentBtn = document.getElementById('openPayment');
+               const bookingPaymentModalEl = document.getElementById('bookingPayment');
+               const bookingStripeModalEl = document.getElementById('bookingStripeModal');
+               const bookingStripePayButton = document.getElementById('bookingStripePayButton');
+               const bookingThankYouModalEl = document.getElementById('bookingThankYou');
+               const tyGoHomeNowBtn = document.getElementById('tyGoHomeNow');
+               const bookingCardErrorsEl = document.getElementById('booking-card-errors');
+               let currentBookingReference = null;
+
+               const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
+               let stripeInstance = null;
+               let stripeElements = null;
+               let stripeCardNumber = null;
+               let stripeCardExpiry = null;
+               let stripeCardCvc = null;
+
+               const showPaymentLoader = (message = 'Processing payment...') => {
+                   if (window.Swal) {
+                       Swal.fire({
+                           title: message,
+                           text: 'Please wait while we confirm your payment.',
+                           allowOutsideClick: false,
+                           allowEscapeKey: false,
+                           showConfirmButton: false,
+                           didOpen: () => {
+                               Swal.showLoading();
+                           }
+                       });
+                   }
+               };
+
+               const hidePaymentLoader = () => {
+                   if (window.Swal && Swal.isVisible()) {
+                       Swal.close();
+                   }
+               };
+
+               const computeGrandTotal = () => {
+                   const vehicleTotal = parseFloat(document.getElementById('inputTotalPrice')?.value || '0');
+                   const addonTotal = window.computeAddonsTotal ? window.computeAddonsTotal() : 0;
+                   return Math.round((vehicleTotal + addonTotal) * 100) / 100;
+               };
+
+               const populateThankYouModal = (methodLabel) => {
+                   if (!bookingThankYouModalEl) return;
+                   const tyVehicleNameEl = document.getElementById('tyVehicleName');
+                   if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($vehicle->name) }}";
+
+                   const periodText = document.getElementById('summaryPeriod')?.textContent?.trim() || '-';
+                   const tyPeriodEl = document.getElementById('tyPeriod');
+                   if (tyPeriodEl) tyPeriodEl.textContent = periodText;
+
+                   const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
+                   const tyReferenceEl = document.getElementById('tyReference');
+                   if (tyReferenceEl) tyReferenceEl.textContent = reference;
+
+                   const tyAmountEl = document.getElementById('tyAmount');
+                   if (tyAmountEl) tyAmountEl.textContent = money(computeGrandTotal());
+
+                   const tyMethodEl = document.getElementById('tyMethod');
+                   if (tyMethodEl) tyMethodEl.textContent = methodLabel;
+
+                   const tyCustomerNameEl = document.getElementById('tyCustomerName');
+                   if (tyCustomerNameEl) tyCustomerNameEl.textContent = bookingFormEl?.name?.value || '-';
+
+                   const contactParts = [];
+                   if (bookingFormEl?.email?.value) contactParts.push(bookingFormEl.email.value);
+                   if (bookingFormEl?.phone?.value) contactParts.push(bookingFormEl.phone.value);
+                   const tyCustomerContactEl = document.getElementById('tyCustomerContact');
+                   if (tyCustomerContactEl) tyCustomerContactEl.textContent = contactParts.join(' - ') || '-';
+               };
+
+               if (tyGoHomeNowBtn) {
+                   tyGoHomeNowBtn.addEventListener('click', () => {
+                       window.location.href = "{{ url('/') }}";
+                   });
+               }
+
+               if (bookingThankYouModalEl) {
+                   bookingThankYouModalEl.addEventListener('hidden.bs.modal', () => {
+                       window.location.href = "{{ url('/') }}";
+                   });
+               }
+
+               if (openPaymentBtn) {
+                   openPaymentBtn.addEventListener('click', async () => {
+                       if (typeof window.enableSelectedAddonHiddenFields === 'function') {
+                           window.enableSelectedAddonHiddenFields();
+                       }
+
+                       if (!bookingIdField?.value && bookingFormEl) {
+                           const formData = new FormData(bookingFormEl);
+                           try {
+                               const res = await fetch(bookingFormEl.action, {
+                                   method: 'POST',
+                                   body: formData,
+                                   headers: {
+                                       'X-Requested-With': 'XMLHttpRequest',
+                                       'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                                   }
+                               });
+                               const text = await res.text();
+                               let data;
+                               try {
+                                   data = JSON.parse(text);
+                               } catch {
+                                   data = { success: false, message: text };
+                               }
+                               if (!res.ok || !data?.success) {
+                                   await Swal.fire({
+                                       icon: 'error',
+                                       title: 'Booking not created',
+                                       text: data?.message || 'Failed to create booking.'
+                                   });
+                                   return;
+                               }
+                               bookingIdField.value = data.booking_id || data.id || '';
+                               currentBookingReference = data.reference || null;
+                               if (!bookingIdField.value) {
+                                   await Swal.fire({
+                                       icon: 'error',
+                                       title: 'Missing booking ID',
+                                       text: 'Booking was created but no identifier was returned.'
+                                   });
+                                   return;
+                               }
+                           } catch (error) {
+                               console.error(error);
+                               await Swal.fire({
+                                   icon: 'error',
+                                   title: 'Network error',
+                                   text: 'Unable to create booking, please try again.'
+                               });
+                               return;
+                           }
+                       }
+
+                       const summaryModal = bootstrap.Modal.getInstance(document.getElementById('summaryStep'));
+                       summaryModal?.hide();
+
+                       if (bookingPaymentModalEl) {
+                           new bootstrap.Modal(bookingPaymentModalEl).show();
+                       }
+
+                       const stripeRadio = document.getElementById('bookingStripe');
+                       if (stripeRadio?.checked && bookingStripePayButton) {
+                           bookingStripePayButton.dataset.amount = String(computeGrandTotal());
+                       }
+                   });
+               }
+
+               document.addEventListener('change', async (e) => {
+                   if (!(e.target && e.target.name === 'booking_payment_method')) return;
+
+                   const method = e.target.value;
+                   const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(bookingPaymentModalEl) : null;
+                   paymentModalInstance?.hide();
+
+                   const grandTotal = computeGrandTotal();
+
+                   if (method === 'stripe') {
+                       if (bookingStripePayButton) {
+                           bookingStripePayButton.dataset.amount = String(grandTotal);
+                       }
+                       if (bookingStripeModalEl) {
+                           new bootstrap.Modal(bookingStripeModalEl).show();
+                       }
+                       return;
+                   }
+
+                   if (method === 'payfast') {
+                       const bookingId = bookingIdField?.value;
+                       if (!bookingId) {
+                           await Swal.fire({
+                               icon: 'error',
+                               title: 'Booking missing',
+                               text: 'Please create the booking first.'
+                           });
+                           if (bookingPaymentModalEl) {
+                               new bootstrap.Modal(bookingPaymentModalEl).show();
+                           }
+                           e.target.checked = false;
+                           return;
+                       }
+
+                       try {
+                           showPaymentLoader('Redirecting to PayFast...');
+                           const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+                               method: 'POST',
+                               headers: {
+                                   'Content-Type': 'application/json',
+                                   'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                               },
+                               body: JSON.stringify({ booking_id: bookingId })
+                           });
+                           const data = await res.json();
+                           if (!res.ok || !data?.success) {
+                               throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
+                           }
+
+                           const form = document.createElement('form');
+                           form.method = 'POST';
+                           form.action = data.action;
+                           form.style.display = 'none';
+
+                           Object.entries(data.fields || {}).forEach(([key, value]) => {
+                               const input = document.createElement('input');
+                               input.type = 'hidden';
+                               input.name = key;
+                               input.value = value;
+                               form.appendChild(input);
+                           });
+
+                           document.body.appendChild(form);
+                           form.submit();
+                       } catch (err) {
+                           console.error(err);
+                           await Swal.fire({
+                               icon: 'error',
+                               title: 'PayFast error',
+                               text: err.message || 'Could not redirect to PayFast.'
+                           });
+                           if (bookingPaymentModalEl) {
+                               new bootstrap.Modal(bookingPaymentModalEl).show();
+                           }
+                           e.target.checked = false;
+                       } finally {
+                           hidePaymentLoader();
                        }
                    }
                });
 
+               if (typeof Stripe !== 'undefined' && stripePublicKey) {
+                   stripeInstance = Stripe(stripePublicKey);
+                   stripeElements = stripeInstance.elements();
+                   const stripeStyle = {
+                       base: {
+                           fontSize: '16px',
+                           color: '#32325d',
+                           '::placeholder': {
+                               color: '#a0aec0'
+                           }
+                       }
+                   };
+                   stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
+                   stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
+                   stripeCardCvc = stripeElements.create('cardCvc', { style: stripeStyle });
+
+                   const cardNumberMount = document.getElementById('booking-card-number');
+                   const cardExpiryMount = document.getElementById('booking-card-expiry');
+                   const cardCvcMount = document.getElementById('booking-card-cvc');
+
+                   if (cardNumberMount) stripeCardNumber.mount(cardNumberMount);
+                   if (cardExpiryMount) stripeCardExpiry.mount(cardExpiryMount);
+                   if (cardCvcMount) stripeCardCvc.mount(cardCvcMount);
+               } else if (stripePublicKey) {
+                   console.warn('Stripe.js not loaded or public key missing.');
+               }
+
+
+               if (bookingStripePayButton && !stripeInstance) {
+                   bookingStripePayButton.disabled = true;
+               }
+
+               if (bookingStripePayButton && stripeInstance) {
+                   bookingStripePayButton.addEventListener('click', async function() {
+                       if (!bookingIdField?.value) {
+                           Swal.fire({
+                               icon: 'error',
+                               title: 'Booking missing',
+                               text: 'Please create the booking first.'
+                           });
+                           return;
+                       }
+
+                       if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
+                           Swal.fire({
+                               icon: 'error',
+                               title: 'Stripe unavailable',
+                               text: 'Payment form is not ready yet.'
+                           });
+                           return;
+                       }
+
+                       if (bookingCardErrorsEl) {
+                           bookingCardErrorsEl.textContent = '';
+                       }
+
+                       const button = this;
+                       const originalText = button.textContent;
+                       button.disabled = true;
+                       button.textContent = 'Processing...';
+
+                       showPaymentLoader();
+
+                       try {
+                           const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
+                               type: 'card',
+                               card: stripeCardNumber,
+                               billing_details: {
+                                   name: bookingFormEl?.name?.value || '',
+                                   email: bookingFormEl?.email?.value || ''
+                               }
+                           });
+
+                           if (error) {
+                               if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message || 'Payment method error.';
+                               hidePaymentLoader();
+                               return;
+                           }
+
+                           const res = await fetch(`/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+                               method: 'POST',
+                               headers: {
+                                   'Content-Type': 'application/json',
+                                   'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                               },
+                               body: JSON.stringify({
+                                   payment_method_id: paymentMethod.id,
+                                   amount: parseFloat(button.dataset.amount || '0')
+                               })
+                           });
+
+                           const text = await res.text();
+                           let data;
+                           try {
+                               data = JSON.parse(text);
+                           } catch {
+                               data = { success: false, message: text };
+                           }
+
+                           hidePaymentLoader();
+
+                           if (!res.ok || !data) {
+                               await Swal.fire({
+                                   icon: 'error',
+                                   title: 'Payment failed',
+                                   text: data?.message || 'Server error while processing payment.'
+                               });
+                               return;
+                           }
+
+                           if (data.success) {
+                               bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
+                               populateThankYouModal('Stripe');
+                               if (bookingThankYouModalEl) {
+                                   new bootstrap.Modal(bookingThankYouModalEl).show();
+                               }
+                               return;
+                           }
+
+                           if (data.requires_action && data.payment_intent_client_secret) {
+                               const result = await stripeInstance.confirmCardPayment(data.payment_intent_client_secret);
+                               if (result.error) {
+                                   await Swal.fire({
+                                       icon: 'error',
+                                       title: 'Authentication failed',
+                                       text: result.error.message || 'Unable to confirm your card.'
+                                   });
+                               } else {
+                                   bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
+                                   populateThankYouModal('Stripe');
+                                   if (bookingThankYouModalEl) {
+                                       new bootstrap.Modal(bookingThankYouModalEl).show();
+                                   }
+                                   return;
+                               }
+                           } else {
+                               await Swal.fire({
+                                   icon: 'error',
+                                   title: 'Payment failed',
+                                   text: data.message || 'Unable to charge your card.'
+                               });
+                           }
+                       } catch (error) {
+                           console.error(error);
+                           hidePaymentLoader();
+                           await Swal.fire({
+                               icon: 'error',
+                               title: 'Network error',
+                               text: error.message || 'Unable to reach the payment server.'
+                           });
+                       } finally {
+                           hidePaymentLoader();
+                           button.disabled = false;
+                           button.textContent = originalText;
+                       }
+                   });
+               }
                /* ───────────────────────────── Summary (unchanged aside from totals calc kept server-side safe) */
                const goToSummaryBtn = document.getElementById('goToSummary');
                if (goToSummaryBtn) {
