@@ -737,7 +737,7 @@
                                     </div>
                                     <div class="booking-pay-text text-center">
                                         <div class="fw-bold">Stripe (Card)</div>
-                                        <small class="text-muted">Visa Ã¢â‚¬Â¢ Mastercard Ã¢â‚¬Â¢ Amex</small>
+                                        <small class="text-muted">Visa .Mastercard. Amex</small>
                                     </div>
                                 </label>
                             </div>
@@ -1187,12 +1187,14 @@
             const paymentBackBtn = document.getElementById('paymentBackToSummary');
             paymentBackBtn?.addEventListener('click', (event) => {
                 event.preventDefault();
+                resetPaymentSelection();
                 swapModal('bookingPayment', 'summaryStep');
             });
 
             const stripeBackBtn = document.getElementById('stripeBackToPayment');
             stripeBackBtn?.addEventListener('click', (event) => {
                 event.preventDefault();
+                resetPaymentSelection();
                 swapModal('bookingStripeModal', 'bookingPayment');
             });
 
@@ -1769,6 +1771,13 @@ function getRentalContext() {
             const bookingPaymentModalEl = document.getElementById('bookingPayment');
             const bookingStripeModalEl = document.getElementById('bookingStripeModal');
             const bookingStripePayButton = document.getElementById('bookingStripePayButton');
+            const paymentMethodInputs = Array.from(document.querySelectorAll('input[name="booking_payment_method"]'));
+            const resetPaymentSelection = () => {
+                paymentMethodInputs.forEach((input) => {
+                    input.checked = false;
+                    input.removeAttribute('checked');
+                });
+            };
             const bookingThankYouModalEl = document.getElementById('bookingThankYou');
             const tyGoHomeNowBtn = document.getElementById('tyGoHomeNow');
             const bookingCardErrorsEl = document.getElementById('booking-card-errors');
@@ -1780,6 +1789,10 @@ function getRentalContext() {
             let stripeCardNumber = null;
             let stripeCardExpiry = null;
             let stripeCardCvc = null;
+
+            if (bookingPaymentModalEl) {
+                bookingPaymentModalEl.addEventListener('hidden.bs.modal', resetPaymentSelection);
+            }
 
             const showPaymentLoader = (message = 'Processing payment...') => {
                 if (window.Swal) {
@@ -2280,4 +2293,8 @@ function getRentalContext() {
             }
         });
     </script>
+
+
+
+
 
