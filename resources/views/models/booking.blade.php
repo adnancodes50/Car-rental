@@ -501,12 +501,10 @@
 
                     <div class="modal-footer">
                         <div class="d-flex justify-content-between w-100">
-                            <button type="button" class="btn btn-outline-secondary"
-                                data-bs-target="#multiStepBookingModal" data-bs-toggle="modal">
+                            <button type="button" class="btn btn-outline-secondary" id="backToStep1">
                                 Back
                             </button>
-                            <button type="button" class="btn btn-dark rounded-3" data-bs-target="#customerStep"
-                                data-bs-toggle="modal">
+                            <button type="button" class="btn btn-dark rounded-3" id="addonsToCustomer">
                                 Continue to Details
                             </button>
                         </div>
@@ -565,8 +563,7 @@
 
                     <!-- Footer -->
                     <div class="modal-footer border-0 d-flex justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary rounded-3"
-                            data-bs-target="#addonsStep" data-bs-toggle="modal">
+                        <button type="button" class="btn btn-outline-secondary rounded-3" id="customerBackToAddons">
                             Back
                         </button>
                         <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">
@@ -667,8 +664,7 @@
                     </div>
                     <div class="modal-footer">
                         <div class="d-flex justify-content-between w-100">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-target="#customerStep"
-                                data-bs-toggle="modal">Back</button>
+                            <button type="button" class="btn btn-outline-secondary" id="summaryBackToCustomer">Back</button>
 
                             {{-- IMPORTANT: do not submit here. We will create booking via AJAX and then open payment
                                     --}}
@@ -778,8 +774,7 @@
 
                 <!-- Footer -->
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
-                        data-bs-target="#summaryStep">
+                    <button type="button" class="btn btn-outline-secondary" id="paymentBackToSummary">
                         Back
                     </button>
                 </div>
@@ -814,8 +809,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary me-auto" data-bs-toggle="modal"
-                        data-bs-target="#bookingPayment">
+                    <button type="button" class="btn btn-outline-secondary me-auto" id="stripeBackToPayment">
                         Back
                     </button>
                     <button type="button" id="bookingStripePayButton" class="btn btn-dark">
@@ -1128,6 +1122,80 @@
                 }
             });
 
+            const getModalInstance = (id) => {
+                const el = document.getElementById(id);
+                return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+            };
+
+            const swapModal = (fromId, toId) => {
+                const toEl = document.getElementById(toId);
+                if (!toEl) return;
+
+                const showNext = () => {
+                    const target = getModalInstance(toId);
+                    target?.show();
+                };
+
+                const fromEl = document.getElementById(fromId);
+                if (fromEl && fromEl.classList.contains('show')) {
+                    const fromModal = getModalInstance(fromId);
+                    if (!fromModal) {
+                        showNext();
+                        return;
+                    }
+                    const onHidden = () => {
+                        fromEl.removeEventListener('hidden.bs.modal', onHidden);
+                        showNext();
+                    };
+                    fromEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+                    fromModal.hide();
+                } else {
+                    showNext();
+                }
+            };
+
+            const step1NextBtn = document.getElementById('continueFromStep1');
+            step1NextBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('multiStepBookingModal', 'addonsStep');
+            });
+
+            const addonsBackBtn = document.getElementById('backToStep1');
+            addonsBackBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('addonsStep', 'multiStepBookingModal');
+            });
+
+            const addonsNextBtn = document.getElementById('addonsToCustomer');
+            addonsNextBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('addonsStep', 'customerStep');
+            });
+
+            const customerBackBtn = document.getElementById('customerBackToAddons');
+            customerBackBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('customerStep', 'addonsStep');
+            });
+
+            const summaryBackBtn = document.getElementById('summaryBackToCustomer');
+            summaryBackBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('summaryStep', 'customerStep');
+            });
+
+            const paymentBackBtn = document.getElementById('paymentBackToSummary');
+            paymentBackBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('bookingPayment', 'summaryStep');
+            });
+
+            const stripeBackBtn = document.getElementById('stripeBackToPayment');
+            stripeBackBtn?.addEventListener('click', (event) => {
+                event.preventDefault();
+                swapModal('bookingStripeModal', 'bookingPayment');
+            });
+
             /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Helpers */
             const DAY_MS = 86400000;
 
@@ -1193,27 +1261,7 @@
                 o.textContent = vs;
                 sel.appendChild(o);
             }
-
-            // Fix for back button in Step 2
-            document.getElementById('backToStep1')?.addEventListener('click', function() {
-                const addonsModal = bootstrap.Modal.getInstance(document.getElementById('addonsStep'));
-                const step1Modal = bootstrap.Modal.getInstance(document.getElementById(
-                    'multiStepBookingModal'));
-
-                if (addonsModal) addonsModal.hide();
-
-                // Small delay to ensure modal is fully hidden before showing the next one
-                setTimeout(() => {
-                    if (step1Modal) {
-                        step1Modal.show();
-                    } else {
-                        new bootstrap.Modal(document.getElementById('multiStepBookingModal'))
-                    .show();
-                    }
-                }, 150);
-            });
-
-            function getRentalContext() {
+function getRentalContext() {
                 const unitEl = document.getElementById('inputRentalUnit');
                 const qtyEl = document.getElementById('inputRentalQuantity');
                 const startEl = document.getElementById('inputRentalStartDate');
@@ -2232,3 +2280,4 @@
             }
         });
     </script>
+

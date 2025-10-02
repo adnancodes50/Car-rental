@@ -33,7 +33,7 @@
     <input type="hidden" name="total_price" value="{{ $vehicle->purchase_price }}">
 
     <!-- Step 1: Vehicle Info -->
-    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true" >
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg overflow-hidden">
                 <div class="modal-header">
@@ -183,7 +183,7 @@
 
     <!-- Step 3b: Stripe Card Input -->
    <!-- Step 3b: Stripe Card Input (FULL with preview) -->
-<div class="modal fade mt-5" id="stripePaymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+<div class="modal fade mt-2" id="stripePaymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content rounded-4 shadow">
       <div class="modal-header">
@@ -376,7 +376,6 @@
 
 <style>
   /* Remove/disable backdrop entirely */
-  .modal-backdrop, .modal-backdrop.show { opacity:0 !important; display:none !important; }
 
    #stripePaymentModal .modal-body {
     max-height: 70vh;   /* adjust to taste */
@@ -408,8 +407,11 @@
   const WHATSAPP_LINK   = "https://wa.link/koo7b6";
 
   // Modal helper (force no backdrop)
-  const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, { backdrop:false, focus:true, keyboard:true });
-
+const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
+  backdrop: true,   // allow click-outside to close
+  focus: true,
+  keyboard: true    // Esc closes too (optional)
+});
   // Reliable modal swapper: hide current → wait until hidden → show next
   function swapModal(fromId, toId) {
     const fromEl = document.getElementById(fromId);
