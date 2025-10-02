@@ -52,8 +52,8 @@ public function store(Request $request)
         'extra_days'         => ['nullable','integer','min:0'],
 
         'name'               => ['required','string','max:255'],
-        'email'              => ['nullable','email','max:255'],
-        'phone'              => ['nullable','string','max:50'],
+        'email'              => ['required','email:rfc,filter','max:255'],
+        'phone'              => ['required','regex:/^\\+?[0-9]{1,4}(?:[\\s-]?[0-9]{2,4}){2,4}$/'],
         'country'            => ['nullable','string','max:100'],
 
         // NEW: accept nested add-on structure

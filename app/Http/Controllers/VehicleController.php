@@ -265,9 +265,13 @@ class VehicleController extends Controller
             $addonFullyBooked[$addOn->id] = $ranges;
         }
 
-        // ✅ fetch payment configs from DB
-        $stripeConfig = \App\Models\StripeSetting::first();
-        $payfastConfig = \App\Models\PayfastSetting::first();
+        // fetch payment configs from DB
+        $paymentConfig = \App\Models\SystemSetting::first() ?: new \App\Models\SystemSetting([
+            'stripe_enabled' => false,
+            'payfast_enabled' => false,
+        ]);
+        $stripeConfig = $paymentConfig;
+        $payfastConfig = $paymentConfig;
 
         return view('view', compact(
             'vehicle',
@@ -275,6 +279,7 @@ class VehicleController extends Controller
             'bookedRanges',
             'landing',
             'addonFullyBooked',
+            'paymentConfig',
             'stripeConfig',
             'payfastConfig'
         ));

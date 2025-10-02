@@ -1,4 +1,4 @@
-﻿    @php
+    @php
         $countries = [
             'Afghanistan',
             'Albania',
@@ -430,10 +430,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="row g-2">
-                                        <div class="col-md-12">
-                                            <label class="form-label small mb-1">Quantity <span
-                                                    class="text-danger">*</span></label>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-sm-7">
+                                            <label class="form-label small mb-1">Quantity <span class="text-danger">*</span></label>
                                             <select class="form-select form-select-sm addon-qty"
                                                 data-id="{{ $addOn->id }}"
                                                 @if ($totalStock <= 0) disabled @endif required>
@@ -442,6 +441,12 @@
                                                     </option>
                                                 @endfor
                                             </select>
+                                        </div>
+                                        <div class="col-sm-5 mt-3 mt-sm-0 text-sm-end">
+                                            {{-- <span class="form-label small mb-1 d-block">Live Price</span> --}}
+                                            <div class="fw-bold text-primary" id="addon-price-{{ $addOn->id }}">
+                                                R0.00
+                                            </div>
                                         </div>
                                     </div>
 
@@ -460,11 +465,8 @@
                                     <input type="hidden" name="add_ons[{{ $addOn->id }}][days]"
                                         id="addon-days-{{ $addOn->id }}" value="0">
 
-
                                     <div class="small text-muted mt-2" id="addon-period-{{ $addOn->id }}">
                                     </div>
-                                    <div class="fw-bold text-primary mt-1" id="addon-price-{{ $addOn->id }}">
-                                        R0.00</div>
 
                                     <div class="addon-live-summary d-none">
                                         <div class="alert alert-info border-0 rounded-3 py-3 px-3 mb-3">
@@ -540,13 +542,17 @@
                             <div class="col-12">
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control rounded-3" name="email"
-                                    placeholder="you@example.com" required>
+                                    placeholder="you@example.com" inputmode="email" autocomplete="email" required
+                                    pattern="^([^\s@]+)@([^\s@]+)\.[^\s@]{2,}$"
+                                    title="Enter a valid email address, e.g. you@example.com">
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label">Phone Number</label>
                                 <input type="tel" class="form-control rounded-3" name="phone"
-                                    placeholder="+27 123 456 7890" required>
+                                    placeholder="+27 123 456 7890" inputmode="tel" required
+                                    pattern="^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$"
+                                    title="Use digits, optional spaces or dashes, e.g. +27 123 456 7890">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Country</label>
@@ -910,7 +916,7 @@
         }
 
         [id^="addon-price-"]::before {
-            content: "Live price";
+            content: "Total Price";
             display: block;
             font-size: 0.875rem;
             color: #6c757d;
@@ -1018,1283 +1024,948 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- ADD-ONS + SUMMARY (keeps SweetAlerts + overlap checks) -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+/* =========================================================
+   Tiny utilities (shared across steps)
+========================================================= */
+const DAY_MS = 86400000;
+const money  = (v) => `R${Number(v || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const toYMD  = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+};
+const fromYMD = (s) => { const [Y,M,D]=String(s||'').split('-').map(Number); return (Y&&M&&D)? new Date(Y,M-1,D):null; };
+const addDays = (date, n) => { const t = new Date(date.getFullYear(), date.getMonth(), date.getDate()); t.setDate(t.getDate()+n); return t; };
+const unitDays = (u) => (u==='week'?7:(u==='month'?30:1));
+const niceDate = (ymd) => { const d = fromYMD(ymd); return d? d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—'; };
+const SwalOk = (title, text, icon='error') => window.Swal?.fire({icon, title, text}) || alert(`${title}\n\n${text}`);
 
+/* =========================================================
+   Modal stacking helpers (keep body scroll/backdrop sane)
+========================================================= */
+const Z_BASE=1055, Z_STEP=20;
+const visibleModals = () => Array.from(document.querySelectorAll('.modal.show'));
+function ensureSingleBackdrop(){
+  const backs=[...document.querySelectorAll('.modal-backdrop')];
+  if(backs.length>1) backs.slice(0,-1).forEach(b=>b.remove());
+  const anyVisible=!!document.querySelector('.modal.show');
+  if(!anyVisible){ backs.forEach(b=>b.remove()); document.body.classList.remove('modal-open'); document.body.style.removeProperty('padding-right'); }
+  else { document.body.classList.add('modal-open'); }
+}
+function restack(){
+  const open=visibleModals();
+  open.forEach((m,i)=> m.style.zIndex=String(Z_BASE+i*Z_STEP));
+  const top=open[open.length-1];
+  const backdrop=document.querySelector('.modal-backdrop');
+  if(top && backdrop){
+    const topZ=parseInt(getComputedStyle(top).zIndex||Z_BASE,10);
+    backdrop.style.zIndex=String(topZ-10);
+  }
+}
+['show.bs.modal','shown.bs.modal','hidden.bs.modal'].forEach(evt =>
+  document.addEventListener(evt, ()=> setTimeout(()=>{ensureSingleBackdrop();restack();},0))
+);
+const swapModal=(fromId,toId)=>{
+  const toEl=document.getElementById(toId);
+  const showNext=()=>{ if(toEl)(bootstrap.Modal.getInstance(toEl)||new bootstrap.Modal(toEl)).show(); };
+  const fromEl=document.getElementById(fromId);
+  if(fromEl && fromEl.classList.contains('show')){
+    const inst=bootstrap.Modal.getInstance(fromEl)||new bootstrap.Modal(fromEl);
+    const onHidden=()=>{ fromEl.removeEventListener('hidden.bs.modal',onHidden); showNext(); };
+    fromEl.addEventListener('hidden.bs.modal',onHidden,{once:true});
+    inst.hide();
+  } else showNext();
+};
 
-            const Z_BASE = 1055; // Bootstrap modal z-index baseline
-            const Z_STEP = 20; // Step per stacked modal
+/* =========================================================
+   STEP 1: Duration selection (unit + date + quantity) — FIXED
+========================================================= */
+const form                = document.getElementById('bookingForm');
+const optionCards         = Array.from(document.querySelectorAll('#multiStepBookingModal .option-card'));
+const dateSection         = document.getElementById('dateSection');
+const rentalStartInputVis = document.getElementById('rentalStartDate');     // visible (read-only)
+const quantitySection     = document.getElementById('quantitySection');
+const quantityLabel       = document.getElementById('quantityLabel');
+const rentalQuantitySel   = document.getElementById('rentalQuantity');
+const totalPriceBox       = document.getElementById('totalPrice');
+const rentalPeriodBox     = document.getElementById('rentalPeriod');
 
-            function visibleModals() {
-                return Array.from(document.querySelectorAll('.modal.show'));
-            }
+// Hidden inputs we must keep in sync
+const inputUnit           = document.getElementById('inputRentalUnit');
+const inputQty            = document.getElementById('inputRentalQuantity');
+const inputStartDate      = document.getElementById('inputRentalStartDate');
+const inputExtraDays      = document.getElementById('inputExtraDays');
+const inputTotalPrice     = document.getElementById('inputTotalPrice');
 
-            function ensureSingleBackdrop() {
-                const backs = Array.from(document.querySelectorAll('.modal-backdrop'));
-                // Keep only the last (topmost) backdrop if multiple exist
-                if (backs.length > 1) {
-                    backs.slice(0, -1).forEach(b => b.remove());
-                }
-                const anyVisible = !!document.querySelector('.modal.show');
-                if (!anyVisible) {
-                    // No modals: remove any leftover backdrop and restore body
-                    backs.forEach(b => b.remove());
-                    document.body.classList.remove('modal-open');
-                    document.body.style.removeProperty('padding-right');
-                } else {
-                    // At least one modal: keep body locked
-                    document.body.classList.add('modal-open');
-                }
-            }
+// Vehicle rental prices (server-rendered via Blade)
+const VEHICLE_PRICE_DAY   = Number(@json((float)($vehicle->rental_price_day   ?? 0)));
+const VEHICLE_PRICE_WEEK  = Number(@json((float)($vehicle->rental_price_week  ?? 0)));
+const VEHICLE_PRICE_MONTH = Number(@json((float)($vehicle->rental_price_month ?? 0)));
 
-            function restack() {
-                const open = visibleModals();
-                // Re-number z-index for each open modal (oldest -> lowest, newest -> highest)
-                open.forEach((m, i) => {
-                    const z = Z_BASE + (i * Z_STEP);
-                    m.style.zIndex = z;
-                });
+let selectedUnit  = '';   // 'day' | 'week' | 'month'
+let selectedPrice = 0;
 
-                // Backdrop should sit just under the topmost modal
-                const top = open[open.length - 1];
-                const backdrop = document.querySelector('.modal-backdrop');
-                if (top && backdrop) {
-                    const topZ = parseInt(getComputedStyle(top).zIndex || Z_BASE, 10);
-                    backdrop.style.zIndex = String(topZ - 10);
-                }
-            }
+function currentUnitPrice() {
+  if (selectedUnit==='day')   return VEHICLE_PRICE_DAY;
+  if (selectedUnit==='week')  return VEHICLE_PRICE_WEEK;
+  if (selectedUnit==='month') return VEHICLE_PRICE_MONTH;
+  return selectedPrice || 0;
+}
 
-            // When a modal starts to show, normalize backdrops and z-index
-            document.addEventListener('show.bs.modal', (ev) => {
-                const openCount = visibleModals().length;
-                // Pre-assign a z-index to the modal being opened so backdrop can follow
-                ev.target.style.zIndex = String(Z_BASE + (openCount * Z_STEP));
+function recalcStep1Totals() {
+  const unit = (selectedUnit || inputUnit.value || '').toLowerCase();
+  const qty  = Math.max(1, parseInt(inputQty.value || rentalQuantitySel.value || '0',10));
+  const startYMD = (inputStartDate.value || '').trim();
 
-                // Give Bootstrap a tick to insert backdrop, then normalize
-                setTimeout(() => {
-                    ensureSingleBackdrop();
-                    restack();
-                }, 0);
-            });
+  const unitPrice = currentUnitPrice();
+  const total = unitPrice * qty;
+  inputTotalPrice.value = Number.isFinite(total) ? total.toFixed(2) : '0.00';
 
-            // After a modal is fully shown, restack (covers data-bs-target swaps)
-            document.addEventListener('shown.bs.modal', () => {
-                setTimeout(() => {
-                    ensureSingleBackdrop();
-                    restack();
-                }, 0);
-            });
+  totalPriceBox.classList.remove('d-none');
+  totalPriceBox.textContent = `Vehicle total: ${money(total)} (${qty} × ${money(unitPrice)} / ${unit || 'unit'})`;
 
-            // On close, if other modals still open keep one backdrop; else clean all
-            document.addEventListener('hidden.bs.modal', () => {
-                setTimeout(() => {
-                    ensureSingleBackdrop();
-                    restack();
-                }, 0);
-            });
+  rentalPeriodBox.classList.remove('d-none');
+  if (startYMD) {
+    const s   = fromYMD(startYMD);
+    const end = addDays(s, unitDays(unit)*qty - 1);
+    rentalPeriodBox.textContent = `Period: ${niceDate(startYMD)} → ${niceDate(toYMD(end))}`;
+  } else {
+    rentalPeriodBox.textContent = 'Please select a start date.';
+  }
 
-            // Optional: safer modal swapping for buttons/links inside modals
-            // Use: <button type="button" class="modal-swap" data-target="#nextModal">
-            document.addEventListener('click', (e) => {
-                const swapper = e.target.closest('.modal-swap[data-target]');
-                if (!swapper) return;
+  // Let add-ons know the rental context changed
+  document.dispatchEvent(new Event('rental:updated'));
+}
 
-                e.preventDefault();
-                const nextSel = swapper.getAttribute('data-target');
-                const next = document.querySelector(nextSel);
-                const current = e.target.closest('.modal');
+// 1) Choose unit card
+optionCards.forEach(card => {
+  card.addEventListener('click', () => {
+    optionCards.forEach(c => c.classList.remove('border-primary', 'shadow', 'active'));
+    card.classList.add('border-primary','shadow','active');
 
-                const showNext = () => {
-                    if (next)(bootstrap.Modal.getInstance(next) || new bootstrap.Modal(next)).show();
-                };
+    selectedUnit  = String(card.dataset.type || '').toLowerCase();    // day|week|month
+    selectedPrice = Number(card.dataset.price || 0);
 
-                if (current && current.classList.contains('show')) {
-                    current.addEventListener('hidden.bs.modal', function onH() {
-                        current.removeEventListener('hidden.bs.modal', onH);
-                        showNext();
-                    }, {
-                        once: true
-                    });
-                    (bootstrap.Modal.getInstance(current) || new bootstrap.Modal(current)).hide();
-                } else {
-                    showNext();
-                }
-            });
+    // Show date + qty sections
+    dateSection.classList.remove('d-none');
+    quantitySection.classList.remove('d-none');
 
-            const getModalInstance = (id) => {
-                const el = document.getElementById(id);
-                return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
-            };
+    // Label + fill quantity (set reasonable caps)
+    const maxByUnit = selectedUnit==='day' ? 30 : (selectedUnit==='week'?12:6);
+    quantityLabel.textContent = (selectedUnit==='day'?'Days':
+                                 selectedUnit==='week'?'Weeks':'Months') + ' *';
+    rentalQuantitySel.innerHTML = '';
+    for (let i=1;i<=maxByUnit;i++){
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = String(i);
+      rentalQuantitySel.appendChild(opt);
+    }
+    rentalQuantitySel.value = '1';
 
-            const swapModal = (fromId, toId) => {
-                const toEl = document.getElementById(toId);
-                if (!toEl) return;
+    // sync hidden
+    inputUnit.value = selectedUnit;
+    inputQty.value  = rentalQuantitySel.value || '1';
 
-                const showNext = () => {
-                    const target = getModalInstance(toId);
-                    target?.show();
-                };
+    recalcStep1Totals();
+  });
+});
 
-                const fromEl = document.getElementById(fromId);
-                if (fromEl && fromEl.classList.contains('show')) {
-                    const fromModal = getModalInstance(fromId);
-                    if (!fromModal) {
-                        showNext();
-                        return;
-                    }
-                    const onHidden = () => {
-                        fromEl.removeEventListener('hidden.bs.modal', onHidden);
-                        showNext();
-                    };
-                    fromEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
-                    fromModal.hide();
-                } else {
-                    showNext();
-                }
-            };
+// 2) Date chosen (bind to visible input; convert to YYYY-MM-DD if needed)
+rentalStartInputVis.addEventListener('change', () => {
+  const raw = rentalStartInputVis.value.trim();
+  let ymd = '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    ymd = raw;
+  } else {
+    const dt = new Date(raw);
+    if (!isNaN(dt)) ymd = toYMD(dt);
+  }
+  inputStartDate.value = ymd;
+  recalcStep1Totals();
+});
 
-            const step1NextBtn = document.getElementById('continueFromStep1');
-            step1NextBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                swapModal('multiStepBookingModal', 'addonsStep');
-            });
+// 3) Quantity change
+rentalQuantitySel.addEventListener('change', () => {
+  inputQty.value = rentalQuantitySel.value || '1';
+  recalcStep1Totals();
+});
 
-            const addonsBackBtn = document.getElementById('backToStep1');
-            addonsBackBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                swapModal('addonsStep', 'multiStepBookingModal');
-            });
+// 4) Guard before leaving Step-1
+const step1NextBtn = document.getElementById('continueFromStep1');
+step1NextBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  const unit = (selectedUnit || inputUnit.value || '').toLowerCase();
+  const qty  = parseInt(inputQty.value || rentalQuantitySel.value || '0', 10);
+  const startYMD = (inputStartDate.value || '').trim();
 
-            const addonsNextBtn = document.getElementById('addonsToCustomer');
-            addonsNextBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                swapModal('addonsStep', 'customerStep');
-            });
+  if (!unit) return SwalOk('Select a rental type', 'Pick Daily / Weekly / Monthly first.');
+  if (!qty || qty < 1) return SwalOk('Select a quantity', 'Choose how many '+ (unit==='day'?'days':unit==='week'?'weeks':'months') +' you want.');
+  if (!startYMD) return SwalOk('Pick a start date', 'Please choose a rental start date to continue.');
 
-            const customerBackBtn = document.getElementById('customerBackToAddons');
-            customerBackBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                swapModal('customerStep', 'addonsStep');
-            });
+  recalcStep1Totals(); // final sync
+  swapModal('multiStepBookingModal','addonsStep');
+});
 
-            const summaryBackBtn = document.getElementById('summaryBackToCustomer');
-            summaryBackBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                swapModal('summaryStep', 'customerStep');
-            });
+/* =========================================================
+   Add-Ons + Summary + Payment (your original logic, intact)
+   I only removed duplicate helpers and rely on the ones above.
+========================================================= */
 
-            const paymentBackBtn = document.getElementById('paymentBackToSummary');
-            paymentBackBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                resetPaymentSelection();
-                swapModal('bookingPayment', 'summaryStep');
-            });
+/* ---- Debounced SweetAlert helper from your code ---- */
+const alertDebounce = new Map();
+function notify(key, {icon='warning', title='Notice', text=''}) {
+  const now = Date.now(), last = alertDebounce.get(key) || 0;
+  if (now - last < 600) return;
+  alertDebounce.set(key, now);
+  if (window.Swal?.fire) { window.Swal.fire({ icon, title, text, confirmButtonText: 'OK' }); }
+  else { alert(`${title}\n\n${text}`); }
+}
 
-            const stripeBackBtn = document.getElementById('stripeBackToPayment');
-            stripeBackBtn?.addEventListener('click', (event) => {
-                event.preventDefault();
-                resetPaymentSelection();
-                swapModal('bookingStripeModal', 'bookingPayment');
-            });
+/* ---- Range helpers used by add-ons (use our toYMD/fromYMD/addDays) ---- */
+const inRange = (d, r) => {
+  const s = fromYMD(r.from), e = fromYMD(r.to);
+  if (!s || !e) return false;
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return (t >= s.getTime() && t <= e.getTime());
+};
+const hasOverlap = (startYMD, endYMD, blockedRanges) => {
+  const s = fromYMD(startYMD), e = fromYMD(endYMD);
+  if (!s || !e) return false;
+  for (let d = new Date(s.getFullYear(), s.getMonth(), s.getDate()); d <= e; d = addDays(d, 1)) {
+    if (blockedRanges.some(r => inRange(d, r))) return true;
+  }
+  return false;
+};
+function listOverlappingRanges(startYMD, endYMD, blockedRanges) {
+  const s = fromYMD(startYMD), e = fromYMD(endYMD), res = [];
+  if (!s || !e) return res;
+  blockedRanges.forEach(r => {
+    const rs = fromYMD(r.from), re = fromYMD(r.to);
+    if (!rs || !re) return;
+    const start = new Date(Math.max(rs.getTime(), s.getTime()));
+    const end = new Date(Math.min(re.getTime(), e.getTime()));
+    if (start <= end) res.push(`${niceDate(toYMD(start))} – ${niceDate(toYMD(end))}`);
+  });
+  return res;
+}
 
-            /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Helpers */
-            const DAY_MS = 86400000;
-
-            const toYMD = (date) => {
-                const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, '0');
-                const d = String(date.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}`;
-            };
-            const fromYMD = (s) => {
-                const [Y, M, D] = (s || '').split('-').map(Number);
-                return (Y && M && D) ? new Date(Y, M - 1, D) : null;
-            };
-            const niceDate = (ymd) => {
-                if (!ymd) return '';
-                const dt = fromYMD(ymd);
-                return dt ? dt.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                }) : ymd;
-            };
-            const addDays = (date, amount) => {
-                const t = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                t.setDate(t.getDate() + amount);
-                return t;
-            };
-            const diffDaysIncl = (a, b) => (!a || !b) ? 0 : Math.floor((fromYMD(b) - fromYMD(a)) / DAY_MS) + 1;
-            const unitDays = (u) => (u === 'week' ? 7 : u === 'month' ? 30 : 1);
-            const snapEndForUnit = (start, unit) => {
-                if (!start) return null;
-                const base = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-                if (unit === 'day') return base;
-                if (unit === 'week') return addDays(base, 6);
-                if (unit === 'month') return addDays(base, 29);
-                return base;
-            };
-            const money = (v) =>
-                `R${Number(v || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-
-            function clearSelect(sel) {
-                while (sel.options.length) sel.remove(0);
-            }
-
-            function fillSelect(sel, from, to, value) {
-                clearSelect(sel);
-                for (let i = from; i <= to; i++) {
-                    const o = document.createElement('option');
-                    o.value = String(i);
-                    o.textContent = String(i);
-                    sel.appendChild(o);
-                }
-                sel.value = String(value);
-            }
-
-            function ensureOpt(sel, v) {
-                const vs = String(v);
-                for (const o of sel.options) {
-                    if (o.value === vs) return;
-                }
-                const o = document.createElement('option');
-                o.value = vs;
-                o.textContent = vs;
-                sel.appendChild(o);
-            }
+/* ---- Rental context getters used across add-ons/summary ---- */
 function getRentalContext() {
-                const unitEl = document.getElementById('inputRentalUnit');
-                const qtyEl = document.getElementById('inputRentalQuantity');
-                const startEl = document.getElementById('inputRentalStartDate');
-                const extraEl = document.getElementById('inputExtraDays');
-
-                const unit = (unitEl?.value || '').toLowerCase();
-                const quantity = parseInt(qtyEl?.value || '0', 10);
-                const extraDays = Math.max(0, parseInt(extraEl?.value || '0', 10));
-                const startYMD = startEl?.value || '';
-                const startDate = startYMD ? fromYMD(startYMD) : null;
-
-                let totalDays = 0;
-                if (quantity > 0) {
-                    if (unit === 'week') {
-                        totalDays = (quantity * 7) + extraDays;
-                    } else if (unit === 'month') {
-                        totalDays = (quantity * 30) + extraDays;
-                    } else {
-                        totalDays = quantity + extraDays;
-                    }
-                }
-
-                const endDate = (startDate && totalDays > 0) ? addDays(startDate, totalDays - 1) : null;
-
-                return {
-                    unit,
-                    quantity,
-                    extraDays,
-                    startDate,
-                    endDate,
-                    startYMD: startDate ? toYMD(startDate) : '',
-                    endYMD: endDate ? toYMD(endDate) : '',
-                    totalDays: totalDays > 0 ? totalDays : 0
-                };
-            }
-
-            function computeAddonUnits(unit, totalDays) {
-                if (!totalDays || totalDays <= 0) return 0;
-                if (unit === 'week') return Math.max(1, Math.ceil(totalDays / 7));
-                if (unit === 'month') return Math.max(1, Math.ceil(totalDays / 30));
-                return Math.max(1, totalDays);
-            }
-
-
-            // SweetAlert2 helper (debounced)
-            const alertDebounce = new Map();
-
-            function notify(key, {
-                icon = 'warning',
-                title = 'Notice',
-                text = ''
-            }) {
-                const now = Date.now(),
-                    last = alertDebounce.get(key) || 0;
-                if (now - last < 600) return;
-                alertDebounce.set(key, now);
-                if (window.Swal?.fire) {
-                    window.Swal.fire({
-                        icon,
-                        title,
-                        text,
-                        confirmButtonText: 'OK'
-                    });
-                } else {
-                    alert(`${title}\n\n${text}`);
-                }
-            }
-
-            const inRange = (d, r) => {
-                const s = fromYMD(r.from),
-                    e = fromYMD(r.to);
-                if (!s || !e) return false;
-                const t = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-                return (t >= s.getTime() && t <= e.getTime());
-            };
-            const nextAvailableFrom = (startDate, ranges) => {
-                let cur = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-                for (let i = 0; i < 365; i++) {
-                    const bad = ranges.some(r => inRange(cur, r));
-                    if (!bad) return cur;
-                    cur = addDays(cur, 1);
-                }
-                return null;
-            };
-
-            // overlap utilities
-            function hasOverlap(startYMD, endYMD, blockedRanges) {
-                const s = fromYMD(startYMD),
-                    e = fromYMD(endYMD);
-                if (!s || !e) return false;
-                for (let d = new Date(s.getFullYear(), s.getMonth(), s.getDate()); d <= e; d = addDays(d, 1)) {
-                    if (blockedRanges.some(r => inRange(d, r))) return true;
-                }
-                return false;
-            }
-
-            function listOverlappingRanges(startYMD, endYMD, blockedRanges) {
-                const s = fromYMD(startYMD),
-                    e = fromYMD(endYMD),
-                    res = [];
-                if (!s || !e) return res;
-                blockedRanges.forEach(r => {
-                    const rs = fromYMD(r.from),
-                        re = fromYMD(r.to);
-                    if (!rs || !re) return;
-                    const start = new Date(Math.max(rs.getTime(), s.getTime()));
-                    const end = new Date(Math.min(re.getTime(), e.getTime()));
-                    if (start <= end) res.push(
-                    `${niceDate(toYMD(start))} Ã¢â€ â€™ ${niceDate(toYMD(end))}`);
-                });
-                return res;
-            }
-
-            function warnIfPlannedRangeOverlaps({
-                unit,
-                startDate,
-                extraDays = 0,
-                addonId,
-                blockedRanges,
-                availableQty
-            }) {
-                if (!startDate) return false;
-                const snapEnd = snapEndForUnit(startDate, unit);
-                const endDate = addDays(snapEnd, (unit === 'day' ? 0 : extraDays));
-                const s = toYMD(startDate),
-                    e = toYMD(endDate);
-                if (hasOverlap(s, e, blockedRanges)) {
-                    const where = listOverlappingRanges(s, e, blockedRanges);
-                    const blockedTxt = where.length ? `Blocked on: ${where.join(', ')}` :
-                        'Some dates are unavailable.';
-                    notify(`overlap-plan-${addonId}`, {
-                        icon: 'error',
-                        title: 'Dates unavailable',
-                        text: `${blockedTxt}\nAvailable quantity for this add-on: ${availableQty}.`
-                    });
-                    return true;
-                }
-                return false;
-            }
-
-            function setAddonHiddenDisabled(detailsEl, disabled) {
-                detailsEl.querySelectorAll('input[type="hidden"]').forEach(h => h.disabled = !!disabled);
-            }
-
-            // Ã¢Â¬â€¡Ã¯Â¸Â add-on helpers (also exported to window for the payment script)
-            function computeAddonsTotal() {
-                const selections = Object.values(window.bookingAddonSelections || {});
-                if (selections.length) {
-                    const totalFromSelections = selections.reduce((sum, item) => {
-                        const value = parseFloat(item?.total || 0);
-                        return sum + (isNaN(value) ? 0 : value);
-                    }, 0);
-                    return Math.round(totalFromSelections * 100) / 100;
-                }
-
-                let addonTotal = 0;
-                document.querySelectorAll('.addon-card').forEach(card => {
-                    const id = card.dataset.id;
-                    const totalH = card.querySelector(`#addon-total-${id}`);
-                    if (!totalH || totalH.disabled) return;
-                    const val = parseFloat(totalH.value || '0');
-                    if (!isNaN(val) && val > 0) addonTotal += val;
-                });
-                return Math.round(addonTotal * 100) / 100;
-            }
-
-            function updateSummaryAddonTotals() {
-                const total = computeAddonsTotal();
-                const summaryAddonTotal = document.getElementById('summaryAddonTotal');
-                if (summaryAddonTotal) summaryAddonTotal.textContent = money(total);
-                return total;
-            }
-
-            function enableSelectedAddonHiddenFields() {
-                document.querySelectorAll('.addon-details').forEach(details => {
-                    const totalH = details.querySelector('input[id^="addon-total-"]');
-                    const hiddens = details.querySelectorAll('input[type="hidden"]');
-                    const total = parseFloat(totalH?.value || '0');
-                    hiddens.forEach(h => {
-                        h.disabled = !(total > 0);
-                    });
-                });
-            }
-            window.computeAddonsTotal = computeAddonsTotal;
-            window.enableSelectedAddonHiddenFields = enableSelectedAddonHiddenFields;
-
-            // Optional: inspect current selections from devtools
-            const addonSelections = {};
-            window.bookingAddonSelections = addonSelections;
-
-            /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Add-ons */
-            document.querySelectorAll('.addon-card').forEach(card => {
-                const addonId = card.dataset.id;
-                const totalStock = parseInt(card.dataset.total || '0', 10);
-                const availToday = parseInt(card.dataset.available || '0', 10);
-
-                const details = card.querySelector('.addon-details');
-                const qtySel = details.querySelector('.addon-qty');
-                const planCards = details.querySelectorAll('.addon-type-card');
-                const badgeEl = card.querySelector('.availability-badge');
-
-                // hidden fields
-                const typeH = details.querySelector(`#addon-type-${addonId}`);
-                const qtyH = details.querySelector(`#addon-quantity-${addonId}`);
-                const startH = details.querySelector(`#addon-start-${addonId}`);
-                const endH = details.querySelector(`#addon-end-${addonId}`);
-                const extraH = details.querySelector(`#addon-extra-${addonId}`);
-                const totalH = details.querySelector(`#addon-total-${addonId}`);
-                const daysH = details.querySelector(`#addon-days-${addonId}`);
-
-                const priceEl = details.querySelector(`#addon-price-${addonId}`);
-                const periodEl = details.querySelector(`#addon-period-${addonId}`);
-
-                const live = details.querySelector('.addon-live-summary');
-                const alsQty = live ? live.querySelector('.als-qty') : null;
-                const alsUnit = live ? live.querySelector('.als-unit') : null;
-                const alsTotal = live ? live.querySelector('.als-total') : null;
-                const alsStart = live ? live.querySelector('.als-start') : null;
-                const alsEnd = live ? live.querySelector('.als-end') : null;
-                const alsLbl = live ? live.querySelector('.als-line-1-label') : null;
-
-                let blockedRanges = [];
-                try {
-                    blockedRanges = JSON.parse(card.dataset.blocked || '[]') || [];
-                } catch {
-                    blockedRanges = [];
-                }
-                blockedRanges = blockedRanges.filter(r => r && r.from && r.to);
-
-                setAddonHiddenDisabled(details, true);
-                let currentCtx = null;
-
-                const rangeOverlapsBlocked = (startYMD, endYMD) => hasOverlap(startYMD, endYMD,
-                    blockedRanges);
-
-                function setBadge(text, ok) {
-                    if (!badgeEl) return;
-                    badgeEl.textContent = text;
-                    badgeEl.classList.remove('bg-success', 'bg-danger');
-                    badgeEl.classList.add(ok ? 'bg-success' : 'bg-danger');
-                }
-
-                function clampQtyTo(avail, startYMD = null, endYMD = null) {
-                    const prev = parseInt(qtySel.value || '0', 10);
-                    const newMax = Math.max(0, avail);
-                    const newVal = Math.min(prev, newMax);
-
-                    fillSelect(qtySel, 0, newMax, newVal);
-                    qtySel.disabled = (newMax <= 0);
-
-                    if (startYMD && endYMD) {
-                        const where = listOverlappingRanges(startYMD, endYMD, blockedRanges);
-                        const blockedTxt = where.length ? `Blocked on: ${where.join(', ')}` : null;
-
-                        if (newMax <= 0) {
-                            notify(`noqty-${addonId}-${startYMD}-${endYMD}`, {
-                                icon: 'warning',
-                                title: 'Out of stock',
-                                text: `${blockedTxt ? blockedTxt + '\n' : ''}Available quantity for these dates: 0.`
-                            });
-                        } else if (prev > newVal) {
-                            notify(`clamped-${addonId}-${startYMD}-${endYMD}`, {
-                                icon: 'warning',
-                                title: 'Limited availability',
-                                text: `${blockedTxt ? blockedTxt + '\n' : ''}Only ${newMax} unit${newMax > 1 ? 's' : ''} are available for these dates. Your quantity was adjusted.`
-                            });
-                        }
-                    }
-                }
-
-                function updateAvailabilityForDates(startYMD, endYMD) {
-                    if (startYMD && endYMD) {
-                        if (rangeOverlapsBlocked(startYMD, endYMD)) {
-                            setBadge('Fully booked for these dates', false);
-                            clampQtyTo(0, startYMD, endYMD);
-                            qtyH.value = '0';
-
-                            const where = listOverlappingRanges(startYMD, endYMD, blockedRanges);
-                            const blockedTxt = where.length ? `Blocked on: ${where.join(', ')}` :
-                                'Some dates are unavailable.';
-                            notify(`overlap-${addonId}-${startYMD}-${endYMD}`, {
-                                icon: 'error',
-                                title: 'Dates unavailable',
-                                text: `${blockedTxt}\nAvailable quantity for this add-on: 0.`
-                            });
-                            return 0;
-                        } else {
-                            setBadge(`${totalStock} available for these dates`, true);
-                            clampQtyTo(totalStock, startYMD, endYMD);
-                            return totalStock;
-                        }
-                    } else {
-                        setBadge('Select rental Quantity first', false);
-                        clampQtyTo(Math.max(0, availToday));
-                        return availToday;
-                    }
-                }
-
-                function ensureActivePlan(ctx) {
-                    let active = [...planCards].find(c => c.classList.contains('active'));
-                    const desired = typeH.value || ctx?.unit;
-                    if (!active && desired) {
-                        active = [...planCards].find(c => c.dataset.type === desired);
-                    }
-                    if (!active) {
-                        active = planCards[0];
-                    }
-                    if (active) {
-                        planCards.forEach(c => c.classList.remove('active'));
-                        active.classList.add('active');
-                        typeH.value = active.dataset.type;
-                    }
-                    return active;
-                }
-
-                function updatePeriodDisplay(ctx) {
-                    if (!periodEl) return;
-                    if (!ctx || !ctx.startYMD || !ctx.endYMD) {
-                        periodEl.textContent = 'Select your rental dates first.';
-                    } else {
-                        const days = ctx.totalDays || 0;
-                        periodEl.textContent =
-                            `${niceDate(ctx.startYMD)} -> ${niceDate(ctx.endYMD)} (${days} day${days === 1 ? '' : 's'})`;
-                    }
-                }
-
-                function setPrice(amount) {
-                    if (priceEl) priceEl.textContent = money(amount);
-                }
-
-                function removeSelection(clearPeriod) {
-                    delete addonSelections[addonId];
-                    totalH.value = '';
-                    qtyH.value = '0';
-                    if (qtySel) qtySel.value = '0';
-                    if (clearPeriod) {
-                        startH.value = '';
-                        endH.value = '';
-                        daysH.value = '0';
-                    }
-                    setAddonHiddenDisabled(details, true);
-                    setAddonHiddenDisabled(details, true);
-                    setPrice(0);
-                    card.classList.remove('addon-selected');
-                    if (live) {
-                        if (alsQty) alsQty.textContent = '0';
-                        if (alsUnit) alsUnit.textContent = money(0);
-                        if (alsTotal) alsTotal.textContent = money(0);
-                        if (alsStart) alsStart.textContent = '-';
-                        if (alsEnd) alsEnd.textContent = '-';
-                    }
-                    if (clearPeriod && periodEl) periodEl.textContent = 'Select your rental dates first.';
-                    const startY = startH.value || null;
-                    const endY = endH.value || null;
-                    updateAvailabilityForDates(startY, endY);
-                }
-
-                function updateLiveSummary(unit, ctx, unitPrice, units, quantity, total) {
-                    if (!live) return;
-                    const labelMap = {
-                        day: 'Days',
-                        week: 'Weeks',
-                        month: 'Months'
-                    };
-                    const qtyVal = unit === 'day' ? ctx.totalDays : units;
-                    if (alsLbl) alsLbl.textContent = labelMap[unit] || 'Units';
-                    if (alsQty) alsQty.textContent = String(qtyVal);
-                    if (alsUnit) alsUnit.textContent = money(unitPrice);
-                    if (alsTotal) alsTotal.textContent = money(total);
-                    if (alsStart) alsStart.textContent = ctx.startYMD ? niceDate(ctx.startYMD) : '-';
-                    if (alsEnd) alsEnd.textContent = ctx.endYMD ? niceDate(ctx.endYMD) : '-';
-                    live.classList.remove('d-none');
-                }
-
-                function updateTotal() {
-                    const ctx = currentCtx;
-                    const activePlan = ensureActivePlan(ctx);
-                    const unit = (activePlan?.dataset.type || typeH.value || 'day').toLowerCase();
-                    const unitPrice = parseFloat(activePlan?.dataset.price || '0');
-                    const quantity = parseInt(qtySel.value || '0', 10);
-
-                    if (!ctx || !ctx.startYMD || !ctx.endYMD || !quantity) {
-                        removeSelection(true);
-                        updateSummaryAddonTotals();
-                        return;
-                    }
-
-                    const units = computeAddonUnits(unit, ctx.totalDays);
-                    const totalPerAddon = unitPrice * units;
-                    const total = Number((totalPerAddon * quantity).toFixed(2));
-
-                    startH.value = ctx.startYMD;
-                    endH.value = ctx.endYMD;
-                    daysH.value = String(ctx.totalDays);
-                    extraH.value = '0';
-                    totalH.value = total.toFixed(2);
-                    qtyH.value = String(quantity);
-                    setAddonHiddenDisabled(details, false);
-                    setAddonHiddenDisabled(details, false);
-                    setPrice(total);
-                    card.classList.add('addon-selected');
-                    addonSelections[addonId] = {
-                        id: addonId,
-                        name: card.dataset.name || '',
-                        type: unit,
-                        qty: quantity,
-                        unitPrice,
-                        perUnitTotal: Number((totalPerAddon).toFixed(2)),
-                        total,
-                        start: ctx.startYMD,
-                        end: ctx.endYMD,
-                        days: ctx.totalDays,
-                        extraDays: 0,
-                        remainderDays: 0,
-                        fullUnits: units
-                    };
-
-                    if (badgeEl && quantity > 0) {
-                        const label =
-                            `Selected ${quantity} unit${quantity !== 1 ? 's' : ''}${totalStock ? ` (of ${totalStock})` : ''}`;
-                        setBadge(label, true);
-                    }
-
-                    updateSummaryAddonTotals();
-                }
-
-                function applyContext(ctx) {
-                    currentCtx = (ctx && ctx.totalDays > 0 && ctx.startYMD && ctx.endYMD) ? ctx : null;
-                    if (!currentCtx) {
-                        startH.value = '';
-                        endH.value = '';
-                        daysH.value = '0';
-                        extraH.value = '0';
-                    }
-                    ensureActivePlan(currentCtx);
-                    updatePeriodDisplay(currentCtx);
-                    const available = updateAvailabilityForDates(currentCtx?.startYMD || null, currentCtx
-                        ?.endYMD || null);
-                    let currentQty = parseInt(qtySel.value || '0', 10);
-                    if (available > 0 && (!currentQty || currentQty <= 0)) {
-                        qtySel.value = '1';
-                        currentQty = 1;
-                    } else if (available <= 0) {
-                        qtySel.value = '0';
-                        currentQty = 0;
-                    } else if (currentQty > available) {
-                        qtySel.value = String(available);
-                        currentQty = available;
-                    }
-                    qtyH.value = String(currentQty);
-                    updateTotal();
-                }
-
-                card.addEventListener('click', (e) => {
-                    if (e.target.closest('.addon-details')) return;
-                    details.classList.toggle('d-none');
-                    if (!details.classList.contains('d-none')) {
-                        applyContext(currentCtx || getRentalContext());
-                    }
-                });
-
-                planCards.forEach(pc => {
-                    pc.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        planCards.forEach(c => c.classList.remove('active'));
-                        pc.classList.add('active');
-                        typeH.value = pc.dataset.type;
-                        if (!qtySel.value || qtySel.value === '0') {
-                            qtySel.value = '1';
-                            qtyH.value = '1';
-                        }
-                        updateTotal();
-                    });
-                });
-
-                qtySel.addEventListener('change', () => {
-                    qtyH.value = qtySel.value || '0';
-                    updateTotal();
-                });
-
-                card.__applyRentalContext = applyContext;
-            });
-
-            function refreshAllAddons() {
-                const ctx = getRentalContext();
-                document.querySelectorAll('.addon-card').forEach(card => {
-                    const applyCtx = card.__applyRentalContext;
-                    if (typeof applyCtx === 'function') applyCtx(ctx);
-                });
-                updateSummaryAddonTotals();
-            }
-
-            ['inputRentalUnit', 'inputRentalQuantity', 'inputExtraDays', 'inputRentalStartDate'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('change', refreshAllAddons);
-            });
-            document.addEventListener('rental:updated', refreshAllAddons);
-            refreshAllAddons();
-
-
-            /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Booking + Payment flow Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
-            const bookingFormEl = document.getElementById('bookingForm');
-            const bookingIdField = document.getElementById('bookingId');
-            const openPaymentBtn = document.getElementById('openPayment');
-            const bookingPaymentModalEl = document.getElementById('bookingPayment');
-            const bookingStripeModalEl = document.getElementById('bookingStripeModal');
-            const bookingStripePayButton = document.getElementById('bookingStripePayButton');
-            const paymentMethodInputs = Array.from(document.querySelectorAll('input[name="booking_payment_method"]'));
-            const resetPaymentSelection = () => {
-                paymentMethodInputs.forEach((input) => {
-                    input.checked = false;
-                    input.removeAttribute('checked');
-                });
-            };
-            const bookingThankYouModalEl = document.getElementById('bookingThankYou');
-            const tyGoHomeNowBtn = document.getElementById('tyGoHomeNow');
-            const bookingCardErrorsEl = document.getElementById('booking-card-errors');
-            let currentBookingReference = null;
-
-            const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
-            let stripeInstance = null;
-            let stripeElements = null;
-            let stripeCardNumber = null;
-            let stripeCardExpiry = null;
-            let stripeCardCvc = null;
-
-            if (bookingPaymentModalEl) {
-                bookingPaymentModalEl.addEventListener('hidden.bs.modal', resetPaymentSelection);
-            }
-
-            const showPaymentLoader = (message = 'Processing payment...') => {
-                if (window.Swal) {
-                    Swal.fire({
-                        title: message,
-                        text: 'Please wait while we confirm your payment.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                }
-            };
-
-            const hidePaymentLoader = () => {
-                if (window.Swal && Swal.isVisible()) {
-                    Swal.close();
-                }
-            };
-
-            const computeGrandTotal = () => {
-                const vehicleTotal = parseFloat(document.getElementById('inputTotalPrice')?.value || '0');
-                const addonTotal = window.computeAddonsTotal ? window.computeAddonsTotal() : 0;
-                return Math.round((vehicleTotal + addonTotal) * 100) / 100;
-            };
-
-            const populateThankYouModal = (methodLabel) => {
-                if (!bookingThankYouModalEl) return;
-                const tyVehicleNameEl = document.getElementById('tyVehicleName');
-                if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($vehicle->name) }}";
-
-                const periodText = document.getElementById('summaryPeriod')?.textContent?.trim() || '-';
-                const tyPeriodEl = document.getElementById('tyPeriod');
-                if (tyPeriodEl) tyPeriodEl.textContent = periodText;
-
-                const reference = currentBookingReference || (bookingIdField?.value ?
-                    `#${bookingIdField.value}` : '-');
-                const tyReferenceEl = document.getElementById('tyReference');
-                if (tyReferenceEl) tyReferenceEl.textContent = reference;
-
-                const tyAmountEl = document.getElementById('tyAmount');
-                if (tyAmountEl) tyAmountEl.textContent = money(computeGrandTotal());
-
-                const tyMethodEl = document.getElementById('tyMethod');
-                if (tyMethodEl) tyMethodEl.textContent = methodLabel;
-
-                const tyCustomerNameEl = document.getElementById('tyCustomerName');
-                if (tyCustomerNameEl) tyCustomerNameEl.textContent = bookingFormEl?.name?.value || '-';
-
-                const contactParts = [];
-                if (bookingFormEl?.email?.value) contactParts.push(bookingFormEl.email.value);
-                if (bookingFormEl?.phone?.value) contactParts.push(bookingFormEl.phone.value);
-                const tyCustomerContactEl = document.getElementById('tyCustomerContact');
-                if (tyCustomerContactEl) tyCustomerContactEl.textContent = contactParts.join(' - ') || '-';
-            };
-
-            if (tyGoHomeNowBtn) {
-                tyGoHomeNowBtn.addEventListener('click', () => {
-                    window.location.href = "{{ url('/') }}";
-                });
-            }
-
-            if (bookingThankYouModalEl) {
-                bookingThankYouModalEl.addEventListener('hidden.bs.modal', () => {
-                    window.location.href = "{{ url('/') }}";
-                });
-            }
-
-            if (openPaymentBtn) {
-                openPaymentBtn.addEventListener('click', async () => {
-                    if (typeof window.enableSelectedAddonHiddenFields === 'function') {
-                        window.enableSelectedAddonHiddenFields();
-                    }
-
-                    if (!bookingIdField?.value && bookingFormEl) {
-                        const formData = new FormData(bookingFormEl);
-                        try {
-                            const res = await fetch(bookingFormEl.action, {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest',
-                                    'X-CSRF-TOKEN': document.querySelector(
-                                            'meta[name="csrf-token"]')?.getAttribute(
-                                        'content') || ''
-                                }
-                            });
-                            const text = await res.text();
-                            let data;
-                            try {
-                                data = JSON.parse(text);
-                            } catch {
-                                data = {
-                                    success: false,
-                                    message: text
-                                };
-                            }
-                            if (!res.ok || !data?.success) {
-                                await Swal.fire({
-                                    icon: 'error',
-                                    title: 'Booking not created',
-                                    text: data?.message || 'Failed to create booking.'
-                                });
-                                return;
-                            }
-                            bookingIdField.value = data.booking_id || data.id || '';
-                            currentBookingReference = data.reference || null;
-                            if (!bookingIdField.value) {
-                                await Swal.fire({
-                                    icon: 'error',
-                                    title: 'Missing booking ID',
-                                    text: 'Booking was created but no identifier was returned.'
-                                });
-                                return;
-                            }
-                        } catch (error) {
-                            console.error(error);
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Network error',
-                                text: 'Unable to create booking, please try again.'
-                            });
-                            return;
-                        }
-                    }
-
-                    const summaryModal = bootstrap.Modal.getInstance(document.getElementById(
-                        'summaryStep'));
-                    summaryModal?.hide();
-
-                    if (bookingPaymentModalEl) {
-                        new bootstrap.Modal(bookingPaymentModalEl).show();
-                    }
-
-                    const stripeRadio = document.getElementById('bookingStripe');
-                    if (stripeRadio?.checked && bookingStripePayButton) {
-                        bookingStripePayButton.dataset.amount = String(computeGrandTotal());
-                    }
-                });
-            }
-
-            document.addEventListener('change', async (e) => {
-                if (!(e.target && e.target.name === 'booking_payment_method')) return;
-
-                const method = e.target.value;
-                const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(
-                    bookingPaymentModalEl) : null;
-                paymentModalInstance?.hide();
-
-                const grandTotal = computeGrandTotal();
-
-                if (method === 'stripe') {
-                    if (bookingStripePayButton) {
-                        bookingStripePayButton.dataset.amount = String(grandTotal);
-                    }
-                    if (bookingStripeModalEl) {
-                        new bootstrap.Modal(bookingStripeModalEl).show();
-                    }
-                    return;
-                }
-
-                if (method === 'payfast') {
-                    const bookingId = bookingIdField?.value;
-                    if (!bookingId) {
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Booking missing',
-                            text: 'Please create the booking first.'
-                        });
-                        if (bookingPaymentModalEl) {
-                            new bootstrap.Modal(bookingPaymentModalEl).show();
-                        }
-                        e.target.checked = false;
-                        return;
-                    }
-
-                    try {
-                        showPaymentLoader('Redirecting to PayFast...');
-                        const res = await fetch(
-                            `/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector(
-                                        'meta[name="csrf-token"]')?.content || ''
-                                },
-                                body: JSON.stringify({
-                                    booking_id: bookingId
-                                })
-                            });
-                        const data = await res.json();
-                        if (!res.ok || !data?.success) {
-                            throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
-                        }
-
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = data.action;
-                        form.style.display = 'none';
-
-                        Object.entries(data.fields || {}).forEach(([key, value]) => {
-                            const input = document.createElement('input');
-                            input.type = 'hidden';
-                            input.name = key;
-                            input.value = value;
-                            form.appendChild(input);
-                        });
-
-                        document.body.appendChild(form);
-                        form.submit();
-                    } catch (err) {
-                        console.error(err);
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'PayFast error',
-                            text: err.message || 'Could not redirect to PayFast.'
-                        });
-                        if (bookingPaymentModalEl) {
-                            new bootstrap.Modal(bookingPaymentModalEl).show();
-                        }
-                        e.target.checked = false;
-                    } finally {
-                        hidePaymentLoader();
-                    }
-                }
-            });
-
-            if (typeof Stripe !== 'undefined' && stripePublicKey) {
-                stripeInstance = Stripe(stripePublicKey);
-                stripeElements = stripeInstance.elements();
-                const stripeStyle = {
-                    base: {
-                        fontSize: '16px',
-                        color: '#32325d',
-                        '::placeholder': {
-                            color: '#a0aec0'
-                        }
-                    }
-                };
-                stripeCardNumber = stripeElements.create('cardNumber', {
-                    style: stripeStyle
-                });
-                stripeCardExpiry = stripeElements.create('cardExpiry', {
-                    style: stripeStyle
-                });
-                stripeCardCvc = stripeElements.create('cardCvc', {
-                    style: stripeStyle
-                });
-
-                const cardNumberMount = document.getElementById('booking-card-number');
-                const cardExpiryMount = document.getElementById('booking-card-expiry');
-                const cardCvcMount = document.getElementById('booking-card-cvc');
-
-                if (cardNumberMount) stripeCardNumber.mount(cardNumberMount);
-                if (cardExpiryMount) stripeCardExpiry.mount(cardExpiryMount);
-                if (cardCvcMount) stripeCardCvc.mount(cardCvcMount);
-            } else if (stripePublicKey) {
-                console.warn('Stripe.js not loaded or public key missing.');
-            }
-
-
-            if (bookingStripePayButton && !stripeInstance) {
-                bookingStripePayButton.disabled = true;
-            }
-
-            if (bookingStripePayButton && stripeInstance) {
-                bookingStripePayButton.addEventListener('click', async function() {
-                    if (!bookingIdField?.value) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Booking missing',
-                            text: 'Please create the booking first.'
-                        });
-                        return;
-                    }
-
-                    if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Stripe unavailable',
-                            text: 'Payment form is not ready yet.'
-                        });
-                        return;
-                    }
-
-                    if (bookingCardErrorsEl) {
-                        bookingCardErrorsEl.textContent = '';
-                    }
-
-                    const button = this;
-                    const originalText = button.textContent;
-                    button.disabled = true;
-                    button.textContent = 'Processing...';
-
-                    showPaymentLoader();
-
-                    try {
-                        const {
-                            paymentMethod,
-                            error
-                        } = await stripeInstance.createPaymentMethod({
-                            type: 'card',
-                            card: stripeCardNumber,
-                            billing_details: {
-                                name: bookingFormEl?.name?.value || '',
-                                email: bookingFormEl?.email?.value || ''
-                            }
-                        });
-
-                        if (error) {
-                            if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message ||
-                                'Payment method error.';
-                            hidePaymentLoader();
-                            return;
-                        }
-
-                        const res = await fetch(
-                            `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector(
-                                        'meta[name="csrf-token"]')?.content || ''
-                                },
-                                body: JSON.stringify({
-                                    payment_method_id: paymentMethod.id,
-                                    amount: parseFloat(button.dataset.amount || '0')
-                                })
-                            });
-
-                        const text = await res.text();
-                        let data;
-                        try {
-                            data = JSON.parse(text);
-                        } catch {
-                            data = {
-                                success: false,
-                                message: text
-                            };
-                        }
-
-                        hidePaymentLoader();
-
-                        if (!res.ok || !data) {
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Payment failed',
-                                text: data?.message || 'Server error while processing payment.'
-                            });
-                            return;
-                        }
-
-                        if (data.success) {
-                            bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
-                            populateThankYouModal('Stripe');
-                            if (bookingThankYouModalEl) {
-                                new bootstrap.Modal(bookingThankYouModalEl).show();
-                            }
-                            return;
-                        }
-
-                        if (data.requires_action && data.payment_intent_client_secret) {
-                            const result = await stripeInstance.confirmCardPayment(data
-                                .payment_intent_client_secret);
-                            if (result.error) {
-                                await Swal.fire({
-                                    icon: 'error',
-                                    title: 'Authentication failed',
-                                    text: result.error.message || 'Unable to confirm your card.'
-                                });
-                            } else {
-                                bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
-                                populateThankYouModal('Stripe');
-                                if (bookingThankYouModalEl) {
-                                    new bootstrap.Modal(bookingThankYouModalEl).show();
-                                }
-                                return;
-                            }
-                        } else {
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Payment failed',
-                                text: data.message || 'Unable to charge your card.'
-                            });
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        hidePaymentLoader();
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Network error',
-                            text: error.message || 'Unable to reach the payment server.'
-                        });
-                    } finally {
-                        hidePaymentLoader();
-                        button.disabled = false;
-                        button.textContent = originalText;
-                    }
-                });
-            }
-            /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Summary (unchanged aside from totals calc kept server-side safe) */
-            const goToSummaryBtn = document.getElementById('goToSummary');
-            if (goToSummaryBtn) {
-                goToSummaryBtn.addEventListener('click', function() {
-                    const form = document.getElementById('bookingForm');
-                    const name = form.querySelector('[name="name"]');
-                    const email = form.querySelector('[name="email"]');
-                    const phone = form.querySelector('[name="phone"]');
-                    const country = form.querySelector('[name="country"]');
-                    if (!name.value.trim() || !email.value.trim() || !phone.value.trim() || !country
-                        .value) {
-                        notify('cust-missing', {
-                            icon: 'error',
-                            title: 'MIssing Information',
-                            text: 'Please fill all requied customer details.'
-                        });
-                        return;
-                    }
-
-                    const unitH = document.getElementById('inputRentalUnit');
-                    const startVH = document.getElementById('inputRentalStartDate');
-                    const extraVH = document.getElementById('inputExtraDays');
-                    const totalVH = document.getElementById('inputTotalPrice');
-
-                    const typeLabel = ({
-                        day: 'Daily',
-                        week: 'Weekly',
-                        month: 'Monthly'
-                    })[unitH.value] || (unitH.value || 'Ã¢â‚¬â€');
-                    document.getElementById('summaryType').textContent = typeLabel;
-
-                    let vehiclePeriod = '';
-                    if (startVH && startVH.value) {
-                        vehiclePeriod = niceDate(startVH.value);
-                        if (extraVH && (unitH.value === 'week' || unitH.value === 'month')) {
-                            vehiclePeriod += ` + ${extraVH.value || 0} extra day(s)`;
-                        }
-                    }
-                    document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'Ã¢â‚¬â€';
-                    document.getElementById('summaryVehicleTotal').textContent = money(totalVH ? totalVH
-                        .value : 0);
-
-                    // add-ons
-                    let addonTotal = 0,
-                        listHtml = '';
-                    document.querySelectorAll('.addon-card').forEach(card => {
-                        const id = card.dataset.id;
-                        const nm = card.dataset.name || 'Add-on';
-                        const totalH = card.querySelector(`#addon-total-${id}`);
-                        const qtyH = card.querySelector(`#addon-quantity-${id}`);
-                        const typeH = card.querySelector(`#addon-type-${id}`);
-                        const startH = card.querySelector(`#addon-start-${id}`);
-                        const endH = card.querySelector(`#addon-end-${id}`);
-                        const daysH = card.querySelector(`#addon-days-${id}`);
-                        if (totalH && totalH.disabled) return;
-
-                        const total = parseFloat(totalH?.value || '0');
-                        if (total > 0) {
-                            addonTotal += total;
-                            listHtml += `
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                <div>
-                    <div class="fw-semibold">${nm}</div>
-                    <div class="text-muted small">${(typeH?.value||'-').toUpperCase()} Ã¢â‚¬Â¢ Qty ${qtyH?.value||1} Ã¢â‚¬Â¢ ${niceDate(startH?.value||'')} Ã¢â€ â€™ ${niceDate(endH?.value||'')} (${daysH?.value||0} days)</div>
-                </div>
-                <div class="fw-semibold">${money(total)}</div>
-                </div>`;
-                        }
-                    });
-                    if (!listHtml) listHtml = '<span class="text-muted">No add-ons selected.</span>';
-                    document.getElementById('summaryAddOnList').innerHTML = listHtml;
-                    document.getElementById('summaryAddonTotal').textContent = money(addonTotal);
-
-                    const vehicleTotal = parseFloat(totalVH?.value || '0');
-                    document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal +
-                        addonTotal);
-
-                    document.getElementById('summaryCustomerName').textContent = name.value;
-                    document.getElementById('summaryCustomerEmail').textContent = email.value;
-                    document.getElementById('summaryCustomerPhone').textContent = phone.value;
-                    document.getElementById('summaryCustomerCountry').textContent = country.value;
-
-                    const custEl = document.getElementById('customerStep');
-                    const sumEl = document.getElementById('summaryStep');
-                    (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
-                    (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
-                });
-            }
-
-            // Enable hidden fields for selected add-ons right before submit (so DB saves extras)
-            const formEl = document.getElementById('bookingForm');
-            if (formEl) {
-                formEl.addEventListener('submit', () => {
-                    enableSelectedAddonHiddenFields();
-                });
-            }
+  const unitEl = document.getElementById('inputRentalUnit');
+  const qtyEl  = document.getElementById('inputRentalQuantity');
+  const startEl= document.getElementById('inputRentalStartDate');
+  const extraEl= document.getElementById('inputExtraDays');
+
+  const unit = (unitEl?.value || '').toLowerCase();
+  const quantity = parseInt(qtyEl?.value || '0', 10);
+  const extraDays = Math.max(0, parseInt(extraEl?.value || '0', 10));
+  const startYMD = startEl?.value || '';
+  const startDate = startYMD ? fromYMD(startYMD) : null;
+
+  let totalDays = 0;
+  if (quantity > 0) {
+    if (unit === 'week') totalDays = (quantity * 7) + extraDays;
+    else if (unit === 'month') totalDays = (quantity * 30) + extraDays;
+    else totalDays = quantity + extraDays;
+  }
+  const endDate = (startDate && totalDays > 0) ? addDays(startDate, totalDays - 1) : null;
+
+  return {
+    unit,
+    quantity,
+    extraDays,
+    startDate,
+    endDate,
+    startYMD: startDate ? toYMD(startDate) : '',
+    endYMD: endDate ? toYMD(endDate) : '',
+    totalDays: totalDays > 0 ? totalDays : 0
+  };
+}
+function computeAddonUnits(unit, totalDays) {
+  if (!totalDays || totalDays <= 0) return 0;
+  if (unit === 'week') return Math.max(1, Math.ceil(totalDays / 7));
+  if (unit === 'month') return Math.max(1, Math.ceil(totalDays / 30));
+  return Math.max(1, totalDays);
+}
+
+/* =========================================================
+   Add-ons UI (selection, pricing, availability)
+========================================================= */
+function setAddonHiddenDisabled(detailsEl, disabled) {
+  detailsEl.querySelectorAll('input[type="hidden"]').forEach(h => h.disabled = !!disabled);
+}
+function computeAddonsTotal() {
+  const selections = Object.values(window.bookingAddonSelections || {});
+  if (selections.length) {
+    const totalFromSelections = selections.reduce((sum, item) => {
+      const value = parseFloat(item?.total || 0);
+      return sum + (isNaN(value) ? 0 : value);
+    }, 0);
+    return Math.round(totalFromSelections * 100) / 100;
+  }
+  let addonTotal = 0;
+  document.querySelectorAll('.addon-card').forEach(card => {
+    const id = card.dataset.id;
+    const totalH = card.querySelector(`#addon-total-${id}`);
+    if (!totalH || totalH.disabled) return;
+    const val = parseFloat(totalH.value || '0');
+    if (!isNaN(val) && val > 0) addonTotal += val;
+  });
+  return Math.round(addonTotal * 100) / 100;
+}
+function updateSummaryAddonTotals() {
+  const total = computeAddonsTotal();
+  const summaryAddonTotal = document.getElementById('summaryAddonTotal');
+  if (summaryAddonTotal) summaryAddonTotal.textContent = money(total);
+  return total;
+}
+function enableSelectedAddonHiddenFields() {
+  document.querySelectorAll('.addon-details').forEach(details => {
+    const totalH = details.querySelector('input[id^="addon-total-"]');
+    const hiddens = details.querySelectorAll('input[type="hidden"]');
+    const total = parseFloat(totalH?.value || '0');
+    hiddens.forEach(h => { h.disabled = !(total > 0); });
+  });
+}
+window.computeAddonsTotal = computeAddonsTotal;
+window.enableSelectedAddonHiddenFields = enableSelectedAddonHiddenFields;
+const addonSelections = {};
+window.bookingAddonSelections = addonSelections;
+
+// Build per-addon behavior
+document.querySelectorAll('.addon-card').forEach(card => {
+  const addonId    = card.dataset.id;
+  const totalStock = parseInt(card.dataset.total || '0', 10);
+  const availToday = parseInt(card.dataset.available || '0', 10);
+
+  const details  = card.querySelector('.addon-details');
+  const qtySel   = details.querySelector('.addon-qty');
+  const planCards= details.querySelectorAll('.addon-type-card');
+  const badgeEl  = card.querySelector('.availability-badge');
+
+  // hidden fields
+  const typeH  = details.querySelector(`#addon-type-${addonId}`);
+  const qtyH   = details.querySelector(`#addon-quantity-${addonId}`);
+  const startH = details.querySelector(`#addon-start-${addonId}`);
+  const endH   = details.querySelector(`#addon-end-${addonId}`);
+  const extraH = details.querySelector(`#addon-extra-${addonId}`);
+  const totalH = details.querySelector(`#addon-total-${addonId}`);
+  const daysH  = details.querySelector(`#addon-days-${addonId}`);
+
+  const priceEl  = details.querySelector(`#addon-price-${addonId}`);
+  const periodEl = details.querySelector(`#addon-period-${addonId}`);
+
+  const live   = details.querySelector('.addon-live-summary');
+  const alsQty = live ? live.querySelector('.als-qty') : null;
+  const alsUnit= live ? live.querySelector('.als-unit') : null;
+  const alsTot = live ? live.querySelector('.als-total'): null;
+  const alsStart = live ? live.querySelector('.als-start') : null;
+  const alsEnd   = live ? live.querySelector('.als-end')   : null;
+  const alsLbl   = live ? live.querySelector('.als-line-1-label') : null;
+
+  let blockedRanges = [];
+  try { blockedRanges = JSON.parse(card.dataset.blocked || '[]') || []; } catch { blockedRanges = []; }
+  blockedRanges = blockedRanges.filter(r => r && r.from && r.to);
+
+  setAddonHiddenDisabled(details, true);
+  let currentCtx = null;
+
+  function setBadge(text, ok) {
+    if (!badgeEl) return;
+    badgeEl.textContent = text;
+    badgeEl.classList.remove('bg-success', 'bg-danger');
+    badgeEl.classList.add(ok ? 'bg-success' : 'bg-danger');
+  }
+  function clampQtyTo(avail, startYMD = null, endYMD = null) {
+    const prev = parseInt(qtySel.value || '0', 10);
+    const newMax = Math.max(0, avail);
+    const newVal = Math.min(prev, newMax);
+
+    // refill options 0..newMax
+    qtySel.innerHTML = '';
+    for (let i=0;i<=newMax;i++){
+      const o = document.createElement('option');
+      o.value = String(i); o.textContent = String(i);
+      qtySel.appendChild(o);
+    }
+    qtySel.disabled = (newMax <= 0);
+    qtySel.value = String(newVal);
+
+    if (startYMD && endYMD) {
+      const where = listOverlappingRanges(startYMD, endYMD, blockedRanges);
+      const blockedTxt = where.length ? `Blocked on: ${where.join(', ')}` : null;
+
+      if (newMax <= 0) {
+        notify(`noqty-${addonId}-${startYMD}-${endYMD}`, {
+          icon: 'warning',
+          title: 'Out of stock',
+          text: `${blockedTxt ? blockedTxt + '\n' : ''}Available quantity for these dates: 0.`
         });
-    </script>
+      } else if (prev > newVal) {
+        notify(`clamped-${addonId}-${startYMD}-${endYMD}`, {
+          icon: 'warning',
+          title: 'Limited availability',
+          text: `${blockedTxt ? blockedTxt + '\n' : ''}Only ${newMax} unit${newMax > 1 ? 's' : ''} are available for these dates. Your quantity was adjusted.`
+        });
+      }
+    }
+  }
+  function updateAvailabilityForDates(startYMD, endYMD) {
+    if (startYMD && endYMD) {
+      if (hasOverlap(startYMD, endYMD, blockedRanges)) {
+        setBadge('Fully booked for these dates', false);
+        clampQtyTo(0, startYMD, endYMD);
+        qtyH.value = '0';
+        const where = listOverlappingRanges(startYMD, endYMD, blockedRanges);
+        const blockedTxt = where.length ? `Blocked on: ${where.join(', ')}` : 'Some dates are unavailable.';
+        notify(`overlap-${addonId}-${startYMD}-${endYMD}`, { icon:'error', title:'Dates unavailable', text:`${blockedTxt}\nAvailable quantity for this add-on: 0.` });
+        return 0;
+      } else {
+        setBadge(`${totalStock} available for these dates`, true);
+        clampQtyTo(totalStock, startYMD, endYMD);
+        return totalStock;
+      }
+    } else {
+  setBadge('Select rental dates and quantity', false);
+  clampQtyTo(Math.max(0, availToday));
+  return availToday;
+}
 
+  }
+  function ensureActivePlan(ctx) {
+    let active = [...planCards].find(c => c.classList.contains('active'));
+    const desired = typeH.value || ctx?.unit;
+    if (!active && desired) active = [...planCards].find(c => c.dataset.type === desired);
+    if (!active) active = planCards[0];
+    if (active) {
+      planCards.forEach(c => c.classList.remove('active'));
+      active.classList.add('active');
+      typeH.value = active.dataset.type;
+    }
+    return active;
+  }
+  function updatePeriodDisplay(ctx) {
+    if (!periodEl) return;
+    if (!ctx || !ctx.startYMD || !ctx.endYMD) {
+      periodEl.textContent = 'Select your rental dates first.';
+    } else {
+      const days = ctx.totalDays || 0;
+      periodEl.textContent = `${niceDate(ctx.startYMD)} → ${niceDate(ctx.endYMD)} (${days} day${days === 1 ? '' : 's'})`;
+    }
+  }
+  function setPrice(amount) { if (priceEl) priceEl.textContent = money(amount); }
+  function removeSelection(clearPeriod) {
+    delete addonSelections[addonId];
+    totalH.value = '';
+    qtyH.value = '0';
+    if (qtySel) qtySel.value = '0';
+    if (clearPeriod) { startH.value = ''; endH.value = ''; daysH.value = '0'; }
+    setAddonHiddenDisabled(details, true);
+    setPrice(0);
+    card.classList.remove('addon-selected');
+    if (live) {
+      if (alsQty) alsQty.textContent   = '0';
+      if (alsUnit) alsUnit.textContent = money(0);
+      if (alsTot) alsTot.textContent   = money(0);
+      if (alsStart) alsStart.textContent = '-';
+      if (alsEnd)   alsEnd.textContent   = '-';
+    }
+    if (clearPeriod && periodEl) periodEl.textContent = 'Select your rental dates first.';
+    const startY = startH.value || null;
+    const endY   = endH.value || null;
+    updateAvailabilityForDates(startY, endY);
+  }
+  function updateLiveSummary(unit, ctx, unitPrice, units, quantity, total) {
+    if (!live) return;
+    const labelMap = { day: 'Days', week: 'Weeks', month: 'Months' };
+    const qtyVal = unit === 'day' ? ctx.totalDays : units;
+    if (alsLbl)  alsLbl.textContent  = labelMap[unit] || 'Units';
+    if (alsQty)  alsQty.textContent  = String(qtyVal);
+    if (alsUnit) alsUnit.textContent = money(unitPrice);
+    if (alsTot)  alsTot.textContent  = money(total);
+    if (alsStart) alsStart.textContent = ctx.startYMD ? niceDate(ctx.startYMD) : '-';
+    if (alsEnd)   alsEnd.textContent   = ctx.endYMD ? niceDate(ctx.endYMD)   : '-';
+    live.classList.remove('d-none');
+  }
+  function updateTotal() {
+    const ctx = currentCtx;
+    const activePlan = ensureActivePlan(ctx);
+    const unit = (activePlan?.dataset.type || typeH.value || 'day').toLowerCase();
+    const unitPrice = parseFloat(activePlan?.dataset.price || '0');
+    const quantity = parseInt(qtySel.value || '0', 10);
 
+  if (!ctx || !ctx.startYMD || !ctx.endYMD || !quantity) {
+  removeSelection(true);
+  updateSummaryAddonTotals();
+  return;
+}
 
+    const units = computeAddonUnits(unit, ctx.totalDays);
+    const totalPerAddon = unitPrice * units;
+    const total = Number((totalPerAddon * quantity).toFixed(2));
 
+    startH.value = ctx.startYMD;
+    endH.value   = ctx.endYMD;
+    daysH.value  = String(ctx.totalDays);
+    extraH.value = '0';
+    totalH.value = total.toFixed(2);
+    qtyH.value   = String(quantity);
+
+    setAddonHiddenDisabled(details, false);
+    setPrice(total);
+    card.classList.add('addon-selected');
+
+    addonSelections[addonId] = {
+      id: addonId, name: card.dataset.name || '', type: unit, qty: quantity,
+      unitPrice, perUnitTotal: Number((totalPerAddon).toFixed(2)),
+      total, start: ctx.startYMD, end: ctx.endYMD, days: ctx.totalDays,
+      extraDays: 0, remainderDays: 0, fullUnits: units
+    };
+
+    if (badgeEl && quantity > 0) {
+      const label = `Selected ${quantity} unit${quantity !== 1 ? 's' : ''}${totalStock ? ` (of ${totalStock})` : ''}`;
+      setBadge(label, true);
+    }
+    updateSummaryAddonTotals();
+  }
+function applyContext(ctx) {
+  currentCtx = (ctx && ctx.totalDays > 0 && ctx.startYMD && ctx.endYMD) ? ctx : null;
+
+  if (!currentCtx) {
+    startH.value = '';
+    endH.value   = '';
+    daysH.value  = '0';
+    extraH.value = '0';
+  }
+
+  ensureActivePlan(currentCtx);
+  updatePeriodDisplay(currentCtx);
+
+  // update availability for the chosen dates, but DO NOT set quantity to 1 automatically
+  const available = updateAvailabilityForDates(currentCtx?.startYMD || null, currentCtx?.endYMD || null);
+
+  // keep current quantity as-is (default 0). If it's above available, clamp it down.
+  let currentQty = parseInt(qtySel.value || '0', 10);
+  if (available >= 0 && currentQty > available) {
+    qtySel.value = String(available);
+    currentQty   = available;
+  }
+  qtyH.value = String(currentQty);
+
+  // With qty 0, this will clear selection visuals/hidden fields.
+  updateTotal();
+}
+
+  // Expand card
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.addon-details')) return;
+    details.classList.toggle('d-none');
+    if (!details.classList.contains('d-none')) applyContext(currentCtx || getRentalContext());
+  });
+  // Plan clicks
+planCards.forEach(pc => {
+  pc.addEventListener('click', (e) => {
+    e.stopPropagation();
+    planCards.forEach(c => c.classList.remove('active'));
+    pc.classList.add('active');
+    typeH.value = pc.dataset.type;
+    // do NOT auto-select quantity; user must choose it
+    updateTotal();
+  });
+});
+
+  // Qty change
+  qtySel.addEventListener('change', () => { qtyH.value = qtySel.value || '0'; updateTotal(); });
+
+  // expose for refresh
+  card.__applyRentalContext = applyContext;
+});
+
+function refreshAllAddons() {
+  const ctx = getRentalContext();
+  document.querySelectorAll('.addon-card').forEach(card => {
+    const applyCtx = card.__applyRentalContext;
+    if (typeof applyCtx === 'function') applyCtx(ctx);
+  });
+  updateSummaryAddonTotals();
+}
+['inputRentalUnit', 'inputRentalQuantity', 'inputExtraDays', 'inputRentalStartDate'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', refreshAllAddons);
+});
+document.addEventListener('rental:updated', refreshAllAddons);
+refreshAllAddons();
+
+/* =========================================================
+   Booking + Payment flow (summary, PayFast, Stripe)
+========================================================= */
+const bookingFormEl          = document.getElementById('bookingForm');
+const bookingIdField         = document.getElementById('bookingId');
+const openPaymentBtn         = document.getElementById('openPayment');
+const bookingPaymentModalEl  = document.getElementById('bookingPayment');
+const bookingStripeModalEl   = document.getElementById('bookingStripeModal');
+const bookingStripePayButton = document.getElementById('bookingStripePayButton');
+const paymentMethodInputs    = Array.from(document.querySelectorAll('input[name="booking_payment_method"]'));
+const resetPaymentSelection  = () => { paymentMethodInputs.forEach((i)=>{ i.checked=false; i.removeAttribute('checked'); }); };
+const bookingThankYouModalEl = document.getElementById('bookingThankYou');
+const tyGoHomeNowBtn         = document.getElementById('tyGoHomeNow');
+const bookingCardErrorsEl    = document.getElementById('booking-card-errors');
+let currentBookingReference  = null;
+
+if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal', resetPaymentSelection);
+
+const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
+let stripeInstance = null, stripeElements = null, stripeCardNumber=null, stripeCardExpiry=null, stripeCardCvc=null;
+
+const showPaymentLoader = (message = 'Processing payment...') => {
+  if (window.Swal) {
+    Swal.fire({ title: message, text: 'Please wait while we confirm your payment.', allowOutsideClick:false, allowEscapeKey:false, showConfirmButton:false, didOpen: () => Swal.showLoading() });
+  }
+};
+const hidePaymentLoader = () => { if (window.Swal && Swal.isVisible()) Swal.close(); };
+
+const computeGrandTotal = () => {
+  const vehicleTotal = parseFloat(document.getElementById('inputTotalPrice')?.value || '0');
+  const addonTotal   = window.computeAddonsTotal ? window.computeAddonsTotal() : 0;
+  return Math.round((vehicleTotal + addonTotal) * 100) / 100;
+};
+
+const populateThankYouModal = (methodLabel) => {
+  if (!bookingThankYouModalEl) return;
+  const tyVehicleNameEl = document.getElementById('tyVehicleName');
+  if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($vehicle->name) }}";
+
+  const periodText = document.getElementById('summaryPeriod')?.textContent?.trim() || '-';
+  const tyPeriodEl = document.getElementById('tyPeriod');
+  if (tyPeriodEl) tyPeriodEl.textContent = periodText;
+
+  const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
+  const tyReferenceEl = document.getElementById('tyReference');
+  if (tyReferenceEl) tyReferenceEl.textContent = reference;
+
+  const tyAmountEl = document.getElementById('tyAmount');
+  if (tyAmountEl) tyAmountEl.textContent = money(computeGrandTotal());
+
+  const tyMethodEl = document.getElementById('tyMethod');
+  if (tyMethodEl) tyMethodEl.textContent = methodLabel;
+
+  const tyCustomerNameEl = document.getElementById('tyCustomerName');
+  if (tyCustomerNameEl) tyCustomerNameEl.textContent = bookingFormEl?.name?.value || '-';
+
+  const contactParts = [];
+  if (bookingFormEl?.email?.value) contactParts.push(bookingFormEl.email.value);
+  if (bookingFormEl?.phone?.value) contactParts.push(bookingFormEl.phone.value);
+  const tyCustomerContactEl = document.getElementById('tyCustomerContact');
+  if (tyCustomerContactEl) tyCustomerContactEl.textContent = contactParts.join(' - ') || '-';
+};
+
+if (tyGoHomeNowBtn) {
+  tyGoHomeNowBtn.addEventListener('click', () => { window.location.href = "{{ url('/') }}"; });
+}
+if (bookingThankYouModalEl) {
+  bookingThankYouModalEl.addEventListener('hidden.bs.modal', () => { window.location.href = "{{ url('/') }}"; });
+}
+
+if (openPaymentBtn) {
+  openPaymentBtn.addEventListener('click', async () => {
+    // Ensure hidden fields of selected add-ons enabled for submit
+    if (typeof window.enableSelectedAddonHiddenFields === 'function') window.enableSelectedAddonHiddenFields();
+
+    // Create booking server-side first (AJAX) if missing
+    if (!bookingIdField?.value && bookingFormEl) {
+      const formData = new FormData(bookingFormEl);
+      try {
+        const res = await fetch(bookingFormEl.action, {
+          method: 'POST', body: formData,
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }
+        });
+        const text = await res.text(); let data;
+        try { data = JSON.parse(text); } catch { data = { success:false, message:text }; }
+        if (!res.ok || !data?.success) {
+          await SwalOk('Booking not created', data?.message || 'Failed to create booking.');
+          return;
+        }
+        bookingIdField.value = data.booking_id || data.id || '';
+        currentBookingReference = data.reference || null;
+        if (!bookingIdField.value) { await SwalOk('Missing booking ID', 'Booking was created but no identifier was returned.'); return; }
+      } catch (error) {
+        console.error(error);
+        await SwalOk('Network error', 'Unable to create booking, please try again.');
+        return;
+      }
+    }
+
+    // Hide summary and open payment
+    const summaryModal = bootstrap.Modal.getInstance(document.getElementById('summaryStep'));
+    summaryModal?.hide();
+
+    if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
+
+    const stripeRadio = document.getElementById('bookingStripe');
+    if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset.amount = String(computeGrandTotal());
+  });
+}
+
+// Payment method selection → open Stripe or redirect to PayFast
+document.addEventListener('change', async (e) => {
+  if (!(e.target && e.target.name === 'booking_payment_method')) return;
+
+  const method = e.target.value;
+  const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(bookingPaymentModalEl) : null;
+  paymentModalInstance?.hide();
+
+  const grandTotal = computeGrandTotal();
+
+  if (method === 'stripe') {
+    if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(grandTotal);
+    if (bookingStripeModalEl) new bootstrap.Modal(bookingStripeModalEl).show();
+    return;
+  }
+
+  if (method === 'payfast') {
+    const bookingId = bookingIdField?.value;
+    if (!bookingId) {
+      await SwalOk('Booking missing', 'Please create the booking first.');
+      if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
+      e.target.checked = false;
+      return;
+    }
+
+    try {
+      showPaymentLoader('Redirecting to PayFast...');
+      const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify({ booking_id: bookingId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
+
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = data.action; form.style.display = 'none';
+      Object.entries(data.fields || {}).forEach(([key, value]) => {
+        const input = document.createElement('input'); input.type = 'hidden'; input.name = key; input.value = value; form.appendChild(input);
+      });
+      document.body.appendChild(form); form.submit();
+    } catch (err) {
+      console.error(err);
+      await SwalOk('PayFast error', err.message || 'Could not redirect to PayFast.');
+      if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
+      e.target.checked = false;
+    } finally {
+      hidePaymentLoader();
+    }
+  }
+});
+
+/* Stripe Elements init */
+if (typeof Stripe !== 'undefined' && stripePublicKey) {
+  stripeInstance = Stripe(stripePublicKey);
+  stripeElements = stripeInstance.elements();
+  const stripeStyle = { base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } } };
+  stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
+  stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
+  stripeCardCvc    = stripeElements.create('cardCvc',    { style: stripeStyle });
+
+  const cardNumberMount = document.getElementById('booking-card-number');
+  const cardExpiryMount = document.getElementById('booking-card-expiry');
+  const cardCvcMount    = document.getElementById('booking-card-cvc');
+
+  if (cardNumberMount) stripeCardNumber.mount(cardNumberMount);
+  if (cardExpiryMount) stripeCardExpiry.mount(cardExpiryMount);
+  if (cardCvcMount)    stripeCardCvc.mount(cardCvcMount);
+} else if (stripePublicKey) {
+  console.warn('Stripe.js not loaded or public key missing.');
+}
+
+if (bookingStripePayButton && !stripeInstance) bookingStripePayButton.disabled = true;
+
+if (bookingStripePayButton && stripeInstance) {
+  bookingStripePayButton.addEventListener('click', async function() {
+    if (!bookingIdField?.value) { SwalOk('Booking missing', 'Please create the booking first.'); return; }
+    if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) { SwalOk('Stripe unavailable', 'Payment form is not ready yet.'); return; }
+    if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = '';
+
+    const button = this;
+    const originalText = button.textContent;
+    button.disabled = true; button.textContent = 'Processing...';
+    showPaymentLoader();
+
+    try {
+      const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
+        type: 'card', card: stripeCardNumber,
+        billing_details: { name: bookingFormEl?.name?.value || '', email: bookingFormEl?.email?.value || '' }
+      });
+      if (error) {
+        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message || 'Payment method error.';
+        hidePaymentLoader();
+        return;
+      }
+
+      const res = await fetch(`/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        body: JSON.stringify({ payment_method_id: paymentMethod.id, amount: parseFloat(button.dataset.amount || '0') })
+      });
+      const text = await res.text(); let data;
+      try { data = JSON.parse(text); } catch { data = { success:false, message:text }; }
+
+      hidePaymentLoader();
+
+      if (!res.ok || !data) {
+        await SwalOk('Payment failed', data?.message || 'Server error while processing payment.');
+        return;
+      }
+      if (data.success) {
+        bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
+        populateThankYouModal('Stripe');
+        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
+        return;
+      }
+      if (data.requires_action && data.payment_intent_client_secret) {
+        const result = await stripeInstance.confirmCardPayment(data.payment_intent_client_secret);
+        if (result.error) {
+          await SwalOk('Authentication failed', result.error.message || 'Unable to confirm your card.');
+        } else {
+          bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
+          populateThankYouModal('Stripe');
+          if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
+          return;
+        }
+      } else {
+        await SwalOk('Payment failed', data.message || 'Unable to charge your card.');
+      }
+    } catch (error) {
+      console.error(error);
+      hidePaymentLoader();
+      await SwalOk('Network error', error.message || 'Unable to reach the payment server.');
+    } finally {
+      hidePaymentLoader();
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
+}
+
+/* =========================================================
+   SUMMARY step (validation for email/phone remains)
+========================================================= */
+const goToSummaryBtn = document.getElementById('goToSummary');
+if (goToSummaryBtn) {
+  goToSummaryBtn.addEventListener('click', function() {
+    const form = document.getElementById('bookingForm');
+    const name = form.querySelector('[name="name"]');
+    const email= form.querySelector('[name="email"]');
+    const phone= form.querySelector('[name="phone"]');
+    const country=form.querySelector('[name="country"]');
+
+    const emailValue = (email.value || '').trim();
+    const phoneValue = (phone.value || '').trim();
+    email.value = emailValue; phone.value = phoneValue;
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
+
+    if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
+      notify('cust-missing', { icon:'error', title:'Missing Information', text:'Please fill all required customer details.' });
+      return;
+    }
+    if (!emailPattern.test(emailValue)) {
+      notify('cust-invalid', { icon:'error', title:'Invalid Email', text:'Enter a valid email address, e.g. you@example.com.' });
+      email.focus(); return;
+    }
+    if (!phonePattern.test(phoneValue)) {
+      notify('cust-invalid', { icon:'error', title:'Invalid Phone Number', text:'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
+      phone.focus(); return;
+    }
+
+    const unitH   = document.getElementById('inputRentalUnit');
+    const startVH = document.getElementById('inputRentalStartDate');
+    const extraVH = document.getElementById('inputExtraDays');
+    const totalVH = document.getElementById('inputTotalPrice');
+
+    const typeLabel = ({ day: 'Daily', week: 'Weekly', month: 'Monthly' })[unitH.value] || (unitH.value || '—');
+    document.getElementById('summaryType').textContent = typeLabel;
+
+    let vehiclePeriod = '';
+    if (startVH && startVH.value) {
+      vehiclePeriod = niceDate(startVH.value);
+      if (extraVH && (unitH.value === 'week' || unitH.value === 'month')) {
+        vehiclePeriod += ` + ${extraVH.value || 0} extra day(s)`;
+      }
+    }
+    document.getElementById('summaryPeriod').textContent = vehiclePeriod || '—';
+    document.getElementById('summaryVehicleTotal').textContent = money(totalVH ? totalVH.value : 0);
+
+    // add-ons list
+    let addonTotal = 0, listHtml = '';
+    document.querySelectorAll('.addon-card').forEach(card => {
+      const id = card.dataset.id;
+      const nm = card.dataset.name || 'Add-on';
+      const totalH = card.querySelector(`#addon-total-${id}`);
+      const qtyH   = card.querySelector(`#addon-quantity-${id}`);
+      const typeH  = card.querySelector(`#addon-type-${id}`);
+      const startH = card.querySelector(`#addon-start-${id}`);
+      const endH   = card.querySelector(`#addon-end-${id}`);
+      const daysH  = card.querySelector(`#addon-days-${id}`);
+      if (totalH && totalH.disabled) return;
+      const total = parseFloat(totalH?.value || '0');
+      if (total > 0) {
+        addonTotal += total;
+        listHtml += `
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <div>
+              <div class="fw-semibold">${nm}</div>
+              <div class="text-muted small">${(typeH?.value||'-').toUpperCase()} • Qty ${qtyH?.value||1} • ${niceDate(startH?.value||'')} – ${niceDate(endH?.value||'')} (${daysH?.value||0} days)</div>
+            </div>
+            <div class="fw-semibold">${money(total)}</div>
+          </div>`;
+      }
+    });
+    if (!listHtml) listHtml = '<span class="text-muted">No add-ons selected.</span>';
+    document.getElementById('summaryAddOnList').innerHTML = listHtml;
+    document.getElementById('summaryAddonTotal').textContent = money(addonTotal);
+
+    const vehicleTotal = parseFloat(totalVH?.value || '0');
+    document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal + addonTotal);
+
+    document.getElementById('summaryCustomerName').textContent    = name.value;
+    document.getElementById('summaryCustomerEmail').textContent   = email.value;
+    document.getElementById('summaryCustomerPhone').textContent   = phone.value;
+    document.getElementById('summaryCustomerCountry').textContent = country.value;
+
+    const custEl = document.getElementById('customerStep');
+    const sumEl  = document.getElementById('summaryStep');
+    (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
+    (bootstrap.Modal.getInstance(sumEl)  || new bootstrap.Modal(sumEl)).show();
+  });
+}
+
+// Ensure add-on hidden fields are enabled on actual form submit
+const formEl = document.getElementById('bookingForm');
+if (formEl) formEl.addEventListener('submit', () => { enableSelectedAddonHiddenFields(); });
+
+/* =========================================================
+   Navigation between booking modals (Back buttons)
+========================================================= */
+const addonsBackBtn   = document.getElementById('backToStep1');
+const addonsNextBtn   = document.getElementById('addonsToCustomer');
+const customerBackBtn = document.getElementById('customerBackToAddons');
+const summaryBackBtn  = document.getElementById('summaryBackToCustomer');
+const paymentBackBtn  = document.getElementById('paymentBackToSummary');
+const stripeBackBtn   = document.getElementById('stripeBackToPayment');
+
+addonsBackBtn?.addEventListener('click', (event) => { event.preventDefault(); swapModal('addonsStep','multiStepBookingModal'); });
+addonsNextBtn?.addEventListener('click', (event) => { event.preventDefault(); swapModal('addonsStep','customerStep'); });
+customerBackBtn?.addEventListener('click', (event) => { event.preventDefault(); swapModal('customerStep','addonsStep'); });
+summaryBackBtn?.addEventListener('click', (event) => { event.preventDefault(); swapModal('summaryStep','customerStep'); });
+paymentBackBtn?.addEventListener('click', (event) => { event.preventDefault(); resetPaymentSelection(); swapModal('bookingPayment','summaryStep'); });
+stripeBackBtn?.addEventListener('click', (event) => { event.preventDefault(); resetPaymentSelection(); swapModal('bookingStripeModal','bookingPayment'); });
+
+}); // DOMContentLoaded
+</script>
 

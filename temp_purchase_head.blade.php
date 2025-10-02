@@ -1,4 +1,4 @@
-ï»¿@php
+@php
     $countries = [
         'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia',
         'Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin',
@@ -82,11 +82,11 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control rounded-3" placeholder="you@example.com" inputmode="email" autocomplete="email" required pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" title="Enter a valid email address, e.g. you@example.com">
+                            <input type="email" name="email" class="form-control rounded-3" placeholder="you@example.com" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Phone</label>
-                            <input type="tel" name="phone" class="form-control rounded-3" placeholder="+27 123 456 7890" inputmode="tel" autocomplete="tel" required pattern="^\+?[0-9]{1,4}(?:[ -]?[0-9]{2,4}){2,4}$" title="Use digits with optional spaces or dashes, e.g. +27 123 456 7890">
+                            <input type="tel" name="phone" class="form-control rounded-3" placeholder="+27 123 456 7890" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Country</label>
@@ -101,7 +101,7 @@
                 </div>
                 <div class="modal-footer border-0 d-flex justify-content-between">
                     <!-- No data-bs-* here -->
-                    <button type="button" id="purchaseBackToStep1" class="btn btn-outline-secondary rounded-3">Back</button>
+                    <button type="button" id="backToStep1" class="btn btn-outline-secondary rounded-3">Back</button>
                     <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4">Continue to Payment</button>
                 </div>
             </div>
@@ -125,7 +125,6 @@
                 ]);
             });
         }
-        $settings = $paymentConfig ?? $settings;
         $enabledCount = ((bool)$settings->stripe_enabled ? 1 : 0) + ((bool)$settings->payfast_enabled ? 1 : 0);
     @endphp
 
@@ -148,7 +147,7 @@
                                 </div>
                                 <div class="purchase-pay-text">
                                     <div class="fw-bold">Stripe (Card)</div>
-                                    <small class="text-muted">Visa ï¿½ Mastercard ï¿½ Amex</small>
+                                    <small class="text-muted">Visa GÇó Mastercard GÇó Amex</small>
                                 </div>
                             </label>
                         </div>
@@ -182,7 +181,8 @@
         </div>
     </div>
 
-<!-- Step 3b: Stripe Card Input (FULL with preview) -->
+    <!-- Step 3b: Stripe Card Input -->
+   <!-- Step 3b: Stripe Card Input (FULL with preview) -->
 <div class="modal fade mt-2" id="stripePaymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content rounded-4 shadow">
@@ -277,6 +277,58 @@
             </div>
           </div>
 
+          {{-- Owner / Contact (optional) --}}
+          @if (isset($landing) &&
+              (($landing->phone_link ?? null) || ($landing->whatsapp_link ?? null) || ($landing->email_link ?? null)))
+            <div class="row mb-3">
+              <div class="col-12">
+                <div class="owner-contact-box">
+                  <div class="small text-muted mb-2">Owner / Contact us For More Information</div>
+                  <div class="contact-grid">
+                    {{-- Phone --}}
+                    <div class="contact-item text-start">
+                      @if (!empty($landing->phone_link))
+                        <a href="{{ $landing->phone_link }}" class="contact-btn contact-phone"
+                           title="{{ $landing->phone_btn_text ?? preg_replace('/^tel:/i', '', $landing->phone_link) }}"
+                           aria-label="Call">
+                          <i class="bi bi-telephone"></i>
+                        </a>
+                      @endif
+                    </div>
+                    {{-- WhatsApp --}}
+                    <div class="contact-item text-center">
+                      @if (!empty($landing->whatsapp_link))
+                        @php
+                          $waTitle = $landing->whatsapp_btn_text ??
+                                     preg_replace(
+                                       ['/^https?:\/\/wa\.me\//i','/^whatsapp:\/\/send\?phone=/i'],
+                                       '',
+                                       $landing->whatsapp_link
+                                     );
+                          $waTitle = $waTitle ?: 'WhatsApp';
+                        @endphp
+                        <a href="{{ $landing->whatsapp_link }}" class="contact-btn contact-wa"
+                           target="_blank" rel="noopener" title="{{ $waTitle }}" aria-label="WhatsApp">
+                          <i class="bi bi-whatsapp"></i>
+                        </a>
+                      @endif
+                    </div>
+                    {{-- Email --}}
+                    <div class="contact-item text-end">
+                      @if (!empty($landing->email_link))
+                        <a href="{{ $landing->email_link }}" class="contact-btn contact-mail"
+                           title="{{ $landing->email_btn_text ?? preg_replace('/^mailto:/i', '', $landing->email_link) }}"
+                           aria-label="Email">
+                          <i class="bi bi-envelope"></i>
+                        </a>
+                      @endif
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          @endif
+
           {{-- Stripe Elements --}}
           <div class="row g-2">
             <div class="col-12">
@@ -298,13 +350,12 @@
 
       <div class="modal-footer container">
         <!-- Back wired in JS with swapModal('stripePaymentModal','purchasePayment') -->
-        <button type="button" id="purchaseStripeBackToPayment" class="btn btn-outline-secondary me-auto">Back</button>
+        <button type="button" id="stripeBackToPayment" class="btn btn-outline-secondary me-auto">Back</button>
         <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Purchase Now</button>
       </div>
     </div>
   </div>
 </div>
-
 
     <!-- Step 4: Thank You -->
     <div class="modal fade" id="purchaseThankYou" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
@@ -348,7 +399,7 @@
 
 <script>
 (() => {
-  // ===== Blade ? JS values =====
+  // ===== Blade GåÆ JS values =====
   const VEHICLE_NAME    = @json($vehicle->name);
   const VEHICLE_PRICE   = {{ (float) ($vehicle->purchase_price ?? 0) }};
   const VEHICLE_DEPOSIT = {{ (float) ($vehicle->deposit_amount ?? 0) }};
@@ -361,7 +412,7 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
   focus: true,
   keyboard: true    // Esc closes too (optional)
 });
-  // Reliable modal swapper: hide current ? wait until hidden ? show next
+  // Reliable modal swapper: hide current GåÆ wait until hidden GåÆ show next
   function swapModal(fromId, toId) {
     const fromEl = document.getElementById(fromId);
     const toEl   = document.getElementById(toId);
@@ -405,13 +456,13 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
     const $ = (id) => document.getElementById(id);
     const form = $('purchaseForm');
 
-    // Step 1 ? Step 2
+    // Step 1 GåÆ Step 2
     $('purchaseStep1Next').addEventListener('click', () => swapModal('purchaseModal','purchaseCustomer'));
 
-    // Step 2 Back ? Step 1
-    $('purchaseBackToStep1').addEventListener('click', () => swapModal('purchaseCustomer','purchaseModal'));
+    // Step 2 Back GåÆ Step 1
+    $('backToStep1').addEventListener('click', () => swapModal('purchaseCustomer','purchaseModal'));
 
-    // Step 2 ? Payment (save details first)
+    // Step 2 GåÆ Payment (save details first)
     $('purchaseStep2Next').addEventListener('click', async () => {
       const name    = (form.name?.value || '').trim();
       const email   = (form.email?.value || '').trim();
@@ -426,53 +477,11 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
       try {
         const res = await fetch("{{ route('purchase.store') }}", {
           method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'Accept':'application/json',
-            'X-CSRF-TOKEN':"{{ csrf_token() }}"
-          },
+          headers:{ 'Content-Type':'application/json', 'X-CSRF-TOKEN':"{{ csrf_token() }}" },
           body: JSON.stringify({ name, email, phone, country, vehicle_id: form.vehicle_id.value, total_price: form.total_price.value })
         });
-
-        const responseText = await res.text();
-        let data = null;
-
-        if (responseText) {
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            throw new Error('Unexpected response from the server. Please try again.');
-          }
-        }
-
-        if (!res.ok) {
-          let message = 'Unable to save details.';
-          if (data) {
-            if (typeof data.message === 'string' && data.message.trim().length) {
-              message = data.message;
-            }
-            if (data.errors && typeof data.errors === 'object') {
-              for (const key of Object.keys(data.errors)) {
-                const rawMessages = data.errors[key];
-                const messages = Array.isArray(rawMessages) ? rawMessages : [rawMessages];
-                const firstMessage = messages.find((entry) => typeof entry === 'string' && entry.trim().length);
-                if (firstMessage) {
-                  message = firstMessage;
-                  break;
-                }
-              }
-            }
-          }
-          throw new Error(message);
-        }
-
-        if (!data) {
-          throw new Error('Unexpected response from the server. Please try again.');
-        }
-
-        if (!data.success) {
-          throw new Error(data.message || 'Unable to save details.');
-        }
+        const data = await res.json();
+        if (!res.ok || !data?.success) throw new Error(data?.message || 'Unable to save details.');
 
         let hid = form.querySelector('input[name="purchase_id"]');
         if (!hid) { hid = document.createElement('input'); hid.type='hidden'; hid.name='purchase_id'; form.appendChild(hid); }
@@ -484,7 +493,7 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
       }
     });
 
-    // Payment Back ? Customer
+    // Payment Back GåÆ Customer
     $('backToCustomer').addEventListener('click', () => swapModal('purchasePayment','purchaseCustomer'));
 
     // Reset radios each time Payment opens
@@ -560,8 +569,8 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
       });
     });
 
-    // Stripe Back ? Payment
-    $('purchaseStripeBackToPayment').addEventListener('click', () => swapModal('stripePaymentModal','purchasePayment'));
+    // Stripe Back GåÆ Payment
+    $('stripeBackToPayment').addEventListener('click', () => swapModal('stripePaymentModal','purchasePayment'));
 
     // Stripe purchase
     $('purchaseStripePayButton').addEventListener('click', async () => {
@@ -651,6 +660,4 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
   });
 })();
 </script>
-
-
 

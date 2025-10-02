@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\PayfastSetting;
 use Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Str;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
@@ -25,44 +26,79 @@ class PurchaseController extends Controller
     /**
      * Store a new purchase
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:50',
-            'country' => 'required|string|max:100',
-            'total_price' => 'required|numeric|min:0',
-            'payment_method' => 'nullable|string|max:255',
-            'deposit_paid' => 'nullable|numeric|min:0',
-        ]);
+   public function store(Request $request)
+{
+    try {
+        // 1) Normalize phone (strip spaces/dashes/() but keep a leading '+')
+        $cleanPhone = preg_replace('/[^\d+]/', '', (string) $request->input('phone', ''));
+        // Convert leading 00 to +
+        $cleanPhone = preg_replace('/^00/', '+', $cleanPhone);
+        $request->merge(['phone' => $cleanPhone]);
 
-        // Create or find the customer
-        $customer = Customer::firstOrCreate(
-            ['email' => $request->email],
+        // 2) Validate (E.164-ish: optional +, then 8–15 digits; first digit after + must be 1–9)
+        $validator = \Validator::make(
+            $request->all(),
             [
-                'name' => $request->name,
-                'phone' => $request->phone,
-                'country' => $request->country,
+                'vehicle_id'     => 'required|exists:vehicles,id',
+                'name'           => 'required|string|max:255',
+                'email'          => 'required|string|email:rfc,filter|max:255',
+                'phone'          => ['required', 'regex:/^\+?[1-9]\d{7,14}$/'],
+                'country'        => 'required|string|max:100',
+                'total_price'    => 'required|numeric|min:0',
+                'payment_method' => 'nullable|string|max:255',
+                'deposit_paid'   => 'nullable|numeric|min:0',
+            ],
+            [
+                'phone.regex' => 'Enter a valid international phone number (e.g., +27821234567).',
+                'email.email' => 'Enter a valid email address.',
             ]
         );
 
-        // Create the purchase
-        $purchase = Purchase::create([
-            'customer_id' => $customer->id,
-            'vehicle_id' => $request->vehicle_id,
-            'total_price' => $request->total_price,
-            'payment_method' => $request->payment_method,
-            'deposit_paid' => $request->deposit_paid ?? 0,
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The provided details are invalid.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // 3) Create or update customer by email
+        $customer = \App\Models\Customer::updateOrCreate(
+            ['email' => $validated['email']],
+            [
+                'name'    => $validated['name'],
+                'phone'   => $validated['phone'],   // normalized phone
+                'country' => $validated['country'],
+            ]
+        );
+
+        // 4) Create purchase
+        $purchase = \App\Models\Purchase::create([
+            'customer_id'   => $customer->id,
+            'vehicle_id'    => $validated['vehicle_id'],
+            'total_price'   => $validated['total_price'],
+            'payment_method'=> $validated['payment_method'] ?? null,
+            'deposit_paid'  => $validated['deposit_paid'] ?? 0,
+            // Optionally set defaults:
+            // 'payment_status' => 'pending',
         ]);
 
+        // 5) Return success JSON
         return response()->json([
-            'success' => true,
+            'success'     => true,
             'purchase_id' => $purchase->id,
-            'message' => 'Purchase saved successfully.'
+            'message'     => 'Purchase saved successfully.',
         ]);
+    } catch (\Throwable $e) {
+        \Log::error('Purchase store failed', ['error' => $e->getMessage()]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Something went wrong while saving your details.',
+        ], 500);
     }
+}
 
 
     /**
@@ -355,7 +391,7 @@ public function payfastCancel(Request $request)
 
 public function payfastNotify(Request $request)
 {
-Log::info('ITN HIT', $request->all());
+Log::info('ITN HIT',    $request->all());
 
     $purchaseId = $request->input('custom_str1');
     $purchase   = \App\Models\Purchase::with(['vehicle','customer'])->find($purchaseId);
@@ -409,3 +445,6 @@ Log::info('ITN HIT', $request->all());
 // php artisan tinker
 // >>> (new \App\Http\Controllers\PurchaseController)->configureMailerFromSettings();
 // >>> Mail::raw('SMTP OK', fn($m) => $m->to('you@example.com')->subject('Ping'));
+
+
+
