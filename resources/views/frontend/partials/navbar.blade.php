@@ -12,15 +12,15 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarResponsive">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0" >
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link fw-semibold px-3" href="#home-section">Home</a>
+                    <a class="nav-link fw-semibold px-3" href="{{ url('/#home-section') }}">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-semibold px-3" href="#vehicles-section">Vehicles</a>
+                    <a class="nav-link fw-semibold px-3" href="{{ url('/#vehicles-section') }}">Vehicles</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-semibold px-3" href="#contact-section">Contact</a>
+                    <a class="nav-link fw-semibold px-3" href="{{ url('/#contact-section') }}">Contact</a>
                 </li>
             </ul>
         </div>
@@ -28,61 +28,69 @@
 </nav>
 
 <style>
-/* Inactive links */
-.navbar-dark .navbar-nav .nav-link {
-    color: #CF9B4D; /* yellow */
-    position: relative;
-    font-weight: 500;
-    transition: color 0.3s, transform 0.3s;
-}
+    /* Inactive links */
+    .navbar-dark .navbar-nav .nav-link {
+        color: #CF9B4D;
+        /* yellow */
+        position: relative;
+        font-weight: 500;
+        transition: color 0.3s, transform 0.3s;
+    }
 
 
 
 
-.navbar-dark .navbar-nav .nav-link:hover::after {
-    width: 100%;
-}
+    .navbar-dark .navbar-nav .nav-link:hover::after {
+        width: 100%;
+    }
 
-/* Active link */
-.navbar-dark .navbar-nav .nav-link.active {
-    color: #fff !important;
-}
-
-
-
-
+    /* Active link */
+    .navbar-dark .navbar-nav .nav-link.active {
+        color: #fff !important;
+    }
 </style>
 
 
 <!-- JS to highlight navbar links on scroll -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const sections = document.querySelectorAll('section[id]');
-    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+    document.addEventListener('DOMContentLoaded', function() {
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
 
-    function setActiveLink() {
-        let current = sections[0].id; // default to first section
-        const scrollMiddle = window.scrollY + window.innerHeight / 2;
+        function setActiveLink() {
+            let current = sections[0].id; // default to first section
+            const scrollMiddle = window.scrollY + window.innerHeight / 2;
 
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionBottom = sectionTop + section.offsetHeight;
-            if (scrollMiddle >= sectionTop && scrollMiddle <= sectionBottom) {
-                current = section.getAttribute('id');
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionBottom = sectionTop + section.offsetHeight;
+                if (scrollMiddle >= sectionTop && scrollMiddle <= sectionBottom) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                const linkHash = new URL(link.href).hash; // FIX: get only the #hash
+                if (linkHash === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', setActiveLink);
+        window.addEventListener('resize', setActiveLink);
+        setActiveLink(); // initial call
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.location.hash) {
+            const section = document.querySelector(window.location.hash);
+            if (section) {
+                section.scrollIntoView({
+                    behavior: "smooth"
+                });
             }
-        });
-
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === '#' + current) {
-                link.classList.add('active');
-            }
-        });
-    }
-
-    window.addEventListener('scroll', setActiveLink);
-    window.addEventListener('resize', setActiveLink);
-    setActiveLink(); // initial call
-});
+        }
+    });
 </script>
-

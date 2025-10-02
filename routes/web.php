@@ -27,13 +27,15 @@ Route::get('/fleet/{vehicle}', [VehicleController::class, 'view'])
 
 Route::get('/home', function () {
     return redirect()->route('admin.dashboard.index');
+})->name('home');
+
+Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['auth']], function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 });
 
 Route::group(['middleware' => ['auth']], function () {
 
-    Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
-        Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
-    });
+
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
@@ -55,9 +57,9 @@ Route::group([
     Route::put('/{vehicle}', [VehicleController::class, 'update'])->name('update');
     Route::get('/{vehicle}', [VehicleController::class, 'show'])->name('show');
     Route::delete('/{vehicle}', [VehicleController::class, 'destroy'])->name('destroy');
-Route::post('/{vehicle}/bookings', [VehicleController::class, 'storeBooking'])->name('bookings.store');
-Route::delete('/{vehicle}/bookings/{booking}', [VehicleController::class, 'destroyBooking'])
-    ->name('bookings.destroy');
+    Route::post('/{vehicle}/bookings', [VehicleController::class, 'storeBooking'])->name('bookings.store');
+    Route::delete('/{vehicle}/bookings/{booking}', [VehicleController::class, 'destroyBooking'])
+        ->name('bookings.destroy');
 
 });
 
@@ -80,7 +82,7 @@ Route::group([
     Route::get('/{addon}/reservations', [AddOnInventryController::class, 'view'])->name('view');
 
     Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy')
-         ->whereNumber('addon'); // optional, keeps it from matching 'create'
+        ->whereNumber('addon'); // optional, keeps it from matching 'create'
 });
 
 
@@ -127,7 +129,7 @@ Route::group([
     'as' => 'bookings.'
 ], function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
-        Route::get('bookings/{booking}', [BookingController::class, 'show'])->name('show');
+    Route::get('bookings/{booking}', [BookingController::class, 'show'])->name('show');
 
 });
 
@@ -183,11 +185,11 @@ Route::post('/purchase/{purchase}/payfast/init', [PurchaseController::class, 'in
     ->name('purchase.payfast.init');
 
 // Return URL after successful payment
-Route::match(['GET','POST'], '/payment/success', [PurchaseController::class, 'payfastReturn'])
+Route::match(['GET', 'POST'], '/payment/success', [PurchaseController::class, 'payfastReturn'])
     ->name('payfast.return');
 
 // Cancel URL if user cancels
-Route::match(['GET','POST'], '/payment/cancel', [PurchaseController::class, 'payfastCancel'])
+Route::match(['GET', 'POST'], '/payment/cancel', [PurchaseController::class, 'payfastCancel'])
     ->name('payfast.cancel');
 
 Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNotify'])
@@ -195,8 +197,8 @@ Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNoti
 
 
 
-    //FOR BOOKING PAYFAST
-    Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
+//FOR BOOKING PAYFAST
+Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
 Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
 Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])->name('payfast.booking.return');
 Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
