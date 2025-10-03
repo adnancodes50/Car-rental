@@ -148,7 +148,7 @@
                                 </div>
                                 <div class="purchase-pay-text">
                                     <div class="fw-bold">Stripe (Card)</div>
-                                    <small class="text-muted">Visa � Mastercard � Amex</small>
+                                    <small class="text-muted">Visa . Mastercard . Amex</small>
                                 </div>
                             </label>
                         </div>
@@ -354,6 +354,18 @@
   const VEHICLE_DEPOSIT = {{ (float) ($vehicle->deposit_amount ?? 0) }};
   const ZAR             = new Intl.NumberFormat('en-ZA', { style:'currency', currency:'ZAR' });
   const WHATSAPP_LINK   = "https://wa.link/koo7b6";
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
+
+function notify(key, { icon = 'error', title = 'Invalid input', text = '' }) {
+  // tiny debounce (optional)
+  window.__deb ||= new Map();
+  const now = Date.now(), last = window.__deb.get(key) || 0;
+  if (now - last < 600) return;
+  window.__deb.set(key, now);
+  if (window.Swal?.fire) Swal.fire({ icon, title, text, confirmButtonText:'OK' });
+  else alert(`${title}\n\n${text}`);
+}
 
   // Modal helper (force no backdrop)
 const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
@@ -412,77 +424,60 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
     $('purchaseBackToStep1').addEventListener('click', () => swapModal('purchaseCustomer','purchaseModal'));
 
     // Step 2 ? Payment (save details first)
-    $('purchaseStep2Next').addEventListener('click', async () => {
-      const name    = (form.name?.value || '').trim();
-      const email   = (form.email?.value || '').trim();
-      const phone   = (form.phone?.value || '').trim();
-      const country = form.country?.value;
+   $('purchaseStep2Next').addEventListener('click', async () => {
+  const nameEl  = form.name;
+  const emailEl = form.email;
+  const phoneEl = form.phone;
+  const ctryEl  = form.country;
 
-      if (!name || !email || !phone || !country) {
-        Swal.fire({ icon:'error', title:'Missing Information', text:'Please fill in all required customer details.' });
-        return;
-      }
+  const name    = (nameEl?.value || '').trim();
+  const email   = (emailEl?.value || '').trim();
+  const phone   = (phoneEl?.value || '').trim();
+  const country = (ctryEl?.value || '').trim();
 
-      try {
-        const res = await fetch("{{ route('purchase.store') }}", {
-          method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'Accept':'application/json',
-            'X-CSRF-TOKEN':"{{ csrf_token() }}"
-          },
-          body: JSON.stringify({ name, email, phone, country, vehicle_id: form.vehicle_id.value, total_price: form.total_price.value })
-        });
+  if (!name || !email || !phone || !country) {
+    notify('purch-missing', { title:'Missing Information', text:'Please fill in all required customer details.' });
+    return;
+  }
+  if (!emailPattern.test(email)) {
+    notify('purch-email', { title:'Invalid Email', text:'Enter a valid email address, e.g. you@example.com.' });
+    emailEl?.focus(); return;
+  }
+  if (!phonePattern.test(phone)) {
+    notify('purch-phone', { title:'Invalid Phone Number', text:'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
+    phoneEl?.focus(); return;
+  }
 
-        const responseText = await res.text();
-        let data = null;
+  // normalize before sending
+  if (emailEl) emailEl.value = email;
+  if (phoneEl) phoneEl.value = phone;
 
-        if (responseText) {
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            throw new Error('Unexpected response from the server. Please try again.');
-          }
-        }
-
-        if (!res.ok) {
-          let message = 'Unable to save details.';
-          if (data) {
-            if (typeof data.message === 'string' && data.message.trim().length) {
-              message = data.message;
-            }
-            if (data.errors && typeof data.errors === 'object') {
-              for (const key of Object.keys(data.errors)) {
-                const rawMessages = data.errors[key];
-                const messages = Array.isArray(rawMessages) ? rawMessages : [rawMessages];
-                const firstMessage = messages.find((entry) => typeof entry === 'string' && entry.trim().length);
-                if (firstMessage) {
-                  message = firstMessage;
-                  break;
-                }
-              }
-            }
-          }
-          throw new Error(message);
-        }
-
-        if (!data) {
-          throw new Error('Unexpected response from the server. Please try again.');
-        }
-
-        if (!data.success) {
-          throw new Error(data.message || 'Unable to save details.');
-        }
-
-        let hid = form.querySelector('input[name="purchase_id"]');
-        if (!hid) { hid = document.createElement('input'); hid.type='hidden'; hid.name='purchase_id'; form.appendChild(hid); }
-        hid.value = data.purchase_id;
-
-        swapModal('purchaseCustomer','purchasePayment');
-      } catch (e) {
-        Swal.fire({ icon:'error', title:'Error', text:e.message || 'Network error.' });
-      }
+  // … proceed with your existing fetch to {{ route('purchase.store') }}
+  try {
+    const res = await fetch("{{ route('purchase.store') }}", {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        'X-CSRF-TOKEN':"{{ csrf_token() }}"
+      },
+      body: JSON.stringify({
+        name, email, phone, country,
+        vehicle_id: form.vehicle_id.value,
+        total_price: form.total_price.value
+      })
     });
+    const data = await res.json();
+    if (!res.ok || !data?.success) throw new Error(data?.message || 'Unable to save details.');
+    let hid = form.querySelector('input[name="purchase_id"]');
+    if (!hid) { hid = document.createElement('input'); hid.type='hidden'; hid.name='purchase_id'; form.appendChild(hid); }
+    hid.value = data.purchase_id;
+
+    swapModal('purchaseCustomer','purchasePayment');
+  } catch (e) {
+    Swal.fire({ icon:'error', title:'Error', text:e.message || 'Network error.' });
+  }
+});
 
     // Payment Back ? Customer
     $('backToCustomer').addEventListener('click', () => swapModal('purchasePayment','purchaseCustomer'));
