@@ -348,10 +348,29 @@ return [
         //     'url' => 'admin/settings',
         //     'icon' => 'fas fa-fw fa-lock',
         // ],
+       [
+    'text' => 'Dashboard',
+    'url'  => '/home', // Use named route
+    'icon' => 'fas fa-tachometer-alt fa-lg text-success', // Big blue car icon
+],
+
+
+
+   [
+    'text' => 'Caregorys',
+    'url'  => '/categories', // Use named route
+    'icon' => 'fas fa-circle-notch fa-2x text-success', // Big blue car icon
+],
+
         [
         'text' => 'Vehicles',
         'url'  => '/vehicles',
         'icon' => 'fas fa-car fa-lg text-primary', // Big car icon in blue
+    ],
+      [
+        'text' => 'Locations',
+        'url'  => '/locations',
+        'icon' => 'fas fa-map-marker-alt fa-lg text-danger',
     ],
     [
         'text' => 'Landing Page',

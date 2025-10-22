@@ -18,6 +18,8 @@ use App\Http\Controllers\PaymentSettingsController;
 use App\Http\Controllers\StripeSettingController;
 use App\Http\Controllers\PayfastSettingController;
 use App\Http\Controllers\SystemSettingController;
+use App\Http\Controllers\LocationsController;
+use App\Http\Controllers\CategoryController;
 
 
 
@@ -124,6 +126,49 @@ Route::group([
     Route::get('/{id}/edit', [EmailTempleteController::class, 'edit'])->name('edit');
     Route::put('/{id}', [EmailTempleteController::class, 'update'])->name('update');
 });
+
+
+
+
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix'     => 'locations',
+    'as'         => 'locations.',
+], function () {
+    // Index
+    Route::get('/', [LocationsController::class, 'index'])->name('index');
+
+    // Create
+    Route::get('/create', [LocationsController::class, 'create'])->name('create');
+    Route::post('/', [LocationsController::class, 'store'])->name('store');
+
+    // Edit / Update
+    Route::get('/{location}/edit', [LocationsController::class, 'edit'])->name('edit');
+    Route::put('/{location}', [LocationsController::class, 'update'])->name('update');
+    Route::patch('/{location}', [LocationsController::class, 'update'])->name('update.partial'); // optional
+
+    // Delete
+    Route::delete('/{location}', [LocationsController::class, 'destroy'])->name('destroy');
+});
+
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix'     => 'categories',
+    'as'         => 'categories.',
+], function () {
+
+    Route::get('/', [CategoryController::class, 'index'])->name('index');
+});
+
+
+
+
+
+
 
 
 Route::group([
