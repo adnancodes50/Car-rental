@@ -91,23 +91,26 @@ Route::group([
 
 
 
+// use App\Http\Controllers\CustomerController;
 
 Route::group([
     'middleware' => ['auth'],
     'prefix' => 'customers',
     'as' => 'customers.'
 ], function () {
-
-    // Customer Dashboard/List
-    // Blade icon example: <i class="ri-user-line"></i>
     Route::get('/', [CustomerController::class, 'index'])->name('index');
     Route::get('/{id}', [CustomerController::class, 'getCustomerDetails'])->name('details');
     Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
+    Route::patch('/{id}', [CustomerController::class, 'update'])->name('update');
 
+    // ✅ Booking status update (keep same)
+    Route::patch('/bookings/{booking}/status', [CustomerController::class, 'updateBookingStatus'])
+        ->name('bookings.updateStatus');
+
+    // ✅ NEW — Booking dates update only
+    Route::patch('/bookings/{booking}/dates', [CustomerController::class, 'updateBookingDates'])
+        ->name('bookings.updateDates');
 });
-
-
-
 
 
 Route::group([
@@ -171,6 +174,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
 
 //frontend booking and purchase routes
+Route::post('/bookings/addon-availability', [BookingController::class, 'addonAvailability'])
+    ->name('bookings.addon-availability');
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
 Route::post('/bookings/{booking}/pay-with-stripe', [BookingController::class, 'payWithStripe'])
     ->name('bookings.pay.stripe');
@@ -204,7 +209,6 @@ Route::get('/payfast/booking/return', [BookingController::class, 'payfastBooking
 Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
 
 require __DIR__ . '/auth.php';
-
 
 
 

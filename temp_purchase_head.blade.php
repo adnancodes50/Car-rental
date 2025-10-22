@@ -147,7 +147,7 @@
                                 </div>
                                 <div class="purchase-pay-text">
                                     <div class="fw-bold">Stripe (Card)</div>
-                                    <small class="text-muted">Visa GÇó Mastercard GÇó Amex</small>
+                                    <small class="text-muted">Visa Gï¿½ï¿½ Mastercard Gï¿½ï¿½ Amex</small>
                                 </div>
                             </label>
                         </div>
@@ -399,12 +399,12 @@
 
 <script>
 (() => {
-  // ===== Blade GåÆ JS values =====
+  // ===== Blade Gï¿½ï¿½ JS values =====
   const VEHICLE_NAME    = @json($vehicle->name);
   const VEHICLE_PRICE   = {{ (float) ($vehicle->purchase_price ?? 0) }};
   const VEHICLE_DEPOSIT = {{ (float) ($vehicle->deposit_amount ?? 0) }};
   const ZAR             = new Intl.NumberFormat('en-ZA', { style:'currency', currency:'ZAR' });
-  const WHATSAPP_LINK   = "https://wa.link/koo7b6";
+  const WHATSAPP_LINK   = "https://wa.link/8bgpe5";
 
   // Modal helper (force no backdrop)
 const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
@@ -412,7 +412,7 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
   focus: true,
   keyboard: true    // Esc closes too (optional)
 });
-  // Reliable modal swapper: hide current GåÆ wait until hidden GåÆ show next
+  // Reliable modal swapper: hide current Gï¿½ï¿½ wait until hidden Gï¿½ï¿½ show next
   function swapModal(fromId, toId) {
     const fromEl = document.getElementById(fromId);
     const toEl   = document.getElementById(toId);
@@ -456,13 +456,13 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
     const $ = (id) => document.getElementById(id);
     const form = $('purchaseForm');
 
-    // Step 1 GåÆ Step 2
+    // Step 1 Gï¿½ï¿½ Step 2
     $('purchaseStep1Next').addEventListener('click', () => swapModal('purchaseModal','purchaseCustomer'));
 
-    // Step 2 Back GåÆ Step 1
+    // Step 2 Back Gï¿½ï¿½ Step 1
     $('backToStep1').addEventListener('click', () => swapModal('purchaseCustomer','purchaseModal'));
 
-    // Step 2 GåÆ Payment (save details first)
+    // Step 2 Gï¿½ï¿½ Payment (save details first)
     $('purchaseStep2Next').addEventListener('click', async () => {
       const name    = (form.name?.value || '').trim();
       const email   = (form.email?.value || '').trim();
@@ -493,7 +493,7 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
       }
     });
 
-    // Payment Back GåÆ Customer
+    // Payment Back Gï¿½ï¿½ Customer
     $('backToCustomer').addEventListener('click', () => swapModal('purchasePayment','purchaseCustomer'));
 
     // Reset radios each time Payment opens
@@ -569,7 +569,7 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
       });
     });
 
-    // Stripe Back GåÆ Payment
+    // Stripe Back Gï¿½ï¿½ Payment
     $('stripeBackToPayment').addEventListener('click', () => swapModal('stripePaymentModal','purchasePayment'));
 
     // Stripe purchase

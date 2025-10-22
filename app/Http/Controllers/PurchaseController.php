@@ -10,6 +10,7 @@ use Log;
 use Illuminate\Support\Facades\Schema;
 use Str;
 use Stripe\Stripe;
+use App\Models\Vehicles;
 use Stripe\PaymentIntent;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PurchaseReceipt;
@@ -25,9 +26,9 @@ class PurchaseController extends Controller
     /**
      * Store a new purchase
      */
-  public function store(Request $request)
+public function store(Request $request)
 {
-    // ✅ Same validation style as Booking (email:rfc,filter + phone regex)
+    // ✅ Validate inputs
     $validated = $request->validate([
         'vehicle_id'     => ['required','exists:vehicles,id'],
         'name'           => ['required','string','max:255'],
@@ -35,15 +36,28 @@ class PurchaseController extends Controller
         'phone'          => ['required','regex:/^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/'],
         'country'        => ['required','string','max:100'],
 
+        // client can send these, but we won't trust the price field
         'total_price'    => ['required','numeric','min:0'],
         'payment_method' => ['nullable','string','max:255'],
         'deposit_paid'   => ['nullable','numeric','min:0'],
     ], [
-        // Nice message like in booking flow
-        'phone.regex'    => 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.',
+        'phone.regex' => 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.',
     ]);
 
-    // ✅ Same customer creation logic as Booking (prefer email, fallback to phone)
+    // ✅ Load vehicle and block if sold
+    $vehicle = Vehicles::findOrFail($validated['vehicle_id']);
+    if (($vehicle->status ?? null) === 'sold') {
+        return response()->json([
+            'success' => false,
+            'message' => 'This vehicle has already been sold.',
+        ], 422);
+    }
+
+    // ✅ Use server-side prices to avoid tampering
+    $serverTotalPrice = (float) ($vehicle->purchase_price ?? 0);
+    $serverDeposit    = (float) ($vehicle->deposit_amount ?? 0);
+
+    // ✅ Create / find customer (prefer email, fallback to phone)
     if (!empty($validated['email'])) {
         $customer = Customer::firstOrCreate(
             ['email' => $validated['email']],
@@ -63,7 +77,7 @@ class PurchaseController extends Controller
             ]
         );
     } else {
-        // Fallback (shouldn’t hit because both are required above)
+        // Defensive fallback (shouldn’t hit due to validation)
         $customer = Customer::create([
             'name'    => $validated['name'],
             'email'   => $validated['email'] ?? null,
@@ -72,13 +86,16 @@ class PurchaseController extends Controller
         ]);
     }
 
-    // Create the purchase
+    // ✅ Create purchase (mark pending until Stripe/PayFast completes)
     $purchase = Purchase::create([
         'customer_id'    => $customer->id,
-        'vehicle_id'     => $validated['vehicle_id'],
-        'total_price'    => (float) $validated['total_price'],
+        'vehicle_id'     => $vehicle->id,
+        'total_price'    => $serverTotalPrice,                  // trust server
         'payment_method' => $validated['payment_method'] ?? null,
         'deposit_paid'   => (float) ($validated['deposit_paid'] ?? 0),
+        'payment_status' => 'pending',                          // clearer state
+        // Optional: seed expected deposit to help PayFast/Stripe flows later
+        'deposit_expected'=> $serverDeposit > 0 ? $serverDeposit : null,
     ]);
 
     return response()->json([
@@ -87,6 +104,7 @@ class PurchaseController extends Controller
         'message'     => 'Purchase saved successfully.',
     ]);
 }
+
 
 
 

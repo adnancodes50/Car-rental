@@ -47,4 +47,5 @@ class Booking extends Model
                     ->withPivot('qty', 'price_total')
                     ->withTimestamps();
     }
+    
 }

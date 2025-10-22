@@ -280,6 +280,8 @@
             })();
             const inputTotalPrice = document.getElementById("inputTotalPrice");
             const bookingIdField = document.getElementById("bookingId");
+            const openPaymentBtn = document.getElementById("openPayment");
+            let bookingCreationInFlight = false;
 
             // Summary
             const summaryType = document.getElementById("summaryType");
@@ -524,64 +526,96 @@
 
             /* ------------------- Payment modals & flow --------------------- */
             // Create booking then open payment method modal
-            document.getElementById('openPayment').addEventListener('click', async function() {
-                // ensure add-on hidden fields are enabled for POST
-                if (window.enableSelectedAddonHiddenFields) window.enableSelectedAddonHiddenFields();
+            if (openPaymentBtn) {
+                const openPaymentDefaultLabel = (openPaymentBtn.textContent || '').trim() || 'Continue to Payment';
+                openPaymentBtn.dataset.originalLabel = openPaymentDefaultLabel;
 
-                if (!bookingIdField.value) {
-                    const bookingForm = document.getElementById('bookingForm');
-                    const formData = new FormData(bookingForm);
-                    try {
-                        const res = await fetch(bookingForm.action, {
-                            method: "POST",
-                            body: formData,
-                            headers: {
-                                "X-Requested-With": "XMLHttpRequest",
-                                "X-CSRF-TOKEN": document.querySelector(
-                                    'meta[name="csrf-token"]').getAttribute("content")
-                            }
-                        });
-                        const text = await res.text();
-                        let data;
-                        try {
-                            data = JSON.parse(text);
-                        } catch {
-                            data = {
-                                success: false,
-                                message: text
-                            };
-                        }
-
-                        if (!res.ok || !data.success) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Oops...',
-                                text: data.message || 'Failed to create booking.'
-                            });
-                            return;
-                        }
-                        bookingIdField.value = data.booking_id || data.id;
-                        if (!bookingIdField.value) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Oops...',
-                                text: 'Booking created but no ID returned.'
-                            });
-                            return;
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops...',
-                            text: 'Network error while creating booking.'
-                        });
-                        return;
+                const setOpenPaymentLoading = (isLoading) => {
+                    if (isLoading) {
+                        openPaymentBtn.disabled = true;
+                        openPaymentBtn.textContent = 'Preparing booking...';
+                    } else {
+                        openPaymentBtn.disabled = false;
+                        openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel || openPaymentDefaultLabel;
                     }
-                }
-                bootstrap.Modal.getInstance(document.getElementById("summaryStep"))?.hide();
-                new bootstrap.Modal(document.getElementById("bookingPayment")).show();
-            });
+                };
+
+                openPaymentBtn.addEventListener('click', async function() {
+                    if (window.enableSelectedAddonHiddenFields) window.enableSelectedAddonHiddenFields();
+
+                    if (bookingCreationInFlight) return;
+
+                    if (!bookingIdField.value) {
+                        bookingCreationInFlight = true;
+                        setOpenPaymentLoading(true);
+
+                        const bookingForm = document.getElementById('bookingForm');
+                        const formData = new FormData(bookingForm);
+                        if (!bookingIdField.value) {
+                            formData.delete('booking_id');
+                        }
+
+                        let creationFailed = false;
+                        try {
+                            const res = await fetch(bookingForm.action, {
+                                method: "POST",
+                                body: formData,
+                                headers: {
+                                    "X-Requested-With": "XMLHttpRequest",
+                                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+                                }
+                            });
+                            const text = await res.text();
+                            let data;
+                            try {
+                                data = JSON.parse(text);
+                            } catch {
+                                data = {
+                                    success: false,
+                                    message: text
+                                };
+                            }
+
+                            if (!res.ok || !data.success) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Oops...',
+                                    text: data.message || 'Failed to create booking.'
+                                });
+                                creationFailed = true;
+                            } else {
+                                bookingIdField.value = data.booking_id || data.id;
+                                if (!bookingIdField.value) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Oops...',
+                                        text: 'Booking created but no ID returned.'
+                                    });
+                                    creationFailed = true;
+                                }
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: 'Network error while creating booking.'
+                            });
+                            creationFailed = true;
+                        } finally {
+                            bookingCreationInFlight = false;
+                            setOpenPaymentLoading(false);
+                        }
+
+                        if (creationFailed) return;
+                    }
+
+                    if (!bookingIdField.value) return;
+
+                    bootstrap.Modal.getInstance(document.getElementById("summaryStep"))?.hide();
+                    new bootstrap.Modal(document.getElementById("bookingPayment")).show();
+                });
+            }
 
             // Choose payment method (Stripe / PayFast)
             document.addEventListener('change', async function(e) {

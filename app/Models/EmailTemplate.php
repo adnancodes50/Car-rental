@@ -22,13 +22,14 @@ class EmailTemplate extends Model
     /**
      * Quick helper: fetch a template by trigger & recipient.
      */
-    public static function for(string $trigger, string $recipient): ?self
-    {
-        return self::where('trigger', $trigger)
-            ->where('recipient', $recipient)
-            ->where('enabled', true)
-            ->first();
-    }
+    public static function for(string $trigger, string $recipient)
+{
+    return self::where('trigger', $trigger)
+               ->where('recipient', $recipient)
+               ->where('enabled', 1)
+               ->first();
+}
+
 
     /**
      * Replace placeholders (e.g. {{customer_name}}) with data.

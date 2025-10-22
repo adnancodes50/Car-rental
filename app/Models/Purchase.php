@@ -25,12 +25,14 @@ class Purchase extends Model
     /**
      * Get the vehicle associated with the purchase
      */
-    public function vehicle()
-    {
-        return $this->belongsTo(Vehicles::class);
-    }
+   // app/Models/Purchase.php
+public function vehicle()
+{
+    return $this->belongsTo(\App\Models\Vehicles::class, 'vehicle_id');
+}
 
- 
+
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);

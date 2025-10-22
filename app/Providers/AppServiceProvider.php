@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Schema; // Add this import
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Add this line at the very start of the boot method
+        Schema::defaultStringLength(191);
+
         // Custom blade directive
         Blade::if('permission', function (string $permissionName) {
 

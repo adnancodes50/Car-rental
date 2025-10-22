@@ -9,20 +9,20 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Storage;
 use App\Models\AdminBooking;
+use Illuminate\Support\Facades\DB;        // ✅ correct
 
 class VehicleController extends Controller
 {
 
     public function frontendIndex()
-    {
-        $vehicles = Vehicles::available()->latest()->paginate(12);
-        $addOns = \App\Models\AddOn::all();
-        $settings = Landing::first();
+{
+    $vehicles = Vehicles::available()->latest()->paginate(20);
+    $addOns   = \App\Models\AddOn::all();
+    $settings = Landing::first();
 
+    return view('spa', compact('vehicles', 'addOns', 'settings'));
+}
 
-        // Pass bookedDates to the view
-        return view('spa', compact('vehicles', 'addOns', 'settings'));
-    }
 
 
     public function index()
@@ -178,139 +178,298 @@ class VehicleController extends Controller
     }
 
 
-    // App\Http\Controllers\YourController.php
-    public function view(Vehicles $vehicle)
-    {
-        $addOns = \App\Models\AddOn::with([
-            'reservations' => function ($query) {
-                $query->whereHas('booking', function ($bookingQuery) {
-                    $bookingQuery->where('status', '!=', 'cancelled');
-                })->select('id', 'add_on_id', 'booking_id', 'qty', 'start_date', 'end_date');
-            },
-        ])->get();
 
-        $bookedRanges = Booking::where('vehicle_id', $vehicle->id)
-            ->where('status', '!=', 'cancelled')
-            ->get(['start_date', 'end_date'])
-            ->map(fn($b) => ['from' => $b->start_date, 'to' => $b->end_date]);
 
-        $landing = Landing::first();
 
-        $addonFullyBooked = [];
-        $today = Carbon::today();
 
-        foreach ($addOns as $addOn) {
-            if ($addOn->qty_total <= 0) {
-                $addonFullyBooked[$addOn->id] = [];
-                $addOn->setAttribute('available_today', 0);
-                continue;
-            }
+public function view(Vehicles $vehicle)
+{
+    // 1) Add-on reservations (unchanged)
+    $addOns = \App\Models\AddOn::with([
+        'reservations' => function ($query) {
+            $query->whereHas('booking', function ($bq) {
+                $bq->where(function ($w) {
+                    $w->whereNull('status')
+                      ->orWhereNotIn(\DB::raw('LOWER(status)'), ['cancelled','canceled','completed']);
+                });
+            })->select('id','add_on_id','booking_id','qty','start_date','end_date');
+        },
+    ])->get();
 
-            $dailyTotals = [];
-            $reservedToday = 0;
+    // 2) Vehicle blocked ranges from active PUBLIC bookings (unchanged)
+    $bookedRangesPublic = Booking::where('vehicle_id', $vehicle->id)
+        ->where(function ($q) {
+            $q->whereNull('status')
+              ->orWhereNotIn(\DB::raw('LOWER(status)'), ['cancelled','canceled','completed']);
+        })
+        ->get(['start_date','end_date'])
+        ->map(fn ($b) => [
+            'from' => Carbon::parse($b->start_date)->toDateString(),
+            'to'   => Carbon::parse($b->end_date)->toDateString(),
+        ])
+        ->values();
 
-            foreach ($addOn->reservations as $reservation) {
-                if (!$reservation->start_date || !$reservation->end_date)
-                    continue;
+    // 2b) Vehicle blocked ranges from ADMIN bookings (NEW)
+    // If you want to block *all* admin bookings, keep as-is.
+    // If you only want some types, add ->whereIn('type', ['maintenance','internal','purchaser'])
+    $bookedRangesAdmin = AdminBooking::where('vehicle_id', $vehicle->id)
+        ->get(['start_date','end_date','type'])
+        ->map(fn ($b) => [
+            'from' => Carbon::parse($b->start_date)->toDateString(),
+            'to'   => Carbon::parse($b->end_date)->toDateString(),
+        ])
+        ->values();
 
-                $start = Carbon::parse($reservation->start_date)->startOfDay();
-                $end = Carbon::parse($reservation->end_date)->startOfDay();
+    // Merge public + admin blocks
+    $bookedRanges = $bookedRangesPublic->concat($bookedRangesAdmin)->values();
 
-                if ($start->lte($today) && $end->gte($today)) {
-                    $reservedToday += (int) $reservation->qty;
-                }
+    $landing = Landing::first();
 
-                for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                    $key = $date->toDateString();
-                    $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (int) $reservation->qty;
-                }
-            }
-
-            $addOn->setAttribute('available_today', max($addOn->qty_total - $reservedToday, 0));
-
-            if (empty($dailyTotals)) {
-                $addonFullyBooked[$addOn->id] = [];
-                continue;
-            }
-
-            $fullyBookedDates = array_keys(array_filter(
-                $dailyTotals,
-                fn($count) => $count >= $addOn->qty_total
-            ));
-
-            sort($fullyBookedDates);
-
-            $ranges = [];
-            $currentRange = null;
-
-            foreach ($fullyBookedDates as $dateStr) {
-                if ($currentRange === null) {
-                    $currentRange = ['from' => $dateStr, 'to' => $dateStr];
-                    continue;
-                }
-
-                $expectedNext = Carbon::parse($currentRange['to'])->addDay()->toDateString();
-                if ($expectedNext === $dateStr) {
-                    $currentRange['to'] = $dateStr;
-                } else {
-                    $ranges[] = $currentRange;
-                    $currentRange = ['from' => $dateStr, 'to' => $dateStr];
-                }
-            }
-
-            if ($currentRange !== null) {
-                $ranges[] = $currentRange;
-            }
-
-            $addonFullyBooked[$addOn->id] = $ranges;
+    // 3) Recompute fully-booked ranges per Add-on (unchanged)
+    $addonFullyBooked = [];
+    $today = Carbon::today();
+    foreach ($addOns as $addOn) {
+        if (($addOn->qty_total ?? 0) <= 0) {
+            $addonFullyBooked[$addOn->id] = [];
+            $addOn->setAttribute('available_today', 0);
+            continue;
         }
 
-        // fetch payment configs from DB
-        $paymentConfig = \App\Models\SystemSetting::first() ?: new \App\Models\SystemSetting([
-            'stripe_enabled' => false,
-            'payfast_enabled' => false,
-        ]);
-        $stripeConfig = $paymentConfig;
-        $payfastConfig = $paymentConfig;
+        $dailyTotals = [];
+        $reservedToday = 0;
 
-        return view('view', compact(
-            'vehicle',
-            'addOns',
-            'bookedRanges',
-            'landing',
-            'addonFullyBooked',
-            'paymentConfig',
-            'stripeConfig',
-            'payfastConfig'
-        ));
-    }
+        foreach ($addOn->reservations as $reservation) {
+            if (!$reservation->start_date || !$reservation->end_date) continue;
 
+            $start = Carbon::parse($reservation->start_date)->startOfDay();
+            $end   = Carbon::parse($reservation->end_date)->startOfDay();
 
-
-
-
-    public function show(Vehicles $vehicle)
-    {
-        // Eager load bookings to avoid N+1 queries
-        $vehicle->load([
-            'adminBookings' => function ($query) {
-                $query->select('id', 'vehicle_id', 'start_date', 'end_date', 'type', 'customer_reference', 'notes');
+            if ($start->lte($today) && $end->gte($today)) {
+                $reservedToday += (int) $reservation->qty;
             }
+
+            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                $key = $date->toDateString();
+            $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (int) $reservation->qty;
+        }
+    }
+
+    $addOn->setAttribute('available_today', max(($addOn->qty_total ?? 0) - $reservedToday, 0));
+    $addOn->setAttribute('daily_totals_map', $dailyTotals);
+
+    if (empty($dailyTotals)) {
+        $addonFullyBooked[$addOn->id] = [];
+        continue;
+    }
+
+        $fullyBookedDates = array_keys(array_filter(
+            $dailyTotals,
+            fn ($count) => $count >= $addOn->qty_total
+        ));
+        sort($fullyBookedDates);
+
+        $ranges = [];
+        $currentRange = null;
+        foreach ($fullyBookedDates as $dateStr) {
+            if ($currentRange === null) {
+                $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+                continue;
+            }
+            $expectedNext = Carbon::parse($currentRange['to'])->addDay()->toDateString();
+            if ($expectedNext === $dateStr) {
+                $currentRange['to'] = $dateStr;
+            } else {
+                $ranges[] = $currentRange;
+                $currentRange = ['from' => $dateStr, 'to' => $dateStr];
+            }
+        }
+        if ($currentRange !== null) $ranges[] = $currentRange;
+
+        $addonFullyBooked[$addOn->id] = $ranges;
+    }
+
+    // 4) Lead-day logic (unchanged)
+    $leadDays = max((int)($vehicle->booking_lead_days ?? 0), 0);
+    $minSelectableDate = Carbon::today()->addDays($leadDays)->toDateString();
+
+    $leadDayBlocks = [];
+    if ($leadDays > 0) {
+        $leadDayBlocks[] = [
+            'from' => Carbon::today()->toDateString(),
+            'to'   => Carbon::today()->addDays($leadDays - 1)->toDateString(),
+        ];
+    }
+
+    // Merge disabled ranges: public + admin + lead-day blocks
+    $disabledRanges = collect($bookedRanges)->concat($leadDayBlocks)->values();
+
+    // payment configs (as-is)
+    $paymentConfig = \App\Models\SystemSetting::first() ?: new \App\Models\SystemSetting([
+        'stripe_enabled' => false,
+        'payfast_enabled' => false,
+    ]);
+    $stripeConfig = $paymentConfig;
+    $payfastConfig = $paymentConfig;
+
+    return view('view', compact(
+        'vehicle',
+        'addOns',
+        'bookedRanges',      // now includes admin blocks too
+        'landing',
+        'addonFullyBooked',
+        'paymentConfig',
+        'stripeConfig',
+        'payfastConfig',
+        'leadDays',
+        'minSelectableDate',
+        'disabledRanges'
+    ));
+}
+
+
+
+
+
+
+
+
+public function show(Vehicles $vehicle)
+{
+    // Load admin bookings for this vehicle (for the side list + events)
+    $vehicle->load([
+        'adminBookings' => function ($q) {
+            $q->select('id','vehicle_id','start_date','end_date','type','customer_reference','notes');
+        }
+    ]);
+
+    // Public rental bookings that should block (and be shown in the list)
+    $publicBookings = Booking::where('vehicle_id', $vehicle->id)
+        ->where(function ($q) {
+            $q->whereNull('status')
+              ->orWhereNotIn(\DB::raw('LOWER(status)'), ['cancelled','canceled','completed']);
+        })
+        ->get(['id','vehicle_id','start_date','end_date','reference','notes']);
+
+    /* ---------- FullCalendar background events ---------- */
+
+    // Admin background events
+    $adminEvents = $vehicle->adminBookings->map(function ($b) {
+        $start = \Carbon\Carbon::parse($b->start_date)->toDateString();
+        $end   = \Carbon\Carbon::parse($b->end_date)->addDay()->toDateString(); // exclusive
+        $color = match (strtolower($b->type ?? '')) {
+            'maintenance'           => '#ff6b6b',
+            'internal'              => '#f1c40f',
+            'purchaser', 'purchase' => '#95a5a6',
+            default                 => '#bdc3c7',
+        };
+        return [
+            'title'   => ucfirst($b->type ?? 'Block'),
+            'start'   => $start,
+            'end'     => $end,
+            'display' => 'background',
+            'color'   => $color,
+            'source'  => 'admin',
+            'type'    => $b->type,
+        ];
+    });
+
+    // Public booking background events
+    $publicEvents = $publicBookings->map(function ($b) {
+        $start = \Carbon\Carbon::parse($b->start_date)->toDateString();
+        $end   = \Carbon\Carbon::parse($b->end_date)->addDay()->toDateString(); // exclusive
+        return [
+            'title'   => 'Booked',
+            'start'   => $start,
+            'end'     => $end,
+            'display' => 'background',
+            'color'   => 'gray',
+            'source'  => 'public',
+            'type'    => 'booking',
+        ];
+    });
+
+    // Lead-days block (background + disable range)
+    $leadDays   = max((int)($vehicle->booking_lead_days ?? 0), 0);
+    $leadEvents = collect();
+    $leadRanges = collect();
+    if ($leadDays > 0) {
+        $today     = \Carbon\Carbon::today();
+        $leadFrom  = $today->toDateString();                                // inclusive
+        $leadToInc = $today->copy()->addDays($leadDays - 1)->toDateString();// inclusive
+        $leadToExc = $today->copy()->addDays($leadDays)->toDateString();    // exclusive
+
+        $leadEvents->push([
+            'title'   => 'Lead time',
+            'start'   => $leadFrom,
+            'end'     => $leadToExc,
+            'display' => 'background',
+            'color'   => '#34495e',
+            'source'  => 'lead',
+            'type'    => 'lead',
         ]);
 
-        // Alias for convenience in the view
-        $bookings = $vehicle->adminBookings;
-
-        // Prepare booked dates for calendar/datepicker
-        $bookedDates = $bookings->map(function ($b) {
-            return [
-                'start' => $b->start_date,
-                'end' => $b->end_date,
-            ];
-        });
-
-        return view('admin.vehicles.show', compact('vehicle', 'bookings', 'bookedDates'));
+        $leadRanges->push(['start' => $leadFrom, 'end' => $leadToInc]);
     }
+
+    $calendarEvents = $publicEvents->concat($adminEvents)->concat($leadEvents)->values();
+
+    /* ---------- Disable ranges for inputs (inclusive Y-M-D) ---------- */
+    $bookedDates = $vehicle->adminBookings->map(fn ($b) => [
+        'start' => \Carbon\Carbon::parse($b->start_date)->toDateString(),
+        'end'   => \Carbon\Carbon::parse($b->end_date)->toDateString(),
+    ])->concat(
+        $publicBookings->map(fn ($b) => [
+            'start' => \Carbon\Carbon::parse($b->start_date)->toDateString(),
+            'end'   => \Carbon\Carbon::parse($b->end_date)->toDateString(),
+        ])
+    )->concat($leadRanges)->values();
+
+    /* ---------- Side list: merge Admin + Public ---------- */
+    $sideList = collect();
+
+    // Admin rows (removable here)
+    $sideList = $sideList->concat(
+        $vehicle->adminBookings->map(function ($b) {
+            return [
+                'id'        => $b->id,
+                'source'    => 'admin',
+                'type'      => strtolower($b->type ?? 'block'),
+                'start'     => \Carbon\Carbon::parse($b->start_date)->toDateString(),
+                'end'       => \Carbon\Carbon::parse($b->end_date)->toDateString(),
+                'ref'       => $b->customer_reference,
+                'notes'     => $b->notes,
+                'can_delete'=> true,
+            ];
+        })
+    );
+
+    // Public bookings (show-only; do NOT delete from here)
+    $sideList = $sideList->concat(
+        $publicBookings->map(function ($b) {
+            return [
+                'id'        => $b->id,
+                'source'    => 'public',
+                'type'      => 'booking',
+                'start'     => \Carbon\Carbon::parse($b->start_date)->toDateString(),
+                'end'       => \Carbon\Carbon::parse($b->end_date)->toDateString(),
+                'ref'       => $b->reference,
+                'notes'     => $b->notes,
+                'can_delete'=> false,
+            ];
+        })
+    );
+
+    // Sort newest first (by start date desc)
+    $entries = $sideList->sortByDesc('start')->values();
+
+    return view('admin.vehicles.show', [
+        'vehicle'        => $vehicle,
+        'entries'        => $entries,       // <-- use this in the Blade list
+        'bookedDates'    => $bookedDates,
+        'calendarEvents' => $calendarEvents,
+    ]);
+}
+
 
 
 
@@ -327,23 +486,54 @@ class VehicleController extends Controller
 
 
 
-    public function storeBooking(Request $request, Vehicles $vehicle)
-    {
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'type' => 'required|in:maintenance,internal,purchaser',
-            'customer_reference' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-        ]);
 
+public function storeBooking(Request $request, Vehicles $vehicle)
+{
+    // 1) Validate input (now using 'purchaser')
+    $validated = $request->validate([
+        'start_date'         => 'required|date',
+        'end_date'           => 'required|date|after_or_equal:start_date',
+        'type'               => 'required|in:maintenance,internal,purchaser',
+        'customer_reference' => 'nullable|string|max:255',
+        'notes'              => 'nullable|string',
+    ]);
+
+    // (Optional safety) If someone ever posts 'purchase', normalize to 'purchaser'
+    if (($validated['type'] ?? null) === 'purchase') {
+        $validated['type'] = 'purchaser';
+    }
+
+    // 2) Persist atomically
+    return DB::transaction(function () use ($validated, $vehicle) {
+        // Prevent duplicate purchaser rows for the same vehicle
+        if ($validated['type'] === 'purchaser') {
+            $alreadyPurchased = AdminBooking::where('vehicle_id', $vehicle->id)
+                ->where('type', 'purchaser')
+                ->exists();
+
+            if ($alreadyPurchased) {
+                return back()->withErrors([
+                    'type' => 'This vehicle already has a purchaser record.',
+                ])->withInput();
+            }
+        }
+
+        // Create admin booking
         $validated['vehicle_id'] = $vehicle->id;
-
         $booking = AdminBooking::create($validated);
 
-        // Redirect back with SweetAlert success message
+        // If it’s 'purchaser' ⇒ mark vehicle as sold
+        if ($booking->type === 'purchaser' && $vehicle->status !== 'sold') {
+            $vehicle->update(['status' => 'sold']);
+        }
+
         return redirect()->back()->with('success', 'Booking/Block added successfully!');
-    }
+    });
+}
+
+
+
+
 
     public function destroyBooking($vehicleId, $bookingId)
     {

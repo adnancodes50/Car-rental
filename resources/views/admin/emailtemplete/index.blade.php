@@ -15,11 +15,11 @@
                 <div class="col">
                     <h3 class="card-title mb-0 text-bold">All Email Templates</h3>
                 </div>
-                <div class="col-auto text-end">
+                {{-- <div class="col-auto text-end">
                     <a href="{{ route('email.create') }}" class="btn btn-dark btn-sm">
                         <i class="fas fa-plus-circle me-1"></i> New Template
                     </a>
-                </div>
+                </div> --}}
             </div>
         </div>
         <hr>
@@ -34,7 +34,7 @@
                             <th>Recipient</th>
                             <th>Name</th>
                             <th>Subject</th>
-                            <th>Body</th>
+                            <th>Updated At</th>
                             <th>Enabled</th>
                             <th class="text-center" style="width:80px;">Actions</th>
                         </tr>
@@ -47,7 +47,8 @@
                             <td>{{ ucfirst($template->recipient) }}</td>
                             <td>{{ $template->name }}</td>
                             <td>{{ $template->subject }}</td>
-                            <td>{{ Str::limit($template->body, 50) }}</td>
+                            <td>{{ $template->updated_at }}</td>
+                            {{-- <td>{{ Str::limit($template->body, 50) }}</td> --}}
                             <td class="text-center align-middle">
                                 @if ($template->enabled)
                                     <span class="badge py-1 text-white" style="background-color: rgb(18, 158, 151); font-size: 0.85rem;">Enabled</span>

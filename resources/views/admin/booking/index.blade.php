@@ -11,7 +11,11 @@
 <div class="container-fluid">
 
     <div class="card shadow-sm border-0 rounded-4 h-100vh">
-        <h2 class="text-center mb-0 mt-4">Bookings</h2>
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0 text-bold">All Bookings</h3>
+        </div>
+
+        <hr>
 
         <div class="card-body">
             <div class="table-responsive">
@@ -35,19 +39,25 @@
                             <td>{{ $booking->id }}</td>
                             <td>{{ $booking->customer->name ?? '-' }} ({{ $booking->customer->email ?? '-' }})</td>
                             <td>{{ $booking->vehicle->name ?? '-' }}</td>
-                            <td>{{$booking->vehicle->reference}}</td>
-                            <td>{{ \Carbon\Carbon::parse($booking->start_date)->format('d M Y') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($booking->end_date)->format('d M Y') }}</td>
+                            <td>{{ $booking->reference }}</td>
+                            <td data-order="{{ \Carbon\Carbon::parse($booking->start_date)->format('Ymd') }}">
+                                {{ \Carbon\Carbon::parse($booking->start_date)->format('d M Y') }}
+                            </td>
+                            <td data-order="{{ \Carbon\Carbon::parse($booking->end_date)->format('Ymd') }}">
+                                {{ \Carbon\Carbon::parse($booking->end_date)->format('d M Y') }}
+                            </td>
                             <td>
-                                @if($booking->status === 'confirmed')
-                                    <span class="badge bg-success py-1">Confirmed</span>
-                                @elseif($booking->status === 'pending')
-                                    <span class="badge bg-warning py-1">Pending</span>
-                                @elseif($booking->status === 'cancelled')
-                                    <span class="badge bg-danger py-1">Cancelled</span>
-                                    @elseif($booking->status === 'completed')
-                                    <span class="badge bg-success py-1">Completed</span>
-                                @endif
+                                @php
+                                    $statusMap = [
+                                        'confirmed' => ['label' => 'Confirmed', 'class' => 'badge bg-info py-1'],
+                                        'pending' => ['label' => 'Pending', 'class' => 'badge bg-warning py-1 text-dark'],
+                                        'canceled' => ['label' => 'Canceled', 'class' => 'badge bg-danger py-1'],
+                                        'completed' => ['label' => 'Completed', 'class' => 'badge bg-success py-1'],
+                                        'ongoing' => ['label' => 'Ongoing', 'class' => 'badge bg-info py-1 text-dark'],
+                                    ];
+                                    $statusData = $statusMap[$booking->status] ?? ['label' => ucfirst($booking->status), 'class' => 'badge bg-secondary py-1'];
+                                @endphp
+                                <span class="{{ $statusData['class'] }}">{{ $statusData['label'] }}</span>
                             </td>
                             <td>${{ number_format($booking->total_price, 2) }}</td>
                             <td class="text-center">
@@ -86,6 +96,7 @@
 
 @section('css')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
 @stop
 
 @section('js')
@@ -93,23 +104,48 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
+<!-- DataTables Buttons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
 {{-- SweetAlert2 --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
-    $('#bookingsTable').DataTable({
+    var table = $('#bookingsTable').DataTable({
         responsive: true,
         autoWidth: false,
         pageLength: 10,
-        order: [[0, 'desc']],
+        order: [[4, 'asc']],
         columnDefs: [
-            { orderable: false, targets: [7] },
-            { searchable: false, targets: [7] }
-        ]
+            { orderable: false, targets: [8] },
+            { searchable: false, targets: [8] }
+        ],
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'excelHtml5',
+                title: 'Bookings Export',
+                text: '<i class="fas fa-file-excel me-2 text-success"></i> Export to Excel',
+                filename: 'bookings_export',
+                exportOptions: {
+                    columns: [0,1,2,3,4,5,6,7]
+                }
+            }
+        ],
+        initComplete: function() {
+            var excelBtn = table.buttons().container().find('button');
+            excelBtn.removeClass().addClass('dropdown-item d-flex align-items-center gap-2');
+            $('#exportBtnContainer').html(excelBtn);
+        }
     });
 
-    // Flash messages with SweetAlert
+    // Remove default DataTables buttons
+    $('.dt-buttons').hide();
+
+    // SweetAlert flash messages
     @if(session('success'))
         Swal.fire({
             icon: 'success',

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Booking Payment Receipt</title>
+    <title>Booking Status Update</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body style="margin:0;padding:0;background:#f4f6f8;">
@@ -21,7 +21,7 @@
                                     <img src="{{ $logo_url }}" alt="Logo" width="70" height="70" style="display:block;border:0;max-width:120px;">
                                 </td>
                                 <td align="right" style="color:#fff;font:500 14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;">
-                                    Booking Receipt
+                                    Booking Update
                                 </td>
                             </tr>
                         </table>
@@ -32,10 +32,11 @@
                 <tr>
                     <td style="padding:24px 24px 8px;font:400 16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#111;">
                         <h1 style="margin:0 0 8px;font:700 22px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;">
-                            Thanks for your booking
+                            {{ $status_message }}
                         </h1>
+
                         <p style="margin:0;">
-                            Hi {{ $customer_name }}, we received <strong>R{{ $paid_now }}</strong>.
+                            Hi {{ $customer_name }},
                         </p>
                     </td>
                 </tr>
@@ -55,36 +56,35 @@
                                     <table width="100%" role="presentation" cellpadding="0" cellspacing="0"
                                            style="font:400 14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#222;">
                                         {!! $vehicle_row !!}
+
                                         <tr>
                                             <td style="padding:6px 0;color:#555;">Booking #</td>
                                             <td style="padding:6px 0;text-align:right;color:#111;">
                                                 {{ $booking_id }} {{ $booking_reference_paren }}
                                             </td>
                                         </tr>
+
                                         <tr>
                                             <td style="padding:6px 0;color:#555;">Dates</td>
                                             <td style="padding:6px 0;text-align:right;color:#111;">
                                                 {{ $start_date }} – {{ $end_date }}
                                             </td>
                                         </tr>
+
                                         <tr>
                                             <td style="padding:6px 0;color:#555;">Status</td>
                                             <td style="padding:6px 0;text-align:right;color:#111;">
                                                 {{ $status }}
                                             </td>
                                         </tr>
-                                        <tr>
-                                            <td style="padding:6px 0;color:#555;">Paid Now</td>
-                                            <td style="padding:6px 0;text-align:right;color:#111;">
-                                                <strong>R{{ $paid_now }}</strong>
-                                            </td>
-                                        </tr>
+
                                         <tr>
                                             <td style="padding:6px 0;color:#555;">Total Amount</td>
                                             <td style="padding:6px 0;text-align:right;color:#111;">
                                                 R{{ $total_amount }}
                                             </td>
                                         </tr>
+
                                         {!! $receipt_button !!}
                                     </table>
                                 </td>
@@ -96,7 +96,7 @@
                 <!-- Footer -->
                 <tr>
                     <td style="padding:16px 24px 24px;font:400 13px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#666;">
-                        We’ll be in touch with next steps. Enjoy the ride!
+                        If you have any questions, please contact our support team.
                     </td>
                 </tr>
 
@@ -105,6 +105,7 @@
                         © {{ $year }} {{ $app_name }}. All rights reserved.
                     </td>
                 </tr>
+
             </table>
         </td>
     </tr>

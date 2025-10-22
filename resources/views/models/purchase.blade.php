@@ -25,7 +25,22 @@
     $countries = array_diff($countries, ['South Africa']);
     sort($countries);
     array_unshift($countries, 'South Africa');
+
+    $isSold = ($vehicle->status ?? null) === 'sold';
 @endphp
+
+{{-- SOLD banner on detail page --}}
+@if($isSold)
+  <div class="alert alert-warning d-flex align-items-center mb-3">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    This vehicle has been <strong>sold</strong> and is no longer available.
+  </div>
+@endif
+
+
+@if($isSold)
+  <style>.purchase-trigger{pointer-events:none;opacity:.55}</style>
+@endif
 
 <form id="purchaseForm" method="POST">
     @csrf
@@ -33,7 +48,7 @@
     <input type="hidden" name="total_price" value="{{ $vehicle->purchase_price }}">
 
     <!-- Step 1: Vehicle Info -->
-    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true" >
+    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg overflow-hidden">
                 <div class="modal-header">
@@ -41,6 +56,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
+                    @if($isSold)
+                      <div class="alert alert-danger mb-3">
+                        This vehicle is sold and cannot be purchased.
+                      </div>
+                    @endif
+
                     <div class="text-center mb-4">
                         <h5 class="fw-semibold mb-2">Purchase Process Information</h5>
                         <p class="text-muted mb-0">Pay a deposit to place this vehicle under offer. Full process continues offline.</p>
@@ -59,8 +80,9 @@
                             <span class="fw-bold" style="color:#CF9B4D">R{{ number_format($vehicle->deposit_amount) }} ZAR</span>
                         </div>
                     </div>
-                    <!-- No data-bs-* here -->
-                    <button type="button" id="purchaseStep1Next" class="btn btn-dark w-100">Continue</button>
+                    <button type="button" id="purchaseStep1Next" class="btn btn-dark w-100" {{ $isSold ? 'disabled' : '' }}>
+                      Continue
+                    </button>
                 </div>
             </div>
         </div>
@@ -75,22 +97,27 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-4">
+                    @if($isSold)
+                      <div class="alert alert-danger mb-3">
+                        This vehicle is sold and cannot be purchased.
+                      </div>
+                    @endif
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Full Name</label>
-                            <input type="text" name="name" class="form-control rounded-3" placeholder="John Doe" required>
+                            <input type="text" name="name" class="form-control rounded-3" placeholder="John Doe" required {{ $isSold ? 'disabled' : '' }}>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control rounded-3" placeholder="you@example.com" inputmode="email" autocomplete="email" required pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" title="Enter a valid email address, e.g. you@example.com">
+                            <input type="email" name="email" class="form-control rounded-3" placeholder="you@example.com" inputmode="email" autocomplete="email" required pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" title="Enter a valid email address, e.g. you@example.com" {{ $isSold ? 'disabled' : '' }}>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Phone</label>
-                            <input type="tel" name="phone" class="form-control rounded-3" placeholder="+27 123 456 7890" inputmode="tel" autocomplete="tel" required pattern="^\+?[0-9]{1,4}(?:[ -]?[0-9]{2,4}){2,4}$" title="Use digits with optional spaces or dashes, e.g. +27 123 456 7890">
+                            <input type="tel" name="phone" class="form-control rounded-3" placeholder="+27 123 456 7890" inputmode="tel" autocomplete="tel" required pattern="^\+?[0-9]{1,4}(?:[ -]?[0-9]{2,4}){2,4}$" title="Use digits with optional spaces or dashes, e.g. +27 123 456 7890" {{ $isSold ? 'disabled' : '' }}>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Country</label>
-                            <select name="country" class="form-select rounded-3" required>
+                            <select name="country" class="form-select rounded-3" required {{ $isSold ? 'disabled' : '' }}>
                                 <option value="" disabled selected>Select your country</option>
                                 @foreach ($countries as $country)
                                     <option value="{{ $country }}">{{ $country }}</option>
@@ -100,9 +127,10 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 d-flex justify-content-between">
-                    <!-- No data-bs-* here -->
                     <button type="button" id="purchaseBackToStep1" class="btn btn-outline-secondary rounded-3">Back</button>
-                    <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4">Continue to Payment</button>
+                    <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4" {{ $isSold ? 'disabled' : '' }}>
+                      Continue to Payment
+                    </button>
                 </div>
             </div>
         </div>
@@ -138,11 +166,16 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    @if($isSold)
+                      <div class="alert alert-danger mb-3">
+                        This vehicle is sold and cannot be purchased.
+                      </div>
+                    @endif
                     <div class="row g-3 align-items-stretch justify-content-center">
                         @if ($settings->stripe_enabled)
                         <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
-                            <input type="radio" name="payment_method" id="purchaseStripe" value="stripe" class="btn-check" autocomplete="off" required>
-                            <label for="purchaseStripe" class="card btn w-100 purchase-pay-option p-3 flex-column">
+                            <input type="radio" name="payment_method" id="purchaseStripe" value="stripe" class="btn-check" autocomplete="off" required {{ $isSold ? 'disabled' : '' }}>
+                            <label for="purchaseStripe" class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isSold ? 'disabled' : '' }}">
                                 <div class="text-center mb-2">
                                     <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe" style="width:80px;">
                                 </div>
@@ -156,8 +189,8 @@
 
                         @if ($settings->payfast_enabled)
                         <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
-                            <input type="radio" name="payment_method" id="purchasePayfast" value="payfast" class="btn-check" autocomplete="off" required>
-                            <label for="purchasePayfast" class="card btn w-100 purchase-pay-option p-3 flex-column">
+                            <input type="radio" name="payment_method" id="purchasePayfast" value="payfast" class="btn-check" autocomplete="off" required {{ $isSold ? 'disabled' : '' }}>
+                            <label for="purchasePayfast" class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isSold ? 'disabled' : '' }}">
                                 <div class="text-center mb-2">
                                     <img src="{{ asset('images/payfast.png') }}" class="rounded-3" alt="PayFast" style="width:80px;">
                                 </div>
@@ -175,136 +208,137 @@
                     </div>
                 </div>
                 <div class="modal-footer justify-content-between">
-                    <!-- No data-bs-* here -->
                     <button type="button" id="backToCustomer" class="btn btn-outline-secondary">Back</button>
                 </div>
             </div>
         </div>
     </div>
 
-<!-- Step 3b: Stripe Card Input (FULL with preview) -->
-<div class="modal fade mt-2" id="stripePaymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content rounded-4 shadow">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">
-          <i class="bi bi-credit-card-fill me-2"></i>
-          Stripe Payment and Vehicle Summary
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
-        <div class="container-fluid">
-
-          {{-- ROW 1: Vehicle header --}}
-          <div class="row g-3 align-items-center mb-3">
-            <div class="col-12 d-flex align-items-center gap-3">
-              <img src="{{ $vehicle->mainImage() }}" alt="{{ $vehicle->name }}"
-                   class="rounded shadow-sm" style="width:88px;height:88px;object-fit:cover;">
-              <div class="flex-grow-1">
-                <div class="d-flex flex-wrap align-items-center justify-content-between">
-                  <div>
-                    <h5 class="mb-1">{{ $vehicle->name }}</h5>
-                    <small class="text-muted">{{ $vehicle->year }} {{ $vehicle->model }}</small>
-                  </div>
-                  @php
-                    $vehiclePrice = (float) ($vehicle->purchase_price ?? 0);
-                    $deposit      = (float) ($vehicle->deposit_amount ?? 0);
-                    $remaining    = max($vehiclePrice - $deposit, 0);
-                  @endphp
-                  <div class="text-end">
-                    <div class="small text-muted">Vehicle Price</div>
-                    <div class="fw-semibold">R{{ number_format($vehiclePrice, 2) }}</div>
-                  </div>
-                </div>
-
-                {{-- quick facts --}}
-                <ul class="list-inline small text-muted mb-0 mt-2">
-                  @if ($vehicle->engine)
-                    <li class="list-inline-item me-3">
-                      <i class="bi bi-gear-fill me-1"></i>Engine: {{ $vehicle->engine }}
-                    </li>
-                  @endif
-                  @if ($vehicle->transmission)
-                    <li class="list-inline-item me-3">
-                      <i class="bi bi-gear-wide-connected me-1"></i>{{ $vehicle->transmission }}
-                    </li>
-                  @endif
-                  @if ($vehicle->mileage)
-                    <li class="list-inline-item me-3">
-                      <i class="bi bi-speedometer2 me-1"></i>{{ number_format($vehicle->mileage) }} km
-                    </li>
-                  @endif
-                  @if ($vehicle->location)
-                    <li class="list-inline-item">
-                      <i class="bi bi-geo-alt me-1"></i>{{ $vehicle->location }}
-                    </li>
-                  @endif
-                </ul>
-              </div>
-            </div>
+    <!-- Step 3b: Stripe Card Input (FULL with preview) -->
+    <div class="modal fade mt-2" id="stripePaymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">
+              <i class="bi bi-credit-card-fill me-2"></i>
+              Stripe Payment and Vehicle Summary
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
 
-          {{-- Mini price band --}}
-          @php
-            $vehiclePrice = (float) ($vehicle->purchase_price ?? 0);
-            $deposit      = (float) ($vehicle->deposit_amount ?? 0);
-            $deposit      = max(0, min($deposit, $vehiclePrice));
-            $remaining    = max($vehiclePrice - $deposit, 0);
-          @endphp
-
-          <div class="row mb-3">
-            <div class="col-12">
-              <div class="bg-light rounded-3 p-2 px-3">
-                <div class="d-flex justify-content-between small">
-                  <span>Vehicle Price</span>
-                  <span>R{{ number_format($vehiclePrice, 2) }}</span>
-                </div>
-                <div class="d-flex justify-content-between small">
-                  <span>Deposit (Due Now)</span>
-                  <span>R{{ number_format($deposit, 2) }}</span>
-                </div>
-                <div class="border-top mt-2 pt-2 d-flex justify-content-between">
-                  <span class="fw-semibold">Total Due Now</span>
-                  <span class="fw-bold text-success">R{{ number_format($deposit, 2) }}</span>
-                </div>
-                <div class="d-flex justify-content-between mt-1">
-                  <span class="fw-semibold text-muted">Total Payable Later</span>
-                  <span class="fw-bold text-muted">R{{ number_format($remaining, 2) }}</span>
+          <div class="modal-body">
+            @if($isSold)
+              <div class="alert alert-danger mb-3">
+                This vehicle is sold and cannot be purchased.
+              </div>
+            @endif
+            <div class="container-fluid">
+              {{-- Vehicle header --}}
+              <div class="row g-3 align-items-center mb-3">
+                <div class="col-12 d-flex align-items-center gap-3">
+                  <img src="{{ $vehicle->mainImage() }}" alt="{{ $vehicle->name }}"
+                       class="rounded shadow-sm" style="width:88px;height:88px;object-fit:cover;">
+                  <div class="flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1">{{ $vehicle->name }}</h5>
+                        <small class="text-muted">{{ $vehicle->year }} {{ $vehicle->model }}</small>
+                      </div>
+                      @php
+                        $vehiclePrice = (float) ($vehicle->purchase_price ?? 0);
+                        $deposit      = (float) ($vehicle->deposit_amount ?? 0);
+                        $remaining    = max($vehiclePrice - $deposit, 0);
+                      @endphp
+                      <div class="text-end">
+                        <div class="small text-muted">Vehicle Price</div>
+                        <div class="fw-semibold">R{{ number_format($vehiclePrice, 2) }}</div>
+                      </div>
+                    </div>
+                    <ul class="list-inline small text-muted mb-0 mt-2">
+                      @if ($vehicle->engine)
+                        <li class="list-inline-item me-3">
+                          <i class="bi bi-gear-fill me-1"></i>Engine: {{ $vehicle->engine }}
+                        </li>
+                      @endif
+                      @if ($vehicle->transmission)
+                        <li class="list-inline-item me-3">
+                          <i class="bi bi-gear-wide-connected me-1"></i>{{ $vehicle->transmission }}
+                        </li>
+                      @endif
+                      @if ($vehicle->mileage)
+                        <li class="list-inline-item me-3">
+                          <i class="bi bi-speedometer2 me-1"></i>{{ number_format($vehicle->mileage) }} km
+                        </li>
+                      @endif
+                      @if ($vehicle->location)
+                        <li class="list-inline-item">
+                          <i class="bi bi-geo-alt me-1"></i>{{ $vehicle->location }}
+                        </li>
+                      @endif
+                    </ul>
+                  </div>
                 </div>
               </div>
+
+              {{-- Mini price band --}}
+              @php
+                $vehiclePrice = (float) ($vehicle->purchase_price ?? 0);
+                $deposit      = (float) ($vehicle->deposit_amount ?? 0);
+                $deposit      = max(0, min($deposit, $vehiclePrice));
+                $remaining    = max($vehiclePrice - $deposit, 0);
+              @endphp
+
+              <div class="row mb-3">
+                <div class="col-12">
+                  <div class="bg-light rounded-3 p-2 px-3">
+                    <div class="d-flex justify-content-between small">
+                      <span>Vehicle Price</span>
+                      <span>R{{ number_format($vehiclePrice, 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                      <span>Deposit (Due Now)</span>
+                      <span>R{{ number_format($deposit, 2) }}</span>
+                    </div>
+                    <div class="border-top mt-2 pt-2 d-flex justify-content-between">
+                      <span class="fw-semibold">Total Due Now</span>
+                      <span class="fw-bold text-success">R{{ number_format($deposit, 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                      <span class="fw-semibold text-muted">Total Payable Later</span>
+                      <span class="fw-bold text-muted">R{{ number_format($remaining, 2) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {{-- Stripe Elements --}}
+              <div class="row g-2">
+                <div class="col-12">
+                  <div id="card-number" class="form-control stripe-input mb-2"></div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div id="card-expiry" class="form-control stripe-input"></div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div id="card-cvc" class="form-control stripe-input"></div>
+                </div>
+                <div class="col-12">
+                  <div id="card-errors" class="text-danger mt-2 small"></div>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          {{-- Stripe Elements --}}
-          <div class="row g-2">
-            <div class="col-12">
-              <div id="card-number" class="form-control stripe-input mb-2"></div>
-            </div>
-            <div class="col-12 col-md-6">
-              <div id="card-expiry" class="form-control stripe-input"></div>
-            </div>
-            <div class="col-12 col-md-6">
-              <div id="card-cvc" class="form-control stripe-input"></div>
-            </div>
-            <div class="col-12">
-              <div id="card-errors" class="text-danger mt-2 small"></div>
-            </div>
+          <div class="modal-footer container">
+            <button type="button" id="purchaseStripeBackToPayment" class="btn btn-outline-secondary me-auto">Back</button>
+            <button type="button" id="purchaseStripePayButton" class="btn btn-dark" {{ $isSold ? 'disabled' : '' }}>
+              Purchase Now
+            </button>
           </div>
-
         </div>
       </div>
-
-      <div class="modal-footer container">
-        <!-- Back wired in JS with swapModal('stripePaymentModal','purchasePayment') -->
-        <button type="button" id="purchaseStripeBackToPayment" class="btn btn-outline-secondary me-auto">Back</button>
-        <button type="button" id="purchaseStripePayButton" class="btn btn-dark">Purchase Now</button>
-      </div>
     </div>
-  </div>
-</div>
-
 
     <!-- Step 4: Thank You -->
     <div class="modal fade" id="purchaseThankYou" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
@@ -324,13 +358,7 @@
 </form>
 
 <style>
-  /* Remove/disable backdrop entirely */
-
-   #stripePaymentModal .modal-body {
-    max-height: 70vh;   /* adjust to taste */
-    overflow: auto;
-  }
-  /* Payment card styles (yours) */
+  #stripePaymentModal .modal-body { max-height: 70vh; overflow: auto; }
   #purchasePayment .purchase-pay-option{
     min-height:160px; display:flex; align-items:center; justify-content:center; gap:12px;
     border:1px solid #dee2e6; border-radius:.75rem; padding:20px; text-align:left;
@@ -339,6 +367,7 @@
   #purchasePayment .purchase-pay-option:hover{ transform:translateY(-2px); box-shadow:0 .5rem 1rem rgba(0,0,0,.08); }
   #purchasePayment .btn-check:checked+.purchase-pay-option{ border-color:#0d6efd; box-shadow:0 0 0 .25rem rgba(13,110,253,.2); }
   #purchasePayment .purchase-pay-text{ display:flex; flex-direction:column; text-align:center; }
+  .purchase-pay-option.disabled{ pointer-events:none; opacity:.45; }
   @media (min-width:768px){ #purchasePayment .col-md-6{ display:flex; } #purchasePayment .purchase-pay-option{ width:100%; } }
 </style>
 
@@ -348,48 +377,56 @@
 
 <script>
 (() => {
-  // ===== Blade ? JS values =====
+  // ===== Blade → JS values =====
   const VEHICLE_NAME    = @json($vehicle->name);
   const VEHICLE_PRICE   = {{ (float) ($vehicle->purchase_price ?? 0) }};
   const VEHICLE_DEPOSIT = {{ (float) ($vehicle->deposit_amount ?? 0) }};
+  const VEHICLE_STATUS  = @json($vehicle->status ?? null);
+  const IS_SOLD         = VEHICLE_STATUS === 'sold';
+
   const ZAR             = new Intl.NumberFormat('en-ZA', { style:'currency', currency:'ZAR' });
-  const WHATSAPP_LINK   = "https://wa.link/koo7b6";
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
+  const WHATSAPP_LINK   = "https://wa.link/8bgpe5";
 
-function notify(key, { icon = 'error', title = 'Invalid input', text = '' }) {
-  // tiny debounce (optional)
-  window.__deb ||= new Map();
-  const now = Date.now(), last = window.__deb.get(key) || 0;
-  if (now - last < 600) return;
-  window.__deb.set(key, now);
-  if (window.Swal?.fire) Swal.fire({ icon, title, text, confirmButtonText:'OK' });
-  else alert(`${title}\n\n${text}`);
-}
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
 
-  // Modal helper (force no backdrop)
-const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
-  backdrop: true,   // allow click-outside to close
-  focus: true,
-  keyboard: true    // Esc closes too (optional)
-});
-  // Reliable modal swapper: hide current ? wait until hidden ? show next
+  function notify(key, { icon = 'error', title = 'Invalid input', text = '' }) {
+    window.__deb ||= new Map();
+    const now = Date.now(), last = window.__deb.get(key) || 0;
+    if (now - last < 600) return;
+    window.__deb.set(key, now);
+    if (window.Swal?.fire) Swal.fire({ icon, title, text, confirmButtonText:'OK' });
+    else alert(`${title}\n\n${text}`);
+  }
+
+  // Modal helper
+  const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, { backdrop:true, focus:true, keyboard:true });
+
   function swapModal(fromId, toId) {
     const fromEl = document.getElementById(fromId);
     const toEl   = document.getElementById(toId);
     if (!fromEl || !toEl) return;
     const from = modalInst(fromEl);
     const to   = modalInst(toEl);
-
     fromEl.addEventListener('hidden.bs.modal', function onHidden() {
       fromEl.removeEventListener('hidden.bs.modal', onHidden);
       to.show();
     }, { once:true });
-
     from.hide();
   }
 
-  // Keep stacking/z-index sane with no backdrop
+  // Prevent opening any purchase modal when sold (defense in depth)
+  document.addEventListener('click', (e) => {
+    if (!IS_SOLD) return;
+    const opener = e.target.closest('[data-bs-target="#purchaseModal"], [data-bs-target="#purchaseCustomer"], [data-bs-target="#purchasePayment"], [data-bs-target="#stripePaymentModal"]');
+    const ids = ['purchaseStep1Next','purchaseStep2Next','purchaseStripePayButton'];
+    if (opener || ids.includes(e.target?.id)) {
+      e.preventDefault();
+      Swal?.fire({ icon:'info', title:'Sold', text:'This vehicle has been sold and cannot be purchased.' });
+    }
+  });
+
+  // Keep stacking/z-index sane
   const Z_BASE = 1055, Z_STEP = 20;
   const visibleModals = () => Array.from(document.querySelectorAll('.modal.show'));
   const restack = () => {
@@ -402,7 +439,7 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
     document.addEventListener(evt, () => setTimeout(restack, 0))
   );
 
-  // Open WhatsApp in a new tab reliably
+  // Open WhatsApp in a new tab
   function openWhatsAppNewTab() {
     const a = document.createElement('a');
     a.href = WHATSAPP_LINK; a.target = '_blank'; a.rel = 'noopener noreferrer';
@@ -411,79 +448,84 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Init all modals up front
     document.querySelectorAll('.modal').forEach(m => modalInst(m));
 
     const $ = (id) => document.getElementById(id);
     const form = $('purchaseForm');
 
-    // Step 1 ? Step 2
-    $('purchaseStep1Next').addEventListener('click', () => swapModal('purchaseModal','purchaseCustomer'));
-
-    // Step 2 Back ? Step 1
-    $('purchaseBackToStep1').addEventListener('click', () => swapModal('purchaseCustomer','purchaseModal'));
-
-    // Step 2 ? Payment (save details first)
-   $('purchaseStep2Next').addEventListener('click', async () => {
-  const nameEl  = form.name;
-  const emailEl = form.email;
-  const phoneEl = form.phone;
-  const ctryEl  = form.country;
-
-  const name    = (nameEl?.value || '').trim();
-  const email   = (emailEl?.value || '').trim();
-  const phone   = (phoneEl?.value || '').trim();
-  const country = (ctryEl?.value || '').trim();
-
-  if (!name || !email || !phone || !country) {
-    notify('purch-missing', { title:'Missing Information', text:'Please fill in all required customer details.' });
-    return;
-  }
-  if (!emailPattern.test(email)) {
-    notify('purch-email', { title:'Invalid Email', text:'Enter a valid email address, e.g. you@example.com.' });
-    emailEl?.focus(); return;
-  }
-  if (!phonePattern.test(phone)) {
-    notify('purch-phone', { title:'Invalid Phone Number', text:'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
-    phoneEl?.focus(); return;
-  }
-
-  // normalize before sending
-  if (emailEl) emailEl.value = email;
-  if (phoneEl) phoneEl.value = phone;
-
-  // … proceed with your existing fetch to {{ route('purchase.store') }}
-  try {
-    const res = await fetch("{{ route('purchase.store') }}", {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Accept':'application/json',
-        'X-CSRF-TOKEN':"{{ csrf_token() }}"
-      },
-      body: JSON.stringify({
-        name, email, phone, country,
-        vehicle_id: form.vehicle_id.value,
-        total_price: form.total_price.value
-      })
+    // Step 1 → Step 2
+    $('purchaseStep1Next')?.addEventListener('click', () => {
+      if (IS_SOLD) return notify('sold1', { title:'Sold', text:'This vehicle is sold.' });
+      swapModal('purchaseModal','purchaseCustomer');
     });
-    const data = await res.json();
-    if (!res.ok || !data?.success) throw new Error(data?.message || 'Unable to save details.');
-    let hid = form.querySelector('input[name="purchase_id"]');
-    if (!hid) { hid = document.createElement('input'); hid.type='hidden'; hid.name='purchase_id'; form.appendChild(hid); }
-    hid.value = data.purchase_id;
 
-    swapModal('purchaseCustomer','purchasePayment');
-  } catch (e) {
-    Swal.fire({ icon:'error', title:'Error', text:e.message || 'Network error.' });
-  }
-});
+    // Step 2 Back → Step 1
+    $('purchaseBackToStep1')?.addEventListener('click', () => swapModal('purchaseCustomer','purchaseModal'));
 
-    // Payment Back ? Customer
-    $('backToCustomer').addEventListener('click', () => swapModal('purchasePayment','purchaseCustomer'));
+    // Step 2 → Payment (save details first)
+    $('purchaseStep2Next')?.addEventListener('click', async () => {
+      if (IS_SOLD) return notify('sold2', { title:'Sold', text:'This vehicle is sold.' });
+
+      const nameEl  = form.name;
+      const emailEl = form.email;
+      const phoneEl = form.phone;
+      const ctryEl  = form.country;
+
+      const name    = (nameEl?.value || '').trim();
+      const email   = (emailEl?.value || '').trim();
+      const phone   = (phoneEl?.value || '').trim();
+      const country = (ctryEl?.value || '').trim();
+
+      if (!name || !email || !phone || !country) {
+        notify('purch-missing', { title:'Missing Information', text:'Please fill in all required customer details.' });
+        return;
+      }
+      if (!emailPattern.test(email)) {
+        notify('purch-email', { title:'Invalid Email', text:'Enter a valid email address, e.g. you@example.com.' });
+        emailEl?.focus(); return;
+      }
+      if (!phonePattern.test(phone)) {
+        notify('purch-phone', { title:'Invalid Phone Number', text:'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
+        phoneEl?.focus(); return;
+      }
+
+      // normalize
+      if (emailEl) emailEl.value = email;
+      if (phoneEl) phoneEl.value = phone;
+
+      try {
+        const res = await fetch("{{ route('purchase.store') }}", {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'Accept':'application/json',
+            'X-CSRF-TOKEN':"{{ csrf_token() }}"
+          },
+          body: JSON.stringify({
+            name, email, phone, country,
+            vehicle_id: form.vehicle_id.value,
+            total_price: form.total_price.value
+          })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data?.success) throw new Error(data?.message || 'Unable to save details.');
+
+        let hid = form.querySelector('input[name="purchase_id"]');
+        if (!hid) { hid = document.createElement('input'); hid.type='hidden'; hid.name='purchase_id'; form.appendChild(hid); }
+        hid.value = data.purchase_id;
+
+        swapModal('purchaseCustomer','purchasePayment');
+      } catch (e) {
+        Swal.fire({ icon:'error', title:'Error', text:e.message || 'Network error.' });
+      }
+    });
+
+    // Payment Back → Customer
+    $('backToCustomer')?.addEventListener('click', () => swapModal('purchasePayment','purchaseCustomer'));
 
     // Reset radios each time Payment opens
-    $('purchasePayment').addEventListener('show.bs.modal', () => {
+    $('purchasePayment')?.addEventListener('show.bs.modal', () => {
       document.querySelectorAll('#purchasePayment input[name="payment_method"]').forEach(r => r.checked = false);
     });
 
@@ -515,6 +557,11 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
       radio.addEventListener('change', async function() {
         const choice = this.value;
+
+        if (IS_SOLD) {
+          this.checked = false;
+          return notify('sold3', { title:'Sold', text:'This vehicle is sold.' });
+        }
 
         if (choice === 'stripe') {
           const ok = await ensureStripeMounted();
@@ -555,13 +602,16 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
       });
     });
 
-    // Stripe Back ? Payment
-    $('purchaseStripeBackToPayment').addEventListener('click', () => swapModal('stripePaymentModal','purchasePayment'));
+    // Stripe Back → Payment
+    $('purchaseStripeBackToPayment')?.addEventListener('click', () => swapModal('stripePaymentModal','purchasePayment'));
 
     // Stripe purchase
-    $('purchaseStripePayButton').addEventListener('click', async () => {
+    $('purchaseStripePayButton')?.addEventListener('click', async () => {
+      if (IS_SOLD) return notify('sold4', { title:'Sold', text:'This vehicle is sold.' });
+
       const pid = form.querySelector('input[name="purchase_id"]')?.value;
       if (!pid) { Swal.fire({ icon:'error', title:'Missing purchase', text:'Purchase ID is missing. Please save your details again.' }); return; }
+
       if (!stripe || !cardNumber) { const ok = await ensureStripeMounted(); if (!ok) return; }
 
       Swal.fire({ title:'Processing payment', html:'Please do not close this window.', allowOutsideClick:false, didOpen:() => Swal.showLoading() });
@@ -646,6 +696,3 @@ const modalInst = (el) => bootstrap.Modal.getOrCreateInstance(el, {
   });
 })();
 </script>
-
-
-

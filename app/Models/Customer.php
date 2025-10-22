@@ -35,14 +35,15 @@ class Customer extends Model
         return $this->bookings->whereIn('status', ['pending', 'confirmed'])->count() > 0;
     }
 
-    public function activeBookingCount()
-    {
-        if ($this->relationLoaded('bookings')) {
-            return $this->bookings->whereIn('status', ['pending', 'active','completed'])->count();
-        }
+   public function activeBookingCount()
+{
+    return $this->bookings()
+        ->whereDate('start_date', '<=', now())   // already started
+        ->whereDate('end_date', '>=', now())     // not yet ended
+        ->whereIn('status', ['confirmed', 'ongoing']) // only valid active statuses
+        ->count();
+}
 
-        return $this->bookings()->whereIn('status', ['pending', 'active', 'completed'])->count();
-    }
 
 
 

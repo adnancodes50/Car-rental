@@ -67,13 +67,13 @@
                             </div>
                             <div class="col-md-6">
                                 <label>Phone Link</label>
-                                <input type="text" name="phone_link" class="form-control"
+                                <input type="text" name="phone_link" class="form-control" placeholder = "+277117909863"
                                     value="{{ old('phone_link', $settings->phone_link ?? '') }}">
                             </div>
                         </div>
 
                         {{-- WhatsApp --}}
-                        <div class="row mt-3">
+                        {{-- <div class="row mt-3">
                             <div class="col-md-6">
                                 <label>WhatsApp Button Text</label>
                                 <input type="text" name="whatsapp_btn_text" class="form-control"
@@ -81,10 +81,10 @@
                             </div>
                             <div class="col-md-6">
                                 <label>WhatsApp Link</label>
-                                <input type="text" name="whatsapp_link" class="form-control"
+                                <input type="text" name="whatsapp_link" class="form-control" placeholder = "+270017909863"
                                     value="{{ old('whatsapp_link', $settings->whatsapp_link ?? '') }}">
                             </div>
-                        </div>
+                        </div> --}}
 
                     </div>
                 </div>
@@ -134,47 +134,66 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== jQuery Validation (inline errors only) =====
-    $("#landingForm").validate({
-        rules: {
-            email_btn_text: { required: true, maxlength: 255 },
-            email_link: { required: true, email: true },
+    if (window.jQuery && $.validator && !$.validator.methods.filesize) {
+       $.validator.addMethod("filesize", function (value, element, filesize) {
+    if (!element.files || !element.files.length) {
+        return true;
+    }
+    return element.files[0].size <= 5242880; // 5 MB
+}, "File must be smaller than 5 MB.");
 
-            phone_btn_text: { required: true, maxlength: 255 },
-            phone_link: {
-                required: true,
-                pattern: /^\+\d{7,15}$/
-            },
+    }
+$("#landingForm").validate({
+    rules: {
+        email_btn_text: { required: true, maxlength: 255 },
+        email_link: { required: true, email: true },
 
-            whatsapp_btn_text: { required: true, maxlength: 255 },
-            whatsapp_link: {
-                required: true,
-                pattern: /^(\+\d{7,15}|https:\/\/wa\.me\/\d{7,15}|https:\/\/api\.whatsapp\.com\/send\?phone=\d{7,15})$/
-            },
-
-            hero_image: {
-                accept: "jpg,jpeg,png,gif",
-                filesize: 4 * 1024 * 1024 // 4MB
-            }
+        phone_btn_text: { required: true, maxlength: 255 },
+        phone_link: {
+            required: true,
+            pattern: /^\+\d{8,15}$/  // ✅ Must start with + and contain 8–15 digits
         },
-        messages: {
-            email_btn_text: { required: "Email button text is required" },
-            email_link: { required: "Email is required", email: "Enter a valid email address" },
 
-            phone_btn_text: { required: "Phone button text is required" },
-            phone_link: { required: "Phone is required", pattern: "Phone must be like +923001234567" },
-
-            whatsapp_btn_text: { required: "WhatsApp button text is required" },
-            whatsapp_link: { required: "WhatsApp link is required", pattern: "Enter valid number or wa.me/api link" },
-
-            hero_image: { accept: "Only image formats allowed (jpg, jpeg, png, gif)", filesize: "Max size 4MB" }
+        whatsapp_btn_text: { required: true, maxlength: 255 },
+        whatsapp_link: {
+            required: true,
+            pattern: /^\+\d{8,15}$/  // ✅ Same rule for WhatsApp: + followed by digits
         },
-        errorPlacement: function(error, element) {
-            error.insertAfter(element);
-        },
-        submitHandler: function(form) {
-            form.submit();
+
+        hero_image: {
+            accept: "jpg,jpeg,png,gif",
+            filesize: 5242880 // 5 MB max
         }
-    });
+    },
+    messages: {
+        email_btn_text: { required: "Email button text is required" },
+        email_link: { required: "Email is required", email: "Enter a valid email address" },
+
+        phone_btn_text: { required: "Phone button text is required" },
+        phone_link: {
+            required: "Phone number is required",
+            pattern: "Phone number must start with + and contain only digits (e.g., +1234567890)"
+        },
+
+        whatsapp_btn_text: { required: "WhatsApp button text is required" },
+        whatsapp_link: {
+            required: "WhatsApp number is required",
+            pattern: "WhatsApp number must start with + and contain only digits (e.g., +1234567890)"
+        },
+
+        hero_image: {
+            accept: "Only image formats allowed (jpg, jpeg, png, gif)",
+            filesize: "File must be smaller than 5 MB"
+        }
+    },
+    errorPlacement: function(error, element) {
+        error.insertAfter(element);
+    },
+    submitHandler: function(form) {
+        form.submit();
+    }
+});
+
 
     // ===== SweetAlert ONLY for backend messages =====
     @if(session('success'))

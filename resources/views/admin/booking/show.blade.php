@@ -29,13 +29,17 @@
                     <p><strong>Vehicle:</strong> {{ $booking->vehicle->name ?? '-' }}</p>
                     <p><strong>Type:</strong> {{ ucfirst($booking->type) }}</p>
                     <p><strong>Status:</strong>
-                        @if($booking->status === 'confirmed')
-                            <span class="badge bg-success">Confirmed</span>
-                        @elseif($booking->status === 'pending')
-                            <span class="badge bg-warning text-dark">Pending</span>
-                        @elseif($booking->status === 'cancelled')
-                            <span class="badge bg-danger">Cancelled</span>
-                        @endif
+                        @php
+                            $statusMap = [
+                                'confirmed' => ['label' => 'Confirmed', 'class' => 'badge bg-success'],
+                                'pending' => ['label' => 'Pending', 'class' => 'badge bg-warning text-dark'],
+                                'canceled' => ['label' => 'Canceled', 'class' => 'badge bg-danger'],
+                                'completed' => ['label' => 'Completed', 'class' => 'badge bg-success'],
+                                'ongoing' => ['label' => 'Ongoing', 'class' => 'badge bg-info text-dark'],
+                            ];
+                            $statusData = $statusMap[$booking->status] ?? ['label' => ucfirst($booking->status ?? 'Unknown'), 'class' => 'badge bg-secondary'];
+                        @endphp
+                        <span class="{{ $statusData['class'] }}">{{ $statusData['label'] }}</span>
                     </p>
                 </div>
             </div>

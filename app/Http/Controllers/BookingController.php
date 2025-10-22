@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Customer;
+use Illuminate\Support\Facades\Cache;
+
 use App\Models\Vehicles;
 use App\Models\AddOn;
 use App\Models\AddOnReservation;
@@ -21,16 +23,39 @@ use Validator;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BookingReceipt;
+use App\Mail\BookingStatusUpdate;
 use App\Mail\OwnerBookingAlert;
 
 
 class BookingController extends Controller
 {
-  public function index()
-    {
-        $bookings = Booking::with(['customer', 'vehicle'])->get();
-        return view('admin.booking.index', compact('bookings'));
+  // app/Http/Controllers/BookingController.php
+
+public function index()
+{
+    $driver = \DB::connection()->getDriverName();
+
+    // Year & month expressions per driver
+    if ($driver === 'sqlite') {
+        $yearExpr  = "CAST(STRFTIME('%Y', start_date) AS INTEGER)";
+        $monthExpr = "CAST(STRFTIME('%m', start_date) AS INTEGER)";
+    } elseif ($driver === 'pgsql') {
+        $yearExpr  = "EXTRACT(YEAR FROM start_date)";
+        $monthExpr = "EXTRACT(MONTH FROM start_date)";
+    } else { // mysql/mariadb (default)
+        $yearExpr  = "YEAR(start_date)";
+        $monthExpr = "MONTH(start_date)";
     }
+
+    $bookings = Booking::with(['customer','vehicle'])
+        ->orderByRaw("$yearExpr ASC")
+        ->orderByRaw("$monthExpr ASC")
+        ->orderBy('start_date', 'ASC')
+        ->get();
+
+    return view('admin.booking.index', compact('bookings'));
+}
+
 
     public function show(Booking $booking)
     {
@@ -41,199 +66,262 @@ class BookingController extends Controller
     /**
      * Store a new booking (customer + booking + add_on_reservations).
      */
-public function store(Request $request)
+
+ public function store(Request $request)
 {
-    // dd($request);
+    // Normalize empty booking_id to null
+    if ($request->has('booking_id') && $request->input('booking_id') === '') {
+        $request->merge(['booking_id' => null]);
+    }
+
     $validated = $request->validate([
         'vehicle_id'         => ['required','exists:vehicles,id'],
         'rental_unit'        => ['required','in:day,week,month'],
         'rental_quantity'    => ['required','integer','min:1'],
         'rental_start_date'  => ['required','date'],
         'extra_days'         => ['nullable','integer','min:0'],
+        'booking_id'         => ['nullable','integer','exists:bookings,id'],
 
         'name'               => ['required','string','max:255'],
         'email'              => ['required','email:rfc,filter','max:255'],
         'phone'              => ['required','regex:/^\\+?[0-9]{1,4}(?:[\\s-]?[0-9]{2,4}){2,4}$/'],
         'country'            => ['nullable','string','max:100'],
 
-        // NEW: accept nested add-on structure
+        // nested add-ons
         'add_ons'               => ['nullable','array'],
         'add_ons.*.type'        => ['nullable','in:day,week,month'],
         'add_ons.*.quantity'    => ['nullable','integer','min:1'],
         'add_ons.*.start_date'  => ['nullable','date'],
         'add_ons.*.end_date'    => ['nullable','date'],
-        'add_ons.*.extra_days'    => ['nullable','integer','min:0'],
-        'add_ons.*.total'       => ['nullable','numeric','min:0'], // ignored for security; we compute server-side
+        'add_ons.*.extra_days'  => ['nullable','integer','min:0'],
+        'add_ons.*.total'       => ['nullable','numeric','min:0'], // ignored; computed server-side
     ]);
 
-    DB::beginTransaction();
+    // Build a short-lived lock key from natural inputs (no DB change)
+    $lockKey = sprintf(
+        'lock:booking:%s:%s:%s:%s',
+        $request->input('vehicle_id'),
+        strtolower(trim($request->input('email') ?? 'guest')),
+        \Carbon\Carbon::parse($request->input('rental_start_date'))->toDateString(),
+        $request->input('rental_unit') . 'x' . (int) $request->input('rental_quantity')
+    );
 
-    try {
-        /* ---------- 1) Customer ---------- */
-        if (!empty($validated['email'])) {
-            $customer = Customer::firstOrCreate(
-                ['email' => $validated['email']],
-                ['name' => $validated['name'], 'phone' => $validated['phone'] ?? null, 'country' => $validated['country'] ?? null]
-            );
-        } elseif (!empty($validated['phone'])) {
-            $customer = Customer::firstOrCreate(
-                ['phone' => $validated['phone']],
-                ['name' => $validated['name'], 'email' => $validated['email'] ?? null, 'country' => $validated['country'] ?? null]
-            );
-        } else {
-            $customer = Customer::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'country' => $validated['country'] ?? null,
-            ]);
-        }
+    // Use fully-qualified Cache facade so you don't have to add a "use" line
+    return \Illuminate\Support\Facades\Cache::lock($lockKey, 10)->block(5, function () use ($validated, $request) {
 
-        /* ---------- 2) Vehicle, dates, pricing ---------- */
-        $vehicle    = Vehicles::findOrFail($validated['vehicle_id']);
-        $unit       = $validated['rental_unit'];                   // day|week|month
-        $qty        = (int) $validated['rental_quantity'];
-        $extraDays  = (int) ($validated['extra_days'] ?? 0);
-        $start      = \Carbon\Carbon::parse($validated['rental_start_date'])->startOfDay();
+        DB::beginTransaction();
+        try {
+            /* ---------- 1) Customer ---------- */
+            if (!empty($validated['email'])) {
+                $customer = Customer::firstOrCreate(
+                    ['email' => $validated['email']],
+                    ['name' => $validated['name'], 'phone' => $validated['phone'] ?? null, 'country' => $validated['country'] ?? null]
+                );
+            } elseif (!empty($validated['phone'])) {
+                $customer = Customer::firstOrCreate(
+                    ['phone' => $validated['phone']],
+                    ['name' => $validated['name'], 'email' => $validated['email'] ?? null, 'country' => $validated['country'] ?? null]
+                );
+            } else {
+                $customer = Customer::create([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'] ?? null,
+                    'phone' => $validated['phone'] ?? null,
+                    'country' => $validated['country'] ?? null,
+                ]);
+            }
 
-        // Inclusive end date (end is the last day charged)
-        switch ($unit) {
-            case 'day':
-                $end = $start->copy()->addDays($qty - 1 + $extraDays);
-                break;
-            case 'week':
-                $end = $start->copy()->addDays(($qty * 7) - 1 + $extraDays);
-                break;
-            case 'month':
-                $end = $start->copy()->addMonths($qty)->subDay()->addDays($extraDays);
-                break;
-        }
+            /* ---------- 2) Existing booking path (edit-in-progress) ---------- */
+            $existingBooking = null;
+            $createdNewBooking = false;
+            if (!empty($validated['booking_id'])) {
+                $existingBooking = Booking::lockForUpdate()->find($validated['booking_id']);
+                if ($existingBooking && !in_array($existingBooking->status, ['pending', 'draft', 'initiated'], true)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This booking can no longer be modified. Please refresh and start again.',
+                    ], 409);
+                }
+            }
 
-        $priceField        = 'rental_price_' . $unit;
-        $vehicleUnitPrice  = (float) ($vehicle->{$priceField} ?? 0.0);
+            /* ---------- 3) Vehicle, dates, pricing ---------- */
+            $vehicle    = Vehicles::findOrFail($validated['vehicle_id']);
+            $unit       = $validated['rental_unit'];             // day|week|month
+            $qty        = (int) $validated['rental_quantity'];
+            $extraDays  = (int) ($validated['extra_days'] ?? 0);
+            $start      = \Carbon\Carbon::parse($validated['rental_start_date'])->startOfDay();
 
-        $basePrice = $vehicleUnitPrice * $qty;
-        $extraDaysPrice = 0.0;
-        if ($extraDays > 0) {
-            if     ($unit === 'day')   $extraDaysPrice = $vehicleUnitPrice * $extraDays;
-            elseif ($unit === 'week')  $extraDaysPrice = ($vehicleUnitPrice / 7)  * $extraDays;
-            elseif ($unit === 'month') $extraDaysPrice = ($vehicleUnitPrice / 30) * $extraDays;
-        }
+            switch ($unit) {
+                case 'day':
+                    $end = $start->copy()->addDays($qty - 1 + $extraDays);
+                    break;
+                case 'week':
+                    $end = $start->copy()->addDays(($qty * 7) - 1 + $extraDays);
+                    break;
+                case 'month':
+                    $end = $start->copy()->addMonths($qty)->subDay()->addDays($extraDays);
+                    break;
+            }
 
-        /* ---------- helper to compute add-on units from its own dates ---------- */
-        $unitsBetween = function(\Carbon\Carbon $s, \Carbon\Carbon $e, string $u): int {
-            $days = $s->diffInDays($e) + 1; // inclusive
-            if ($u === 'day')   return $days;
-            if ($u === 'week')  return (int) ceil($days / 7);
-            if ($u === 'month') return (int) ceil($days / 30);
-            return 0;
-        };
+            $priceField        = 'rental_price_' . $unit;
+            $vehicleUnitPrice  = (float) ($vehicle->{$priceField} ?? 0.0);
 
-       /* ---------- 3) Add-ons (FORCE same dates as vehicle) ---------- */
-$addonsTotal        = 0.0;
-$addOnReservations  = [];
+            $basePrice = $vehicleUnitPrice * $qty;
+            $extraDaysPrice = 0.0;
+            if ($extraDays > 0) {
+                if     ($unit === 'day')   $extraDaysPrice = $vehicleUnitPrice * $extraDays;
+                elseif ($unit === 'week')  $extraDaysPrice = ($vehicleUnitPrice / 7)  * $extraDays;
+                elseif ($unit === 'month') $extraDaysPrice = ($vehicleUnitPrice / 30) * $extraDays;
+            }
 
-$rawAddOns = $request->input('add_ons', []); // from the form
+            /* ---------- 4) Natural-key duplicate guard (no schema change) ---------- */
+            if (!$existingBooking) {
+                $dupe = Booking::where('vehicle_id', $vehicle->id)
+                    ->where('customer_id', $customer->id)
+                    ->whereDate('start_date', $start->toDateString())
+                    ->whereDate('end_date', $end->toDateString())
+                    ->whereIn('status', ['pending', 'draft', 'initiated'])
+                    ->lockForUpdate()
+                    ->first();
 
-$unitsBetween = function(\Carbon\Carbon $s, \Carbon\Carbon $e, string $u): int {
-    $days = $s->diffInDays($e) + 1; // inclusive
-    if ($u === 'day')   return $days;
-    if ($u === 'week')  return (int) ceil($days / 7);
-    if ($u === 'month') return (int) ceil($days / 30);
-    return 0;
-};
+                if ($dupe) {
+                    DB::commit();
+                    return response()->json([
+                        'success'     => true,
+                        'booking_id'  => $dupe->id,
+                        'total_price' => (int) ($dupe->total_price ?? 0),
+                        'message'     => 'Booking already created.',
+                    ]);
+                }
+            }
 
-foreach ($rawAddOns as $addOnId => $payload) {
-    // normalized payload (we only care about type + quantity)
-    $aType = is_array($payload) ? ($payload['type'] ?? null) : $unit;     // fallback: main unit
-    $aQty  = (int) (is_array($payload) ? ($payload['quantity'] ?? 0) : (int) $payload);
+            /* ---------- 5) Add-ons (force same dates as vehicle) ---------- */
+            $addonsTotal        = 0.0;
+            $addOnReservations  = [];
 
-    if ($aQty <= 0) continue;
+            $rawAddOns = $request->input('add_ons', []);
 
-    /** @var AddOn|null $addOn */
-    $addOn = AddOn::lockForUpdate()->find($addOnId);
-    if (!$addOn) {
-        DB::rollBack();
-        return response()->json(['success' => false, 'message' => "Add-on not found: {$addOnId}"], 422);
-    }
-    if ($addOn->qty_total < $aQty) {
-        DB::rollBack();
-        return response()->json(['success' => false, 'message' => "Not enough stock for add-on ID {$addOnId}."], 422);
-    }
+            $unitsBetween = function(\Carbon\Carbon $s, \Carbon\Carbon $e, string $u): int {
+                $days = $s->diffInDays($e) + 1; // inclusive
+                if ($u === 'day')   return $days;
+                if ($u === 'week')  return (int) ceil($days / 7);
+                if ($u === 'month') return (int) ceil($days / 30);
+                return 0;
+            };
 
-    // ✅ force add-on dates to main booking dates
-    $aStart = $start->copy();
-    $aEnd   = $end->copy();
-    if (!$aType) $aType = $unit;
+            foreach ($rawAddOns as $addOnId => $payload) {
+                $aType = is_array($payload) ? ($payload['type'] ?? null) : $unit;   // fallback to booking unit
+                $aQty  = (int) (is_array($payload) ? ($payload['quantity'] ?? 0) : (int) $payload);
+                if ($aQty <= 0) continue;
 
-    $aPriceField = 'price_' . $aType;         // price_day|price_week|price_month
-    $unitPrice   = (float) ($addOn->{$aPriceField} ?? 0.0);
+                /** @var AddOn|null $addOn */
+                $addOn = AddOn::lockForUpdate()->find($addOnId);
+                if (!$addOn) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => "Add-on not found: {$addOnId}"], 422);
+                }
+                if ($addOn->qty_total < $aQty) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => "Not enough stock for add-on ID {$addOnId}."], 422);
+                }
 
-    $units = $unitsBetween($aStart, $aEnd, $aType);
-    $priceTotal = $units * $unitPrice * $aQty;
+                // Force add-on rental period to match booking period
+                $aStart = $start->copy();
+                $aEnd   = $end->copy();
+                if (!$aType) $aType = $unit;
 
-    $addonsTotal += $priceTotal;
+                $aPriceField = 'price_' . $aType; // price_day|price_week|price_month
+                $unitPrice   = (float) ($addOn->{$aPriceField} ?? 0.0);
 
-    $addOnReservations[] = [
-        'add_on_id'   => (int) $addOn->id,
-        'qty'         => (int) $aQty,
-        'price_total' => (int) round($priceTotal),
-        'start_date'  => $aStart->toDateString(),  // saved for reference = main booking dates
-        'end_date'    => $aEnd->toDateString(),
-        'extra_days'  => 0,
-    ];
+                $units = $unitsBetween($aStart, $aEnd, $aType);
+                $priceTotal = $units * $unitPrice * $aQty;
 
-        }
+                $addonsTotal += $priceTotal;
 
-        /* ---------- 4) Totals & Booking ---------- */
-        $totalPrice = (int) round($basePrice + $extraDaysPrice + $addonsTotal);
+                $addOnReservations[] = [
+                    'add_on_id'   => (int) $addOn->id,
+                    'qty'         => (int) $aQty,
+                    'price_total' => (int) round($priceTotal),
+                    'start_date'  => $aStart->toDateString(),
+                    'end_date'    => $aEnd->toDateString(),
+                    'extra_days'  => 0,
+                ];
+            }
 
-        $booking = Booking::create([
-            'vehicle_id'   => $vehicle->id,
-            'customer_id'  => $customer->id,
-            'start_date'   => $start->toDateString(),
-            'end_date'     => $end->toDateString(),
-            'type'         => 'rental',
-            'status'       => 'pending',
-            'reference'    => 'BK-' . strtoupper(Str::random(8)),
-            'notes'        => json_encode([
+            /* ---------- 6) Totals & Persist booking ---------- */
+            $totalPrice = (int) round($basePrice + $extraDaysPrice + $addonsTotal);
+
+            $notesPayload = [
                 'rental_unit'        => $unit,
                 'rental_quantity'    => $qty,
                 'extra_days'         => $extraDays,
                 'vehicle_unit_price' => $vehicleUnitPrice,
                 'addons_summary'     => $addOnReservations,
-            ]),
-            'total_price'  => $totalPrice,
-            'extra_days'   => $extraDays,
-        ]);
+            ];
 
+            $bookingData = [
+                'vehicle_id'   => $vehicle->id,
+                'customer_id'  => $customer->id,
+                'start_date'   => $start->toDateString(),
+                'end_date'     => $end->toDateString(),
+                'notes'        => json_encode($notesPayload),
+                'total_price'  => $totalPrice,
+                'extra_days'   => $extraDays,
+            ];
 
+            if ($existingBooking) {
+                $existingBooking->fill($bookingData);
+                $existingBooking->type   = 'rental';
+                $existingBooking->status = 'pending';
+                if (empty($existingBooking->reference)) {
+                    $existingBooking->reference = 'BK-' . strtoupper(Str::random(8));
+                }
+                $existingBooking->save();
 
-        foreach ($addOnReservations as $r) {
-            AddOnReservation::create([
-                'add_on_id'   => $r['add_on_id'],
+                AddOnReservation::where('booking_id', $existingBooking->id)->delete();
+                $booking = $existingBooking;
+            } else {
+                $booking = Booking::create($bookingData + [
+                    'type'      => 'rental',
+                    'status'    => 'pending',
+                    'reference' => 'BK-' . strtoupper(Str::random(8)),
+                ]);
+                $createdNewBooking = true;
+            }
+
+            foreach ($addOnReservations as $r) {
+                AddOnReservation::create([
+                    'add_on_id'   => $r['add_on_id'],
+                    'booking_id'  => $booking->id,
+                    'qty'         => $r['qty'],
+                    'price_total' => $r['price_total'],
+                    'start_date'  => $r['start_date'],
+                    'end_date'    => $r['end_date'],
+                    'extra_days'  => $r['extra_days'] ?? 0,
+                ]);
+            }
+
+            DB::commit();
+
+            if ($createdNewBooking) {
+                $this->sendBookingCreationEmails($booking);
+            }
+
+            return response()->json([
+                'success'     => true,
                 'booking_id'  => $booking->id,
-                'qty'         => $r['qty'],
-                'price_total' => $r['price_total'],
-                'start_date'  => $r['start_date'],
-                'end_date'    => $r['end_date'],
-                   'extra_days'  => $r['extra_days'] ?? 0,
+                'total_price' => $totalPrice,
             ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+            return response()->json(['success' => false, 'message' => 'Failed to create booking.'], 500);
         }
-
-        DB::commit();
-
-        return response()->json([
-            'success'     => true,
-            'booking_id'  => $booking->id,
-            'total_price' => $totalPrice,
-        ]);
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        report($e);
-        return response()->json(['success' => false, 'message' => 'Failed to create booking.'], 500);
-    }
+    });
 }
+
 
 
 
@@ -304,6 +392,35 @@ private function sendBookingEmails(\App\Models\Booking $booking, float $paidNow)
         }
     } catch (\Throwable $e) {
         Log::warning('Booking emails failed', [
+            'booking_id' => $booking->id ?? null,
+            'error'      => $e->getMessage(),
+        ]);
+    }
+}
+
+/**
+ * Notify customer and owner immediately after a booking is created.
+ */
+private function sendBookingCreationEmails(Booking $booking): void
+{
+    try {
+        $settings = SystemSetting::first();
+        $this->configureMailerFromSettings($settings);
+        $ownerEmail = $this->resolveOwnerEmail($settings);
+
+        $booking->loadMissing('vehicle', 'customer');
+
+        if ($booking->customer?->email) {
+            Mail::to($booking->customer->email)
+                ->send(new BookingStatusUpdate($booking, $booking->status ?? 'pending'));
+        }
+
+        if ($ownerEmail) {
+            Mail::to($ownerEmail)
+                ->send(new OwnerBookingAlert($booking, 0.0));
+        }
+    } catch (\Throwable $e) {
+        Log::warning('Booking creation emails failed', [
             'booking_id' => $booking->id ?? null,
             'error'      => $e->getMessage(),
         ]);
@@ -391,7 +508,7 @@ public function payWithStripe(Request $request, Booking $booking)
             $charge = $pi->charges->data[0] ?? null;
 
             $booking->update([
-                'status'                   => 'completed',
+                'status'                   => 'confirmed',
                 'payment_method'           => 'stripe',     // ✅ ensure saved
                 'payment_status'           => 'succeeded',
                 'currency'                 => $pi->currency,
@@ -574,10 +691,10 @@ public function payfastBookingReturn(Request $request)
 }
 
 
-public function payfastBookingCancel(Request $request)
-{
-    return view('payments.cancel'); // same view as purchases
-}
+// public function payfastBookingCancel(Request $request)
+// {
+//     return view('payments.cancel'); // same view as purchases
+// }
 
 public function payfastBookingNotify(Request $request)
 {
