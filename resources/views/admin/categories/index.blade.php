@@ -9,10 +9,10 @@
 @section('content')
     <div class="container-fluid">
 
-        {{-- Success Message --}}
+        {{-- Success Message
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
+        @endif --}}
 
         <div class="card">
             {{-- Card Header with Add Category Button --}}
@@ -66,13 +66,14 @@
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form action="{{ route('categories.destroy', $category) }}" method="POST"
-                                            class="d-inline" onsubmit="return confirm('Delete this category?');">
+                                            class="d-inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger">
+                                            <button type="button" class="btn btn-sm btn-danger delete-btn">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+
                                     </td>
                                 </tr>
                             @empty
@@ -86,4 +87,57 @@
             </div>
         </div>
     </div>
+@stop
+
+
+
+@section('js')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {{-- ✅ Show success message --}}
+    @if (session('success'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: '{{ session('success') }}',
+                confirmButtonColor: '#343a40',
+            });
+        </script>
+    @endif
+
+    {{-- ✅ Show error message --}}
+    @if (session('error'))
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: '{{ session('error') }}',
+                confirmButtonColor: '#343a40',
+            });
+        </script>
+    @endif
+
+    {{-- ✅ Always active delete confirmation --}}
+    <script>
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                let form = this.closest('form');
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This category will be deleted permanently.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
 @stop

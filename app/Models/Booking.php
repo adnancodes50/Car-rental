@@ -17,6 +17,7 @@ class Booking extends Model
         'type',
         'status',
         'reference',
+        'admin_note',
         'notes',
         'total_price',
         'extra_days', // <-- new column added
@@ -47,5 +48,5 @@ class Booking extends Model
                     ->withPivot('qty', 'price_total')
                     ->withTimestamps();
     }
-    
+
 }

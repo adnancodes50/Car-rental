@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Landing;
 use App\Models\Vehicles;
+use App\Models\Category;
+use App\Models\Location;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Storage;
@@ -25,64 +27,73 @@ class VehicleController extends Controller
 
 
 
-    public function index()
+   public function index()
     {
-        $vehicles = Vehicles::all();
+
+$vehicles = Vehicles::with(['category:id,name', 'branch:id,name'])->get();
+        // dd('$vehicles');
         return view('admin.vehicles.index', compact('vehicles'));
     }
 
     public function create()
     {
-        return view('admin.vehicles.create');
+        // ✅ provide lists for selects
+        $categories = Category::orderBy('name')->get(['id','name']);
+        $locations  = Location::orderBy('name')->get(['id','name']);
+        return view('admin.vehicles.create', compact('categories','locations'));
     }
 
     public function store(Request $request)
     {
-        // dd($request->all());
-
-        // Validate
+        // Validate (now includes category_id & location_id)
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'model' => 'nullable|string|max:255',
-            'year' => 'nullable|digits:4|integer',
-            'type' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'transmission' => 'nullable|string|max:255',
-            'fuel_type' => 'nullable|string|max:255',
-            'drive_type' => 'nullable|string|max:255',
-            'seats' => 'nullable|integer',
-            'mileage' => 'nullable|integer',
-            'engine' => 'nullable|string|max:255',
-            'is_for_sale' => 'nullable|boolean',
-            'rental_price_day' => 'nullable|numeric',
-            'rental_price_week' => 'nullable|numeric',
+            'name'               => 'required|string|max:255',
+            'model'              => 'nullable|string|max:255',
+            'year'               => 'nullable|digits:4|integer',
+            'type'               => 'nullable|string|max:255',
+            'description'        => 'nullable|string',
+            // ⛔️ removed old "location" text field; we now use location_id
+            'transmission'       => 'nullable|string|max:255',
+            'fuel_type'          => 'nullable|string|max:255',
+            'drive_type'         => 'nullable|string|max:255',
+            'seats'              => 'nullable|integer',
+            'mileage'            => 'nullable|integer',
+            'engine'             => 'nullable|string|max:255',
+            'is_for_sale'        => 'nullable|boolean',
+            'rental_price_day'   => 'nullable|numeric',
+            'rental_price_week'  => 'nullable|numeric',
             'rental_price_month' => 'nullable|numeric',
-            'booking_lead_days' => 'nullable|integer',
-            'purchase_price' => 'nullable|numeric',
-            'deposit_amount' => 'nullable|numeric',
-            'status' => 'required|in:available,rented,maintenance,sold',
-            'main_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'images.*' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'features' => 'nullable|array', // <-- validate as array
-            'features.*' => 'string|max:255', // each feature is a string
+            'booking_lead_days'  => 'nullable|integer',
+            'purchase_price'     => 'nullable|numeric',
+            'deposit_amount'     => 'nullable|numeric',
+            'status'             => 'required|in:available,rented,maintenance,sold',
+            'main_image'         => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'images.*'           => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'features'           => 'nullable|array',
+            'features.*'         => 'string|max:255',
+
+            // ✅ NEW
+            'category_id'        => 'required|exists:categories,id',
+            'location_id'        => 'required|exists:locations,id',
         ]);
 
         unset($validated['main_image'], $validated['images']);
 
+        // Checkbox -> boolean
+        $validated['is_for_sale'] = $request->boolean('is_for_sale');
+
         // Create vehicle
         $vehicle = Vehicles::create($validated);
 
-        // Handle main image
+        // Main image
         if ($request->hasFile('main_image')) {
             $file = $request->file('main_image');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('storage/vehicles'), $filename); // Move directly to public/storage/vehicles
+            $file->move(public_path('storage/vehicles'), $filename);
             $vehicle->update(['main_image_url' => "/storage/vehicles/{$filename}"]);
         }
 
-
-        // Handle additional images
+        // Additional images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $filename = time() . '_' . $image->getClientOriginalName();
@@ -91,60 +102,63 @@ class VehicleController extends Controller
             }
         }
 
-
         return redirect()->route('vehicles.index')
             ->with('success', 'Vehicle created successfully!');
     }
 
 
 
-    public function edit(Vehicles $vehicle)
+
+ public function edit(Vehicles $vehicle)
     {
-        return view('admin.vehicles.edit', compact('vehicle'));
+        $categories = Category::orderBy('name')->get(['id','name']);
+        $locations  = Location::orderBy('name')->get(['id','name']);
+        return view('admin.vehicles.edit', compact('vehicle','categories','locations'));
     }
 
     public function update(Request $request, Vehicles $vehicle)
     {
-        // Step 1: Validate input
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'model' => 'nullable|string|max:255',
-            'year' => 'nullable|digits:4|integer',
-            'type' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'transmission' => 'nullable|string|max:255',
-            'fuel_type' => 'nullable|string|max:255',
-            'drive_type' => 'nullable|string|max:255',
-            'seats' => 'nullable|integer',
-            'mileage' => 'nullable|integer',
-            'engine' => 'nullable|string|max:255',
-            'is_for_sale' => 'nullable|boolean',
-            'rental_price_day' => 'nullable|numeric',
-            'rental_price_week' => 'nullable|numeric',
+            'name'               => 'required|string|max:255',
+            'model'              => 'nullable|string|max:255',
+            'year'               => 'nullable|digits:4|integer',
+            'type'               => 'nullable|string|max:255',
+            'description'        => 'nullable|string',
+            'transmission'       => 'nullable|string|max:255',
+            'fuel_type'          => 'nullable|string|max:255',
+            'drive_type'         => 'nullable|string|max:255',
+            'seats'              => 'nullable|integer',
+            'mileage'            => 'nullable|integer',
+            'engine'             => 'nullable|string|max:255',
+            'is_for_sale'        => 'nullable|boolean',
+            'rental_price_day'   => 'nullable|numeric',
+            'rental_price_week'  => 'nullable|numeric',
             'rental_price_month' => 'nullable|numeric',
-            'booking_lead_days' => 'nullable|integer',
-            'purchase_price' => 'nullable|numeric',
-            'deposit_amount' => 'nullable|numeric',
-            'status' => 'required|in:available,rented,maintenance,sold',
-            'main_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'images.*' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'features' => 'nullable|array',
-            'features.*' => 'string|max:255',
+            'booking_lead_days'  => 'nullable|integer',
+            'purchase_price'     => 'nullable|numeric',
+            'deposit_amount'     => 'nullable|numeric',
+            'status'             => 'required|in:available,rented,maintenance,sold',
+            'main_image'         => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'images.*'           => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'features'           => 'nullable|array',
+            'features.*'         => 'string|max:255',
+
+            // ✅ NEW
+            'category_id'        => 'required|exists:categories,id',
+            'location_id'        => 'required|exists:locations,id',
         ]);
 
-        // Step 2: Remove images from validated array
         unset($validated['main_image'], $validated['images']);
 
-        // Step 3: Update vehicle basic fields
+        $validated['is_for_sale'] = $request->boolean('is_for_sale');
+
         $vehicle->update($validated);
 
+        // Main image replace
         if ($request->hasFile('main_image')) {
             if ($vehicle->main_image_url) {
-                // Delete old image
                 $oldPath = public_path($vehicle->main_image_url);
-                if (file_exists($oldPath))
-                    unlink($oldPath);
+                if (file_exists($oldPath)) @unlink($oldPath);
             }
             $file = $request->file('main_image');
             $filename = time() . '_' . $file->getClientOriginalName();
@@ -152,10 +166,9 @@ class VehicleController extends Controller
             $vehicle->update(['main_image_url' => "/storage/vehicles/{$filename}"]);
         }
 
-
-        // Step 5: Remove images marked for deletion
-        if ($request->has('removed_images')) {
-            foreach ($request->removed_images as $imgId) {
+        // Remove images marked for deletion
+        if ($request->filled('removed_images')) {
+            foreach ((array)$request->removed_images as $imgId) {
                 $image = $vehicle->images()->find($imgId);
                 if ($image) {
                     Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
@@ -164,6 +177,7 @@ class VehicleController extends Controller
             }
         }
 
+        // New additional images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $filename = time() . '_' . $image->getClientOriginalName();
@@ -171,7 +185,6 @@ class VehicleController extends Controller
                 $vehicle->addImage("/storage/vehicles/{$filename}", $index + 1);
             }
         }
-
 
         return redirect()->route('vehicles.index')
             ->with('success', 'Vehicle updated successfully!');

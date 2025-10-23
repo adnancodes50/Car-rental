@@ -20,4 +20,10 @@ class Location extends Model
         'phone',
         'status',
     ];
+
+    public function vehicles()
+{
+return $this->hasMany(Vehicle::class, 'location_id');
+}
+
 }

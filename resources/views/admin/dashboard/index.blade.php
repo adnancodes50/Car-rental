@@ -11,24 +11,32 @@
             ['title' => 'Total Earnings', 'value' => '$'.number_format($totalEarnings,2), 'icon'=>'fa-wallet', 'color'=>'#28a745'],
             ['title' => 'Total Booking Amount', 'value' => '$'.number_format($totalBookingAmount,2), 'icon'=>'fa-book', 'color'=>'#007bff'],
             ['title' => 'Total Vehicle Sales', 'value' => '$'.number_format($totalPurchaseAmount,2), 'icon'=>'fa-car', 'color'=>'#ffc107'],
-            ['title' => 'Total Customers', 'value' => $totalCustomers, 'icon'=>'fa-users', 'color'=>'#17a2b8'],
-            ['title' => 'Active Bookings', 'value' => $activeBookings, 'icon'=>'fa-calendar-check', 'color'=>'#dc3545'],
-            ['title' => 'Total Bookings', 'value' => $totalBookings, 'icon'=>'fa-list', 'color'=>'#343a40'],
+            ['title' => 'Total Customers', 'value' => $totalCustomers, 'icon'=>'fa-users', 'color'=>'#17a2b8', 'link' => route('customers.index')],
+            ['title' => 'Active Bookings', 'value' => $activeBookings, 'icon'=>'fa-calendar-check', 'color'=>'#dc3545', 'link' => route('bookings.index')],
+            ['title' => 'Total Bookings', 'value' => $totalBookings, 'icon'=>'fa-list', 'color'=>'#343a40', 'link' => route('bookings.index')],
             ['title' => 'Sale Count', 'value' => $totalPurchases, 'icon'=>'fa-shopping-cart', 'color'=>'#6c757d'],
         ];
     @endphp
 
     @foreach(array_chunk($cards, 3) as $rowIndex => $rowCards)
-        <div class="row g-4 align-items-start {{ $rowIndex > 0 ? 'mt-2 mb-1' : '' }}"> <!-- mt-4 for margin between rows -->
+        <div class="row g-4 align-items-start {{ $rowIndex > 0 ? 'mt-2 mb-1' : '' }}">
             @foreach($rowCards as $card)
             <div class="col-md-4 col-sm-6 d-flex">
+                @if(isset($card['link']))
+                    <a href="{{ $card['link'] }}" class="w-100 text-decoration-none">
+                @endif
+
                 <div class="glass-card h-100 text-center p-4 rounded-4 flex-fill">
                     <div class="icon-circle mb-3" style="background: {{$card['color']}}33; color: {{$card['color']}}">
                         <i class="fas {{$card['icon']}} fa-2x"></i>
                     </div>
-                    <h5 class="fw-bold">{{ $card['title'] }}</h5>
-                    <p class="display-6 fw-bold">{{ $card['value'] }}</p>
+                    <h5 class="fw-bold" style="color: {{$card['color']}};">{{ $card['title'] }}</h5>
+                    <p class="display-6 fw-bold text-dark">{{ $card['value'] }}</p>
                 </div>
+
+                @if(isset($card['link']))
+                    </a>
+                @endif
             </div>
             @endforeach
         </div>
@@ -43,6 +51,7 @@
         box-shadow: 0 8px 32px rgba(0,0,0,0.2);
         transition: all 0.4s ease;
         border: 1px solid rgba(255,255,255,0.2);
+        color: inherit;
     }
     .glass-card:hover {
         transform: translateY(-10px);
@@ -62,6 +71,10 @@
     }
     .icon-circle:hover {
         transform: scale(1.2);
+    }
+    a .glass-card {
+        text-decoration: none !important;
+        color: inherit !important;
     }
 </style>
 

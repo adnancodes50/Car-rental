@@ -17,5 +17,9 @@ class Category extends Model
         'status',
     ];
 
+public function vehicles()
+{
+    return $this->hasMany(Vehicles::class, 'category_id');
+}
 
 }

@@ -48,6 +48,7 @@ public function update(Request $request, $id)
         'email' => 'nullable|email|max:255',
         'phone' => 'nullable|string|max:50',
         'country' => 'nullable|string|max:100',
+         'notes' => 'nullable|string|max:1000',
     ]);
 
     $customer->update($validated);
@@ -70,15 +71,16 @@ public function update(Request $request, $id)
 public function updateBookingDates(Request $request, Booking $booking)
 {
     $validated = $request->validate([
-        'start_date'  => 'required|date',
-        'end_date'    => 'required|date|after_or_equal:start_date',
-        'total_price' => 'nullable|numeric'
+        'start_date'   => 'required|date',
+        'end_date'     => 'required|date|after_or_equal:start_date',
+        'total_price'  => 'nullable|numeric',
+        'admin_note'   => 'nullable|string|max:1000', // ✅ added for admin note
     ]);
 
     $vehicle = $booking->vehicle;
     $vehicleId = $vehicle->id;
 
-    // ✅ Overlap check
+    // ✅ Check overlapping bookings
     $overlapping = \App\Models\Booking::where('vehicle_id', $vehicleId)
         ->where('id', '!=', $booking->id)
         ->where(function ($query) use ($validated) {
@@ -98,7 +100,7 @@ public function updateBookingDates(Request $request, Booking $booking)
         ], 422);
     }
 
-    // ✅ Recalculate total price based on duration
+    // ✅ Recalculate total price
     $start = new \Carbon\Carbon($validated['start_date']);
     $end   = new \Carbon\Carbon($validated['end_date']);
     $days  = $start->diffInDays($end) + 1;
@@ -106,21 +108,24 @@ public function updateBookingDates(Request $request, Booking $booking)
     $dailyRate = $vehicle->rental_price_day ?? 0;
     $totalPrice = $days * $dailyRate;
 
-    // ✅ Update booking (and optionally vehicle revenue tracking)
+    // ✅ Update booking including admin note
     $booking->update([
-        'start_date'  => $validated['start_date'],
-        'end_date'    => $validated['end_date'],
-        'total_price' => $totalPrice,
+        'start_date'   => $validated['start_date'],
+        'end_date'     => $validated['end_date'],
+        'total_price'  => $totalPrice,
+        'admin_note'   => $validated['admin_note'] ?? $booking->admin_note, // ✅
     ]);
 
     return response()->json([
-        'success' => true,
-        'message' => 'Booking updated successfully.',
-        'start_date' => $booking->start_date,
-        'end_date' => $booking->end_date,
-        'total_price' => $booking->total_price,
+        'success'      => true,
+        'message'      => 'Booking updated successfully.',
+        'start_date'   => $booking->start_date,
+        'end_date'     => $booking->end_date,
+        'total_price'  => $booking->total_price,
+        'admin_note'   => $booking->admin_note,
     ]);
 }
+
 
 
 

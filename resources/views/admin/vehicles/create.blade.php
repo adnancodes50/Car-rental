@@ -11,7 +11,6 @@
     <form id="vehicleForm" action="{{ route('vehicles.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
-
         <!-- Basic Info -->
         <div class="container card card-white my-3">
             <div class="card-header py-2 text-center">
@@ -47,15 +46,40 @@
                             value="{{ old('type') }}">
                         <span class="text-danger small error-message" id="type-error"></span>
                     </div>
+
+                    {{-- ✅ NEW: Category select --}}
                     <div class="form-group col-md-4 mb-2">
-                        <label for="location" class="mb-1">Location</label>
-                        <input type="text" name="location" id="location" class="form-control form-control-sm"
-                            value="{{ old('location') }}">
-                        <span class="text-danger small error-message" id="location-error"></span>
+                        <label for="category_id" class="mb-1">Category *</label>
+                        <select name="category_id" id="category_id" class="form-control form-control-sm">
+                            <option value="">Select Category</option>
+                            @foreach ($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <span class="text-danger small error-message" id="category_id-error"></span>
                     </div>
+
+                    {{-- ✅ NEW: Location select (replaces old text input) --}}
                     <div class="form-group col-md-4 mb-2">
+                        <label for="location_id" class="mb-1">Location *</label>
+                        <select name="location_id" id="location_id" class="form-control form-control-sm">
+                            <option value="">Select Location</option>
+                            @foreach ($locations as $loc)
+                                <option value="{{ $loc->id }}" {{ old('location_id') == $loc->id ? 'selected' : '' }}>
+                                    {{ $loc->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <span class="text-danger small error-message" id="location_id-error"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="form-group col-md-12 mb-2">
                         <label for="description" class="mb-1">Description</label>
-                        <textarea name="description" id="description" rows="1" class="form-control form-control-sm">{{ old('description') }}</textarea>
+                        <textarea name="description" id="description" rows="2" class="form-control form-control-sm">{{ old('description') }}</textarea>
                         <span class="text-danger small error-message" id="description-error"></span>
                     </div>
                 </div>
@@ -74,8 +98,7 @@
                         <label for="transmission" class="mb-1">Transmission</label>
                         <select name="transmission" id="transmission" class="form-control form-control-sm">
                             <option value="">Select</option>
-                            <option value="Automatic" {{ old('transmission') == 'Automatic' ? 'selected' : '' }}>Automatic
-                            </option>
+                            <option value="Automatic" {{ old('transmission') == 'Automatic' ? 'selected' : '' }}>Automatic</option>
                             <option value="Manual" {{ old('transmission') == 'Manual' ? 'selected' : '' }}>Manual</option>
                         </select>
                         <span class="text-danger small error-message" id="transmission-error"></span>
@@ -89,8 +112,7 @@
                             <option value="Petrol" {{ old('fuel_type') == 'Petrol' ? 'selected' : '' }}>Petrol</option>
                             <option value="Diesel" {{ old('fuel_type') == 'Diesel' ? 'selected' : '' }}>Diesel</option>
                             <option value="Hybrid" {{ old('fuel_type') == 'Hybrid' ? 'selected' : '' }}>Hybrid</option>
-                            <option value="Electric" {{ old('fuel_type') == 'Electric' ? 'selected' : '' }}>Electric
-                            </option>
+                            <option value="Electric" {{ old('fuel_type') == 'Electric' ? 'selected' : '' }}>Electric</option>
                         </select>
                         <span class="text-danger small error-message" id="fuel_type-error"></span>
                     </div>
@@ -100,14 +122,10 @@
                         <label for="drive_type" class="mb-1">Drive Type</label>
                         <select name="drive_type" id="drive_type" class="form-control form-control-sm">
                             <option value="">Select</option>
-                            <option value="FWD" {{ old('drive_type') == 'FWD' ? 'selected' : '' }}>FWD (Front-Wheel
-                                Drive)</option>
-                            <option value="RWD" {{ old('drive_type') == 'RWD' ? 'selected' : '' }}>RWD (Rear-Wheel
-                                Drive)</option>
-                            <option value="AWD" {{ old('drive_type') == 'AWD' ? 'selected' : '' }}>AWD (All-Wheel
-                                Drive)</option>
-                            <option value="4WD" {{ old('drive_type') == '4WD' ? 'selected' : '' }}>4WD (Four-Wheel
-                                Drive)</option>
+                            <option value="FWD" {{ old('drive_type') == 'FWD' ? 'selected' : '' }}>FWD</option>
+                            <option value="RWD" {{ old('drive_type') == 'RWD' ? 'selected' : '' }}>RWD</option>
+                            <option value="AWD" {{ old('drive_type') == 'AWD' ? 'selected' : '' }}>AWD</option>
+                            <option value="4WD" {{ old('drive_type') == '4WD' ? 'selected' : '' }}>4WD</option>
                         </select>
                         <span class="text-danger small error-message" id="drive_type-error"></span>
                     </div>
@@ -121,7 +139,7 @@
                         <span class="text-danger small error-message" id="seats-error"></span>
                     </div>
                     <div class="form-group col-md-4 mb-2">
-                        <label for="mileage" class="mb-1">Mileage in (Km)</label>
+                        <label for="mileage" class="mb-1">Mileage (Km)</label>
                         <input type="number" name="mileage" id="mileage" class="form-control form-control-sm"
                             value="{{ old('mileage') }}">
                         <span class="text-danger small error-message" id="mileage-error"></span>
@@ -142,8 +160,6 @@
                 <h3 class="mb-2">Images</h3>
             </div>
             <div class="card-body p-3">
-                <!-- Main Photo -->
-                <!-- Main Photo -->
                 <div class="form-group mb-3">
                     <label for="main_image" class="mb-1">Main Photo</label>
                     <div id="mainPreviewContainer" class="mb-2" style="display:none;">
@@ -154,7 +170,6 @@
                     <span class="text-danger small error-message" id="main_image-error"></span>
                 </div>
 
-                <!-- Additional Photos -->
                 <div class="form-group mb-2">
                     <label class="mb-1">Additional Photos</label>
                     <div id="image-container">
@@ -170,7 +185,6 @@
                     </button>
                     <span class="text-danger small error-message d-block" id="images-error"></span>
                 </div>
-
             </div>
         </div>
 
@@ -212,11 +226,9 @@
                         <label for="status" class="mb-1">Status *</label>
                         <select name="status" id="status" class="form-control form-control-sm">
                             <option value="">Select Status</option>
-                            <option value="available" {{ old('status') === 'available' ? 'selected' : '' }}>Available
-                            </option>
+                            <option value="available" {{ old('status') === 'available' ? 'selected' : '' }}>Available</option>
                             <option value="rented" {{ old('status') === 'rented' ? 'selected' : '' }}>Rented</option>
-                            <option value="maintenance" {{ old('status') === 'maintenance' ? 'selected' : '' }}>
-                                Maintenance</option>
+                            <option value="maintenance" {{ old('status') === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
                             <option value="sold" {{ old('status') === 'sold' ? 'selected' : '' }}>Sold</option>
                         </select>
                         <span class="text-danger small error-message" id="status-error"></span>
@@ -254,8 +266,7 @@
                         </div>
                     @endif
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addFeatureBtn">Add
-                    Feature</button>
+                <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addFeatureBtn">Add Feature</button>
                 <span class="text-danger small error-message d-block" id="features-error"></span>
             </div>
         </div>
@@ -263,7 +274,6 @@
         <!-- For Sale Toggle -->
         <div class="form-group container">
             <label class="mb-1 d-block">Is For Sale?</label>
-
             <div class="custom-control custom-switch">
                 <input type="checkbox" class="custom-control-input" id="forSaleToggle" name="is_for_sale"
                     value="1" {{ old('is_for_sale', 0) == 1 ? 'checked' : '' }}>
@@ -297,67 +307,35 @@
 @stop
 
 @section('css')
-    <style>
-        .custom-control-input:checked~.custom-control-label::before {
-            background-color: #000 !important;
-            border-color: #000 !important;
-        }
-
-        .custom-control-label::after {
-            background-color: #fff !important;
-        }
-
-        .error-message {
-            display: block;
-            margin-top: 2px;
-        }
-
-        .is-invalid {
-            border-color: #dc3545 !important;
-        }
-
-        .is-valid {
-            border-color: #28a745 !important;
-        }
-
-        .text-danger {
-            font-size: 0.875em;
-        }
-
-        .form-group {
-            margin-bottom: 0.5rem;
-        }
-    </style>
+<style>
+/* (unchanged styles) */
+.custom-control-input:checked~.custom-control-label::before { background-color: #000 !important; border-color: #000 !important; }
+.custom-control-label::after { background-color: #fff !important; }
+.error-message { display: block; margin-top: 2px; }
+.is-invalid { border-color: #dc3545 !important; }
+.is-valid { border-color: #28a745 !important; }
+.text-danger { font-size: 0.875em; }
+.form-group { margin-bottom: 0.5rem; }
+</style>
 @stop
 
 @section('js')
-    <!-- Load jQuery first with error handling -->
-    <script>
-        if (typeof jQuery === 'undefined') {
-            document.write('<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"><\/script>');
-        }
-    </script>
+<script>
+if (typeof jQuery === 'undefined') {
+    document.write('<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"><\/script>');
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/additional-methods.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Load jQuery Validate -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/additional-methods.min.js"></script>
+@if (session('success'))
+<script>
+Swal.fire({ icon: 'success', title: 'Success!', text: @json(session('success')), timer: 2500, showConfirmButton: false });
+</script>
+@endif
 
-    <!-- SweetAlert -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    @if (session('success'))
-        <script>
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: @json(session('success')),
-                timer: 2500,
-                showConfirmButton: false
-            });
-        </script>
-    @endif
-
-  <script>
+<script>
 document.addEventListener("DOMContentLoaded", function () {
     // ===== Toggle Sale fields =====
     const toggle = document.getElementById('forSaleToggle');
@@ -369,20 +347,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ===== Image Preview Function =====
+    // ===== Image Preview Helper =====
     function previewImage(input, previewContainer) {
         const file = input.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function (e) {
-            previewContainer.innerHTML = `<img src="${e.target.result}"
-                alt="Preview"
+            previewContainer.innerHTML = `<img src="${e.target.result}" alt="Preview"
                 style="width:100px; height:100px; object-fit:cover; border:1px solid #ccc; border-radius:6px; margin-bottom:6px;">`;
         };
         reader.readAsDataURL(file);
     }
 
-    // ===== Main Image Preview =====
+    // Main Image Preview
     const mainImageInput = document.getElementById("main_image");
     if (mainImageInput) {
         const mainPreview = document.createElement("div");
@@ -394,10 +371,9 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ===== Add multiple image inputs with preview & remove =====
+    // Multiple images with preview/remove
     const addImageBtn = document.getElementById("addImageBtn");
     const imageContainer = document.getElementById("image-container");
-
     if (addImageBtn && imageContainer) {
         addImageBtn.addEventListener("click", function () {
             const wrapper = document.createElement("div");
@@ -419,15 +395,8 @@ document.addEventListener("DOMContentLoaded", function () {
             removeBtn.className = "btn btn-outline-danger btn-sm";
             removeBtn.innerHTML = '<i class="fas fa-times"></i>';
 
-            // Remove input
-            removeBtn.addEventListener("click", function () {
-                wrapper.remove();
-            });
-
-            // Image preview event
-            newInput.addEventListener("change", function () {
-                previewImage(this, previewDiv);
-            });
+            removeBtn.addEventListener("click", function () { wrapper.remove(); });
+            newInput.addEventListener("change", function () { previewImage(this, previewDiv); });
 
             inputWrapper.appendChild(newInput);
             inputWrapper.appendChild(removeBtn);
@@ -437,7 +406,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ===== Dynamic Features (2-column layout) =====
+    // Dynamic Features
     const addFeatureBtn = document.getElementById("addFeatureBtn");
     const featuresContainer = document.getElementById("features-container");
 
@@ -448,30 +417,16 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="input-group input-group-sm">
                 <input type="text" name="features[]" class="form-control feature-input" placeholder="Enter a feature" value="${value}">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-feature-btn ml-1">×</button>
-            </div>
-        `;
+            </div>`;
         featuresContainer.appendChild(colDiv);
-
-        // remove
-        colDiv.querySelector(".remove-feature-btn").addEventListener("click", function () {
-            colDiv.remove();
-        });
+        colDiv.querySelector(".remove-feature-btn").addEventListener("click", function () { colDiv.remove(); });
     }
 
-    if (addFeatureBtn) {
-        addFeatureBtn.addEventListener("click", function () {
-            addFeatureInput();
-        });
-    }
-
-    // attach remove to any preloaded features
+    if (addFeatureBtn) addFeatureBtn.addEventListener("click", function () { addFeatureInput(); });
     featuresContainer.querySelectorAll(".remove-feature-btn").forEach(btn => {
-        btn.addEventListener("click", function () {
-            btn.closest(".feature-item").remove();
-        });
+        btn.addEventListener("click", function () { btn.closest(".feature-item").remove(); });
     });
 
-    // Initialize validation after a short delay to ensure jQuery is loaded
     setTimeout(initializeValidation, 100);
 });
 
@@ -482,12 +437,9 @@ function initializeValidation() {
         return;
     }
 
-    // Custom method: file size (2MB max)
     jQuery.validator.addMethod("filesize", function (value, element, param) {
         if (this.optional(element)) return true;
-        if (element.files && element.files[0]) {
-            return element.files[0].size <= param;
-        }
+        if (element.files && element.files[0]) return element.files[0].size <= param;
         return true;
     }, "File size must be less than 2MB");
 
@@ -500,21 +452,20 @@ function initializeValidation() {
         errorElement: "span",
         errorPlacement: function (error, element) {
             error.addClass('text-danger small error-message');
-
-            if (element.attr("name") === "images[]") {
-                error.appendTo("#images-error");
-            } else if (element.attr("name") === "features[]") {
-                error.appendTo("#features-error");
-            } else {
-                error.insertAfter(element);
-            }
+            if (element.attr("name") === "images[]")       error.appendTo("#images-error");
+            else if (element.attr("name") === "features[]") error.appendTo("#features-error");
+            else error.insertAfter(element);
         },
         rules: {
             name: { required: true, maxlength: 255 },
             model: { required: true, maxlength: 255 },
             year: { required: true, digits: true, minlength: 4, maxlength: 4 },
             type: { required: true, maxlength: 255 },
-            location: { required: true, maxlength: 255 },
+
+            // ✅ NEW: require selects instead of old text field
+            category_id: { required: true, digits: true },
+            location_id: { required: true, digits: true },
+
             description: { required: true },
             transmission: { required: true },
             fuel_type: { required: true },
@@ -544,7 +495,11 @@ function initializeValidation() {
             model: { required: "Model is required" },
             year: { required: "Year is required", digits: "Enter valid year" },
             type: { required: "Type is required" },
-            location: { required: "Location is required" },
+
+            // ✅ NEW MESSAGES
+            category_id: { required: "Category is required" },
+            location_id: { required: "Location is required" },
+
             description: { required: "Description is required" },
             transmission: { required: "Transmission is required" },
             fuel_type: { required: "Fuel type is required" },
@@ -563,12 +518,8 @@ function initializeValidation() {
             purchase_price: { required: "Purchase price is required when For Sale" },
             deposit_amount: { required: "Deposit is required when For Sale" }
         },
-        highlight: function (element) {
-            jQuery(element).addClass('is-invalid').removeClass('is-valid');
-        },
-        unhighlight: function (element) {
-            jQuery(element).removeClass('is-invalid').addClass('is-valid');
-        },
+        highlight: function (element) { jQuery(element).addClass('is-invalid').removeClass('is-valid'); },
+        unhighlight: function (element) { jQuery(element).removeClass('is-invalid').addClass('is-valid'); },
         submitHandler: function (form) {
             const submitBtn = jQuery(form).find('button[type="submit"]');
             const originalText = submitBtn.html();
@@ -578,18 +529,14 @@ function initializeValidation() {
         invalidHandler: function (event, validator) {
             if (validator.errorList.length > 0) {
                 const firstError = validator.errorList[0].element;
-                jQuery('html, body').animate({
-                    scrollTop: jQuery(firstError).offset().top - 100
-                }, 500);
+                jQuery('html, body').animate({ scrollTop: jQuery(firstError).offset().top - 100 }, 500);
             }
         }
     });
 
-    // Real-time validation
     jQuery(document).on('blur change', 'input, select, textarea', function () {
         jQuery(this).valid();
     });
 }
 </script>
-
 @stop

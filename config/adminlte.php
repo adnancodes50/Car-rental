@@ -421,6 +421,14 @@ return [
 ],
 
 
+
+[
+    'text' => 'Forget Password',
+    'route'  => 'forget-password.edit',
+    'icon' => 'fas fa-key text-warning',
+],
+
+
 //        [
 //     'text' => 'Pay Fast Setting',
 //     'route'  => 'payfast.edit',

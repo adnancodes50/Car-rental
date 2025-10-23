@@ -16,12 +16,14 @@ class Vehicles extends Model
     // (optional) only if your table is non-standard. Default matches 'vehicles':
     // protected $table = 'vehicles';
 
-    protected $fillable = [
-        'name','model','year','type','description','location','transmission','fuel_type',
-        'drive_type','seats','mileage','engine','main_image_url','is_for_sale',
-        'rental_price_day','rental_price_week','rental_price_month','booking_lead_days',
-        'purchase_price','deposit_amount','status','features',
-    ];
+  protected $fillable = [
+    'name','model','year','type','description','location','transmission','fuel_type',
+    'drive_type','seats','mileage','engine','main_image_url','is_for_sale',
+    'rental_price_day','rental_price_week','rental_price_month','booking_lead_days',
+    'purchase_price','deposit_amount','status','features',
+    'category_id','location_id', // ✅ added
+];
+
 
     protected $casts = [
         'features' => 'array',
@@ -31,6 +33,23 @@ class Vehicles extends Model
      *  Relationships
      *  -------------------------
      */
+
+
+
+
+    public function category()
+{
+    return $this->belongsTo(Category::class, 'category_id');
+}
+
+// In Vehicles model
+public function branch()
+{
+    return $this->belongsTo(Location::class, 'location_id');
+}
+
+
+
 
     /** @return HasMany<VehicleImage> */
     public function images(): HasMany

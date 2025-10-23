@@ -67,6 +67,12 @@
                                             <input type="text" id="customer_country" name="country" class="form-control"
                                                 value="{{ old('country', $customer->country) }}">
                                         </div>
+                                        <div class="col-md-12 mt-3">
+                                            <label for="customer_notes" class="form-label"><strong>Notes:</strong></label>
+                                            <textarea id="customer_notes" name="notes" class="form-control" rows="3"
+                                                placeholder="Enter any notes about this customer...">{{ old('notes', $customer->notes) }}</textarea>
+                                        </div>
+
                                     </div>
 
                                     <div class="d-flex justify-content-end mt-3">
@@ -83,7 +89,8 @@
                         <div class="col-md-6 mt-2">
                             <div class="row g-3">
                                 <div class="col-6">
-                                    <div class="p-3 text-center mb-2 py-4 text-white rounded" style="background-color:#6dce12">
+                                    <div class="p-3 text-center mb-2 py-4 text-white rounded"
+                                        style="background-color:#6dce12">
                                         <h6 class="mb-1">Bookings</h6>
                                         <h4 class="fw-bold">{{ $customer->bookings_count ?? 0 }}</h4>
                                     </div>
@@ -176,42 +183,59 @@
                                     </div>
 
                                     {{-- Booking Dates Form --}}
-                                    <form class="booking-dates-form"
-      data-booking-id="{{ $booking->id }}"
-      data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
-      data-disabled-dates='@json($bookedRanges)'
-      data-daily-rate="{{ $booking->vehicle->rental_price_day }}">
+                                    <form class="booking-dates-form" data-booking-id="{{ $booking->id }}"
+                                        data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
+                                        data-disabled-dates='@json($bookedRanges)'
+                                        data-daily-rate="{{ $booking->vehicle->rental_price_day }}">
 
                                         @csrf
                                         @method('PATCH')
+
                                         <div class="row g-2 align-items-center">
-                                            <div class="col-md-4">
-                                                <label class="form-label mb-0"><strong>Start Date:</strong></label>
+                                            <div class="col-md-6">
+                                                <label class="form-label mb-1"><strong>Start Date:</strong></label>
                                                 <input type="text" name="start_date"
                                                     value="{{ $booking->start_date }}"
                                                     class="form-control form-control-sm booking-start-date"
                                                     placeholder="Select start date">
                                             </div>
 
-                                            <div class="col-md-4">
-                                                <label class="form-label mb-0"><strong>End Date:</strong></label>
+                                            <div class="col-md-6">
+                                                <label class="form-label mb-1"><strong>End Date:</strong></label>
                                                 <input type="text" name="end_date" value="{{ $booking->end_date }}"
                                                     class="form-control form-control-sm booking-end-date"
                                                     placeholder="Select end date">
                                             </div>
 
-                                            <div class="col-md-4">
-                                                <label class="form-label mb-0"><strong>Total Price:</strong></label>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label mb-1 mt-1"><strong>Admin Note For
+                                                        Booking:</strong></label>
+                                                <input type="text" name="admin_note"
+                                                    class="form-control form-control-sm"
+                                                    placeholder="Enter a note about this booking"
+                                                    value="{{ old('admin_note', $booking->admin_note) }}">
+                                                @error('admin_note')
+                                                    <span class="text-danger small">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label mb-1 mt-1"><strong>Total Price:</strong></label>
                                                 <input type="text" class="form-control form-control-sm" disabled
                                                     value="R{{ number_format($booking->total_price, 2) }}">
                                             </div>
+
+
                                         </div>
+
                                         <div class="d-flex justify-content-end mt-2">
                                             <button type="submit" class="btn btn-sm py-2 btn-success">
                                                 <i class="fas fa-save"></i> Update Dates
                                             </button>
                                         </div>
                                     </form>
+
                                 </div>
                             </div>
                         @empty
@@ -312,299 +336,318 @@
 
 
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-<script>
-/* =====================================================
-   BOOKING STATUS UPDATE
-===================================================== */
-(function() {
-    document.addEventListener('focusin', (e) => {
-        const sel = e.target.closest('.booking-status-form select[name="status"]');
-        if (!sel) return;
-        sel.dataset.prev = sel.value;
-    });
-
-    document.addEventListener('change', async (e) => {
-        const sel = e.target.closest('.booking-status-form select[name="status"]');
-        if (!sel) return;
-
-        const form = sel.closest('.booking-status-form');
-        const url = form.getAttribute('data-url');
-        const bookingId = form.getAttribute('data-booking-id');
-        const newStatus = sel.value;
-        const prevValue = sel.dataset.prev ?? sel.value;
-
-        const revertSelect = (reason = null) => {
-            sel.value = prevValue;
-            if (window.Swal && reason) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Not updated',
-                    text: reason,
-                    timer: 1600,
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false
-                });
-            }
-        };
-
-        const nice = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-        const title = 'Are you sure?';
-        const text = `Change booking status to "${nice(newStatus)}"?`;
-
-        const result = await Swal.fire({
-            title,
-            text,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, update',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true
-        });
-
-        if (!result.isConfirmed) {
-            revertSelect('Update canceled.');
-            return;
-        }
-
-        try {
-            const res = await fetch(url, {
-                method: 'PATCH',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: newStatus }),
+    <script>
+        /* =====================================================
+                       BOOKING STATUS UPDATE
+                    ===================================================== */
+        (function() {
+            document.addEventListener('focusin', (e) => {
+                const sel = e.target.closest('.booking-status-form select[name="status"]');
+                if (!sel) return;
+                sel.dataset.prev = sel.value;
             });
 
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.message || 'Update failed');
+            document.addEventListener('change', async (e) => {
+                const sel = e.target.closest('.booking-status-form select[name="status"]');
+                if (!sel) return;
 
-            const badge = document.querySelector(`.booking-status-badge[data-badge-for="${bookingId}"]`);
-            if (badge) {
-                const clsMap = {
-                    completed: 'bg-success',
-                    pending: 'bg-warning text-dark',
-                    canceled: 'bg-danger',
-                    confirmed: 'bg-primary',
-                    ongoing: 'bg-info',
+                const form = sel.closest('.booking-status-form');
+                const url = form.getAttribute('data-url');
+                const bookingId = form.getAttribute('data-booking-id');
+                const newStatus = sel.value;
+                const prevValue = sel.dataset.prev ?? sel.value;
+
+                const revertSelect = (reason = null) => {
+                    sel.value = prevValue;
+                    if (window.Swal && reason) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Not updated',
+                            text: reason,
+                            timer: 1600,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false
+                        });
+                    }
                 };
-                badge.textContent = (data.status || newStatus).replace(/^./, c => c.toUpperCase());
-                badge.className = 'badge booking-status-badge';
-                (clsMap[data.status] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(c));
-            }
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Updated',
-                text: 'Booking status changed successfully.',
-                toast: true,
-                position: 'top-end',
-                timer: 1400,
-                showConfirmButton: false
+                const nice = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+                const title = 'Are you sure?';
+                const text = `Change booking status to "${nice(newStatus)}"?`;
+
+                const result = await Swal.fire({
+                    title,
+                    text,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, update',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                });
+
+                if (!result.isConfirmed) {
+                    revertSelect('Update canceled.');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(url, {
+                        method: 'PATCH',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            status: newStatus
+                        }),
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok || !data.success) throw new Error(data.message || 'Update failed');
+
+                    const badge = document.querySelector(
+                        `.booking-status-badge[data-badge-for="${bookingId}"]`);
+                    if (badge) {
+                        const clsMap = {
+                            completed: 'bg-success',
+                            pending: 'bg-warning text-dark',
+                            canceled: 'bg-danger',
+                            confirmed: 'bg-primary',
+                            ongoing: 'bg-info',
+                        };
+                        badge.textContent = (data.status || newStatus).replace(/^./, c => c.toUpperCase());
+                        badge.className = 'badge booking-status-badge';
+                        (clsMap[data.status] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(
+                            c));
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Updated',
+                        text: 'Booking status changed successfully.',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 1400,
+                        showConfirmButton: false
+                    });
+
+                } catch (err) {
+                    revertSelect(err.message || 'Unable to update status.');
+                }
             });
+        })();
 
-        } catch (err) {
-            revertSelect(err.message || 'Unable to update status.');
-        }
-    });
-})();
+        /* =====================================================
+           CUSTOMER DETAILS UPDATE
+        ===================================================== */
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('#customer-update-form');
+            if (!form) return;
 
-/* =====================================================
-   CUSTOMER DETAILS UPDATE
-===================================================== */
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('#customer-update-form');
-    if (!form) return;
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
+                const data = Object.fromEntries(new FormData(form).entries());
 
-        const data = Object.fromEntries(new FormData(form).entries());
+                const result = await Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'Do you want to update the customer details?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, update',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                });
 
-        const result = await Swal.fire({
-            title: 'Are you sure?',
-            text: 'Do you want to update the customer details?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, update',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true
+                if (!result.isConfirmed) return;
+
+                try {
+                    const res = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const resData = await res.json();
+                    if (!res.ok || !resData.success) throw new Error(resData.message ||
+                        'Update failed');
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Updated!',
+                        text: 'Customer details updated successfully.',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: err.message || 'Something went wrong.',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }
+            });
         });
 
-        if (!result.isConfirmed) return;
+        /* =====================================================
+           BOOKING DATES UPDATE (with full overlap check)
+        ===================================================== */
+        /* =====================================================
+           BOOKING DATES UPDATE (auto price calculation + overlap)
+        ===================================================== */
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.booking-dates-form').forEach(form => {
+                const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
+                const disabledDates = disabledRanges.map(r => ({
+                    from: r.from,
+                    to: r.to
+                }));
 
-        try {
-            const res = await fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
+                const startInput = form.querySelector('.booking-start-date');
+                const endInput = form.querySelector('.booking-end-date');
+                const priceField = form.querySelector('input[disabled]');
+                const bookingId = form.dataset.bookingId;
 
-            const resData = await res.json();
-            if (!res.ok || !resData.success) throw new Error(resData.message || 'Update failed');
+                // read daily rate from dataset (Blade)
+                const dailyRate = parseFloat(form.dataset.dailyRate || 0);
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Updated!',
-                text: 'Customer details updated successfully.',
-                toast: true,
-                position: 'top-end',
-                timer: 1500,
-                showConfirmButton: false
-            });
+                const startPicker = flatpickr(startInput, {
+                    dateFormat: "Y-m-d",
+                    disable: disabledDates,
+                    minDate: "today",
+                    onChange: (selectedDates, dateStr) => {
+                        endPicker.set('minDate', dateStr);
+                        updatePrice();
+                    }
+                });
 
-        } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: err.message || 'Something went wrong.',
-                toast: true,
-                position: 'top-end',
-                timer: 2500,
-                showConfirmButton: false
-            });
-        }
-    });
-});
+                const endPicker = flatpickr(endInput, {
+                    dateFormat: "Y-m-d",
+                    disable: disabledDates,
+                    minDate: startInput.value || "today",
+                    onChange: updatePrice
+                });
 
-/* =====================================================
-   BOOKING DATES UPDATE (with full overlap check)
-===================================================== */
-/* =====================================================
-   BOOKING DATES UPDATE (auto price calculation + overlap)
-===================================================== */
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.booking-dates-form').forEach(form => {
-        const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
-        const disabledDates = disabledRanges.map(r => ({ from: r.from, to: r.to }));
+                function updatePrice() {
+                    const start = startInput.value ? new Date(startInput.value) : null;
+                    const end = endInput.value ? new Date(endInput.value) : null;
 
-        const startInput = form.querySelector('.booking-start-date');
-        const endInput = form.querySelector('.booking-end-date');
-        const priceField = form.querySelector('input[disabled]');
-        const bookingId = form.dataset.bookingId;
+                    if (start && end && end >= start) {
+                        const days = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1);
+                        const total = days * dailyRate;
+                        priceField.value = `R${total.toFixed(2)}`;
+                    } else {
+                        priceField.value = "R0.00";
+                    }
+                }
 
-        // 🧠 Fetch daily rate from backend via dataset (set in Blade)
-        const dailyRate = parseFloat(form.dataset.dailyRate || 0);
-
-        const startPicker = flatpickr(startInput, {
-            dateFormat: "Y-m-d",
-            disable: disabledDates,
-            minDate: "today",
-            onChange: (selectedDates, dateStr) => {
-                endPicker.set('minDate', dateStr);
+                // initial price calc
                 updatePrice();
-            }
-        });
 
-        const endPicker = flatpickr(endInput, {
-            dateFormat: "Y-m-d",
-            disable: disabledDates,
-            minDate: startInput.value || "today",
-            onChange: updatePrice
-        });
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
 
-        // 🧮 Function to auto-calc price based on days
-        function updatePrice() {
-            const start = startInput.value ? new Date(startInput.value) : null;
-            const end = endInput.value ? new Date(endInput.value) : null;
+                    const url = form.dataset.url;
+                    const start = (startInput.value || '').trim();
+                    const end = (endInput.value || '').trim();
 
-            if (start && end && end >= start) {
-                const days = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1);
-                const total = days * dailyRate;
-                priceField.value = `R${total.toFixed(2)}`;
-            } else {
-                priceField.value = "R0.00";
-            }
-        }
+                    // get admin_note value from this form
+                    const adminNoteEl = form.querySelector('input[name="admin_note"]');
+                    const adminNote = adminNoteEl ? adminNoteEl.value.trim() : '';
 
-        /* ---- Existing overlap + save logic (keep this below) ---- */
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+                    // Collect overlaps
+                    const conflicts = [];
+                    for (const range of disabledRanges) {
+                        if (!(end < range.from || start > range.to)) conflicts.push(range);
+                    }
 
-            const url = form.dataset.url;
-            const start = startInput.value;
-            const end = endInput.value;
+                    if (conflicts.length > 0) {
+                        const conflictList = conflicts.map(r =>
+                            `• <b>${r.from}</b> → <b>${r.to}</b>`).join('<br>');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Date Conflicts Found',
+                            html: `Your selected dates overlap with:<br><br>${conflictList}`,
+                        });
+                        return;
+                    }
 
-            // Collect overlaps
-            const conflicts = [];
-            for (const range of disabledRanges) {
-                if (!(end < range.from || start > range.to)) conflicts.push(range);
-            }
+                    // Confirm save
+                    const confirm = await Swal.fire({
+                        title: 'Confirm Update',
+                        text: `Update booking from ${start} to ${end}?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, update',
+                        cancelButtonText: 'Cancel'
+                    });
+                    if (!confirm.isConfirmed) return;
 
-            if (conflicts.length > 0) {
-                const conflictList = conflicts.map(r => `• <b>${r.from}</b> → <b>${r.to}</b>`).join('<br>');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Date Conflicts Found',
-                    html: `Your selected dates overlap with:<br><br>${conflictList}`,
+                    try {
+                        const res = await fetch(url, {
+                            method: 'PATCH',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                start_date: start,
+                                end_date: end,
+                                admin_note: adminNote,
+                                total_price: priceField.value.replace(/[^\d.]/g,
+                                    '') // numeric only
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (!res.ok || !data.success) throw new Error(data.message ||
+                            'Update failed');
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Updated!',
+                            text: 'Booking updated successfully with new total.',
+                            toast: true,
+                            position: 'top-end',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                        // optional: update DOM values after successful update
+                        // (e.g., update priceField to reflect saved value)
+                        // priceField.value = `R${parseFloat(data.total_price || 0).toFixed(2)}`;
+
+                    } catch (err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: err.message || 'Something went wrong.',
+                            toast: true,
+                            position: 'top-end',
+                            timer: 2500,
+                            showConfirmButton: false
+                        });
+                    }
                 });
-                return;
-            }
-
-            // Confirm save
-            const confirm = await Swal.fire({
-                title: 'Confirm Update',
-                text: `Update booking from ${start} to ${end}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, update',
-                cancelButtonText: 'Cancel'
             });
-            if (!confirm.isConfirmed) return;
-
-            try {
-                const res = await fetch(url, {
-                    method: 'PATCH',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        start_date: start,
-                        end_date: end,
-                        total_price: priceField.value.replace(/[^\d.]/g, '') // send numeric only
-                    })
-                });
-
-                const data = await res.json();
-                if (!res.ok || !data.success) throw new Error(data.message || 'Update failed');
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Updated!',
-                    text: 'Booking updated successfully with new total.',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-            } catch (err) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err.message || 'Something went wrong.',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 2500,
-                    showConfirmButton: false
-                });
-            }
         });
-    });
-});
-
-
-</script>
+    </script>
 @endsection

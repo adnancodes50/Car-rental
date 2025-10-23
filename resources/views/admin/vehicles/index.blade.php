@@ -36,11 +36,14 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Image</th>
+                                <th>Locations</th>
+                                <th>Category</th>
                                 <th>Name</th>
                                 <th>Model</th>
                                 <th>Year</th>
                                 <th>Type</th>
                                 <th>For Sale</th>
+
                                 <th>Status</th>
                                 <th class="text-center" style="width:120px;">Actions</th>
                             </tr>
@@ -54,6 +57,8 @@
                                             class="img-thumbnail rounded"
                                             style="width:50px; height:50px; object-fit:cover;">
                                     </td>
+<td>{{ $vehicle->branch->name ?? '-' }}</td>
+                                    <td>{{ $vehicle->category->name ?? '-' }}</td>
                                     <td class="fw-semibold">{{ $vehicle->name }}</td>
                                     <td>{{ $vehicle->model ?? '-' }}</td>
                                     <td>{{ $vehicle->year ?? '-' }}</td>

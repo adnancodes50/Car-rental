@@ -20,6 +20,7 @@ use App\Http\Controllers\PayfastSettingController;
 use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\LocationsController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ForgetPasswordController;
 
 
 
@@ -195,6 +196,17 @@ Route::group([
 ], function () {
     Route::get('/edit', [SystemSettingController::class, 'edit'])->name('edit');
     Route::post('/update', [SystemSettingController::class, 'update'])->name('update');
+});
+
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'forget-password',
+    'as' => 'forget-password.'
+], function () {
+    Route::get('/edit', [ForgetPasswordController::class, 'edit'])->name('edit');
+    Route::post('/update', [ForgetPasswordController::class, 'update'])->name('update');
 });
 
 
