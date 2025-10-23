@@ -63,7 +63,7 @@
 
                     {{-- ✅ NEW: Location select (replaces old text input) --}}
                     <div class="form-group col-md-4 mb-2">
-                        <label for="location_id" class="mb-1">Location *</label>
+                        <label for="location_id" class="mb-1">Branch *</label>
                         <select name="location_id" id="location_id" class="form-control form-control-sm">
                             <option value="">Select Location</option>
                             @foreach ($locations as $loc)
