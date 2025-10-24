@@ -70,9 +70,6 @@ public function update(Request $request, $id)
         'data' => $customer,
     ]);
 }
-
-
-    // ✅ For normal browser form submission
     return redirect()->back()->with('success', 'Customer updated successfully!');
 }
 
