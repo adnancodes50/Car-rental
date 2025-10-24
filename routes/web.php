@@ -45,11 +45,6 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
 });
-
-
-
-// use App\Http\Controllers\VehicleController;
-
 Route::group([
     'middleware' => ['auth'],
     'prefix' => 'vehicles',
@@ -68,8 +63,6 @@ Route::group([
 
 });
 
-
-
 Route::group([
     'middleware' => ['auth'],
     'prefix' => 'inventry',
@@ -78,25 +71,15 @@ Route::group([
     Route::get('/', [AddOnInventryController::class, 'index'])->name('index');
     Route::get('/create', [AddOnInventryController::class, 'create'])->name('create');
     Route::post('/', [AddOnInventryController::class, 'store'])->name('store');
-
-    // use {addon} everywhere for implicit model binding to App\Models\AddOn
     Route::get('/{addon}/edit', [AddOnInventryController::class, 'edit'])->name('edit');
     Route::put('/{addon}', [AddOnInventryController::class, 'update'])->name('update');
 
-    // reservations page for a specific Add-On (was {vehicle} before)
+
     Route::get('/{addon}/reservations', [AddOnInventryController::class, 'view'])->name('view');
 
     Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy')
-        ->whereNumber('addon'); // optional, keeps it from matching 'create'
+        ->whereNumber('addon');
 });
-
-
-
-
-
-
-
-// use App\Http\Controllers\CustomerController;
 
 Route::group([
     'middleware' => ['auth'],
@@ -108,11 +91,11 @@ Route::group([
     Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
     Route::patch('/{id}', [CustomerController::class, 'update'])->name('update');
 
-    // ✅ Booking status update (keep same)
+
     Route::patch('/bookings/{booking}/status', [CustomerController::class, 'updateBookingStatus'])
         ->name('bookings.updateStatus');
 
-    // ✅ NEW — Booking dates update only
+
     Route::patch('/bookings/{booking}/dates', [CustomerController::class, 'updateBookingDates'])
         ->name('bookings.updateDates');
 });
@@ -154,7 +137,6 @@ Route::get('/{location}/view', [LocationsController::class, 'view'])->name('view
 
 
 
-// use App\Http\Controllers\CategoryController;
 
 Route::group([
     'middleware' => ['auth'],
@@ -217,7 +199,7 @@ Route::group([
     Route::post('/update', [CompanyController::class, 'update'])->name('update');
 });
 
-// use App\Http\Controllers\CommunicationController;
+
 
 Route::group([
     'middleware' => ['auth'],
@@ -225,10 +207,10 @@ Route::group([
     'as' => 'communication-setting.'
 ], function () {
 
-    // Show communication page (form + logs)
+
     Route::get('/', [CommunicationController::class, 'index'])->name('index');
 
-    // Handle email send action
+
     Route::post('/send', [CommunicationController::class, 'sendBulkEmail'])->name('send');
 
 });
@@ -236,14 +218,6 @@ Route::group([
 
 
 
-// Route::group([
-//     'middleware' => ['auth'],
-//     'prefix' => 'payfast',
-//     'as' => 'payfast.'
-// ], function () {
-//     Route::get('/edit', [PayfastSettingController::class, 'edit'])->name('edit');
-//     Route::post('/update', [PayfastSettingController::class, 'update'])->name('update');
-// });
 
 
 
@@ -251,7 +225,7 @@ Route::group([
 
 
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
-    // Landing page settings
+
     Route::get('/landing-settings', [LandingSettingController::class, 'index'])
         ->name('landing-settings.index');
 
@@ -260,7 +234,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 });
 
 
-//frontend booking and purchase routes
 Route::post('/bookings/addon-availability', [BookingController::class, 'addonAvailability'])
     ->name('bookings.addon-availability');
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
@@ -271,16 +244,15 @@ Route::post('/purchase', [PurchaseController::class, 'store'])->name('purchase.s
 Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 'payWithStripe'])
     ->name('purchase.pay.stripe');
 
-// Create the PayFast request + redirect (returns fields to auto-submit to PayFast)
-// Start PayFast payment
+
 Route::post('/purchase/{purchase}/payfast/init', [PurchaseController::class, 'initPayfast'])
     ->name('purchase.payfast.init');
 
-// Return URL after successful payment
+
 Route::match(['GET', 'POST'], '/payment/success', [PurchaseController::class, 'payfastReturn'])
     ->name('payfast.return');
 
-// Cancel URL if user cancels
+
 Route::match(['GET', 'POST'], '/payment/cancel', [PurchaseController::class, 'payfastCancel'])
     ->name('payfast.cancel');
 
@@ -289,7 +261,6 @@ Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNoti
 
 
 
-//FOR BOOKING PAYFAST
 Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
 Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
 Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])->name('payfast.booking.return');
