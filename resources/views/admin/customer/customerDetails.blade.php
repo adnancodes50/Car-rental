@@ -271,7 +271,7 @@
                 @if($emailLogs->isEmpty())
                     <div class="text-center text-muted py-4">
                         <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p class="mb-0">No emails sent to this customer yet.</p>
+                        <p class="mb-0">No emails sent to this customer please.</p>
                     </div>
                 @else
                     @foreach($emailLogs as $log)

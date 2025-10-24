@@ -437,7 +437,7 @@ return [
 [
     'text' => 'Company Setting',
     'route'  => 'company-setting.edit',
-    'icon' => 'fas fa-landmark text-warning',
+    'icon' => 'fas fa-landmark text-info',
 ],
 
 
