@@ -9,6 +9,8 @@ use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BookingStatusUpdate;
+use App\Models\EmailLog;
+
 
 
 class CustomerController extends Controller
@@ -19,25 +21,33 @@ class CustomerController extends Controller
         return view('admin.customer.index', compact('customers'));
     }
 
-    public function getCustomerDetails($id)
-    {
-        $customer = Customer::withCount(['bookings', 'purchases'])
-            ->withSum('purchases as total_purchase_deposit', 'deposit_paid')
-            ->withSum('purchases as total_purchase_price', 'total_price')
-            ->findOrFail($id);
 
-        $bookings  = $customer->bookings()->latest()->get();
-        $purchases = $customer->purchases()->latest()->get();
 
-        $customer->total_booking_price = $customer->bookings()
-            ->where('status', 'confirmed')
-            ->sum('total_price');
+public function getCustomerDetails($id)
+{
+    $customer = Customer::withCount(['bookings', 'purchases'])
+        ->withSum('purchases as total_purchase_deposit', 'deposit_paid')
+        ->withSum('purchases as total_purchase_price', 'total_price')
+        ->findOrFail($id);
 
-        $customer->grand_total_spent =
-            ($customer->total_booking_price ?? 0) + ($customer->total_purchase_price ?? 0);
+    $bookings  = $customer->bookings()->latest()->get();
+    $purchases = $customer->purchases()->latest()->get();
 
-        return view('admin.customer.customerDetails', compact('customer', 'bookings', 'purchases'));
-    }
+    // ✅ Load this customer's email logs
+    $emailLogs = EmailLog::where('customer_id', $customer->id)
+        ->orderByDesc('sent_at')
+        ->get();
+
+    $customer->total_booking_price = $customer->bookings()
+        ->where('status', 'confirmed')
+        ->sum('total_price');
+
+    $customer->grand_total_spent =
+        ($customer->total_booking_price ?? 0) + ($customer->total_purchase_price ?? 0);
+
+    return view('admin.customer.customerDetails', compact('customer', 'bookings', 'purchases', 'emailLogs'));
+}
+
 
 public function update(Request $request, $id)
 {

@@ -45,6 +45,12 @@ class Customer extends Model
 }
 
 
+public function emailLogs()
+{
+    return $this->hasMany(EmailLog::class);
+}
+
+
 
 
 }

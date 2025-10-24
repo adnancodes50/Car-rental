@@ -22,4 +22,8 @@ public function vehicles()
     return $this->hasMany(Vehicles::class, 'category_id');
 }
 
+   public function addOns()
+    {
+        return $this->hasMany(AddOn::class, 'category_id');
+    }
 }

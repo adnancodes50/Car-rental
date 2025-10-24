@@ -34,6 +34,28 @@
                         <textarea name="description" rows="3" class="form-control" placeholder="Describe the add-on and its features..."></textarea>
                     </div>
 
+                    <!-- 🔹 Location and Category Dropdowns -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Location</label>
+                            <select name="location_id" class="form-control" required>
+                                <option value="">-- Select Location --</option>
+                                @foreach ($locations as $location)
+                                    <option value="{{ $location->id }}">{{ $location->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category</label>
+                            <select name="category_id" class="form-control" required>
+                                <option value="">-- Select Category --</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Image Upload -->
                     <div class="mb-3">
                         <label class="form-label">Upload Image</label>
@@ -58,14 +80,15 @@
                     </div>
 
                     <!-- Buttons -->
-                    <div class="d-flex justify-content-end">
-                        <a href="{{ route('inventry.index') }}" class="btn btn-secondary me-2 mr-1">
-                            Cancel
-                        </a>
-                        <button type="submit" class="btn btn-dark">
-                            <i class="fas fa-save"></i> Create Add-On
-                        </button>
-                    </div>
+                   <div class="d-flex justify-content-between align-items-center">
+    <a href="{{ route('inventry.index') }}" class="btn btn-secondary">
+        Cancel
+    </a>
+    <button type="submit" class="btn btn-dark">
+        <i class="fas fa-save"></i> Create Add-On
+    </button>
+</div>
+
                 </form>
             </div>
         </div>
@@ -94,33 +117,23 @@ $(document).ready(function () {
         rules: {
             name: { required: true, maxlength: 255 },
             qty_total: { required: true, digits: true, min: 0 },
-            description: { maxlength: 1000 },
+            location_id: { required: true },
+            category_id: { required: true },
             price_day: { required: true, number: true, min: 0 },
             price_week: { required: true, number: true, min: 0 },
             price_month: { required: true, number: true, min: 0 },
-            image: {
-                accept: "jpg,jpeg,png,gif,webp",
-                filesize: 2 * 1024 * 1024 // 2MB
-            }
+            image: { accept: "jpg,jpeg,png,gif,webp", filesize: 2 * 1024 * 1024 }
         },
         messages: {
-            name: { required: "Add-On name is required", maxlength: "Max 255 characters allowed" },
-            qty_total: { required: "Quantity is required", digits: "Must be a whole number", min: "Must be 0 or higher" },
-            description: { maxlength: "Description too long (max 1000 characters)" },
-            price_day: { required: "Price per day required", number: "Must be a number", min: "Must be ≥ 0" },
-            price_week: { required: "Price per week required", number: "Must be a number", min: "Must be ≥ 0" },
-            price_month: { required: "Price per month required", number: "Must be a number", min: "Must be ≥ 0" },
-            image: { accept: "Only jpg, jpeg, png, gif, webp allowed", filesize: "Max size 2MB" }
+            location_id: { required: "Please select a location" },
+            category_id: { required: "Please select a category" },
         },
         errorPlacement: function(error, element) {
             error.insertAfter(element);
         },
-        submitHandler: function(form) {
-            form.submit();
-        }
+        submitHandler: function(form) { form.submit(); }
     });
 
-    // Custom filesize rule
     $.validator.addMethod("filesize", function(value, element, param) {
         return this.optional(element) || (element.files[0].size <= param);
     });

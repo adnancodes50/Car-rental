@@ -284,6 +284,47 @@
                 </div>
             </div>
         </div>
+
+{{-- Email Log History --}}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 rounded-4 bg-black py-4 ">
+        <div class="card-header border-0 d-flex justify-content-between align-items-center py-2">
+            <h3 class="card-title fw-bold mb-3 ">Email Logs</h3>
+            <span class="badge bg-dark">{{ count($emailLogs) }} total</span>
+        </div>
+
+        <div class="card-body" style="max-height: 500px; overflow-y: auto; background-color: #f9fafb;">
+            @if($emailLogs->isEmpty())
+                <p class="text-muted text-center mb-0">No emails sent to this customer yet.</p>
+            @else
+                @foreach($emailLogs as $log)
+                    <div class="d-flex mb-3 {{ optional($log->sender)->id == auth()->id() ? 'justify-content-end' : 'justify-content-start' }}">
+                        <div class="p-3 rounded-3 shadow-sm"
+                             style="max-width: 75%;
+                                    background-color: {{ optional($log->sender)->id == auth()->id() ? '#d1e7dd' : '#e2e3e5' }};">
+                            <div class="d-flex justify-content-between">
+                                <strong class="text-dark">{{ $log->subject }}</strong>
+                                <small class="text-muted">
+                                    {{ $log->sent_at ? $log->sent_at->format('Y-m-d H:i') : '-' }}
+                                </small>
+                            </div>
+                            <div class="mt-1 text-secondary" style="font-size: 0.9rem;">
+                                {!! $log->body !!}
+                            </div>
+                            <div class="mt-2 text-end">
+                                <small class="text-muted">
+                                    — {{ optional($log->sender)->name ?? 'System' }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+    </div>
+</div>
+
+
     </body>
 
     <style>

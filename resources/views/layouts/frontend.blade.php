@@ -17,14 +17,12 @@
 
 
 
-  <!-- Favicon -->
-  {{-- <link rel="icon" type="image/png" href="{{ asset('vendor/adminlte/dist/img/logo.png') }}"> --}}
 
 
 </head>
 <body data-bs-spy="scroll" data-bs-target="#navbarResponsive" data-bs-offset="80" tabindex="0">
 
-  {{-- @include('frontend.partials.navbar') --}}
+
 
   <main>
     @yield('content')

@@ -20,7 +20,9 @@ use App\Http\Controllers\PayfastSettingController;
 use App\Http\Controllers\SystemSettingController;
 use App\Http\Controllers\LocationsController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ForgetPasswordController;
+use App\Http\Controllers\CommunicationController;
 
 
 
@@ -138,19 +140,15 @@ Route::group([
     'prefix'     => 'locations',
     'as'         => 'locations.',
 ], function () {
-    // Index
     Route::get('/', [LocationsController::class, 'index'])->name('index');
-
-    // Create
     Route::get('/create', [LocationsController::class, 'create'])->name('create');
+Route::get('/{location}/view', [LocationsController::class, 'view'])->name('view');
     Route::post('/', [LocationsController::class, 'store'])->name('store');
-
-    // Edit / Update
     Route::get('/{location}/edit', [LocationsController::class, 'edit'])->name('edit');
     Route::put('/{location}', [LocationsController::class, 'update'])->name('update');
     Route::patch('/{location}', [LocationsController::class, 'update'])->name('update.partial'); // optional
+    Route::put('/location-pricings/{pricing}', [LocationsController::class, 'updateprice'])->name('location-pricings.update');
 
-    // Delete
     Route::delete('/{location}', [LocationsController::class, 'destroy'])->name('destroy');
 });
 
@@ -208,6 +206,33 @@ Route::group([
     Route::get('/edit', [ForgetPasswordController::class, 'edit'])->name('edit');
     Route::post('/update', [ForgetPasswordController::class, 'update'])->name('update');
 });
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'company-setting',
+    'as' => 'company-setting.'
+], function () {
+    Route::get('/edit', [CompanyController::class, 'edit'])->name('edit');
+    Route::post('/update', [CompanyController::class, 'update'])->name('update');
+});
+
+// use App\Http\Controllers\CommunicationController;
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'communication-setting',
+    'as' => 'communication-setting.'
+], function () {
+
+    // Show communication page (form + logs)
+    Route::get('/', [CommunicationController::class, 'index'])->name('index');
+
+    // Handle email send action
+    Route::post('/send', [CommunicationController::class, 'sendBulkEmail'])->name('send');
+
+});
+
 
 
 

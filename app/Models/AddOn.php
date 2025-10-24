@@ -20,6 +20,8 @@ class AddOn extends Model
         'price_day',
         'price_week',
         'price_month',
+        'location_id',  // ✅ added
+        'category_id',
     ];
 
     /**
@@ -77,6 +79,18 @@ public function getRemainingQtyAttribute()
         return $this->belongsToMany(Booking::class, 'add_on_reservations', 'add_on_id', 'booking_id')
                     ->withPivot('qty', 'price_total', 'start_date', 'end_date', 'extra_days')
                     ->withTimestamps();
+    }
+
+
+    // 🔹 New relationships
+    public function location()
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 }
 

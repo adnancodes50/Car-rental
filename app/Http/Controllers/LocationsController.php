@@ -80,6 +80,31 @@ $existingLocations = Location::where('id', '!=', $newLocation->id)->get();
             ->with('success', 'Location updated successfully.');
     }
 
+
+
+    public function view(Location $location)
+{
+    // Load related pricing entries
+    $location->load(['outgoingPrices.fromLocation', 'outgoingPrices.toLocation', 'incomingPrices.fromLocation', 'incomingPrices.toLocation']);
+
+    return view('admin.locations.view', compact('location'));
+}
+
+
+public function updateprice(Request $request, LocationPricing $pricing)
+{
+    $data = $request->validate([
+        'transfer_fee' => ['required','numeric','min:0'],
+        'status'       => ['required','in:active,inactive'],
+    ]);
+
+    $pricing->update($data);
+
+    return response()->json(['message' => 'Pricing updated successfully']);
+}
+
+
+
     public function destroy(Location $location)
     {
         $location->delete();

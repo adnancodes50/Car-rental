@@ -40,4 +40,9 @@ return $this->hasMany(Vehicle::class, 'location_id');
         return $this->hasMany(LocationPricing::class, 'to_location_id');
     }
 
+      public function addOns()
+    {
+        return $this->hasMany(AddOn::class, 'location_id');
+    }
+
 }

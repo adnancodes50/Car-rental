@@ -3,36 +3,27 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Schema; // Add this import
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use App\Models\ProjectModel;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Add this line at the very start of the boot method
         Schema::defaultStringLength(191);
 
-        // Custom blade directive
         Blade::if('permission', function (string $permissionName) {
-
-            // superadmin
             if (auth()->user()->email == config('starter.super_admin_email')) {
                 return true;
             }
-
-            // naive approach
             $roles = auth()->user()->roles;
             $permissions = [];
             foreach ($roles as $role) {
@@ -40,16 +31,62 @@ class AppServiceProvider extends ServiceProvider
                     $permissions[] = $permission->name;
                 }
             }
-
             $permissions = array_unique($permissions);
-
             return in_array($permissionName, $permissions);
         });
 
-        // Show only on dev
         Blade::if('onlydev', function () {
-            $possibleEnvs = ['local', 'dev', 'development']; // TODO: Move to starter.php
+            $possibleEnvs = ['local', 'dev', 'development'];
             return in_array(config('app.env'), $possibleEnvs);
         });
+
+        try {
+            $detail = Cache::remember('project_brand_cache', 60, function () {
+                if (!Schema::hasTable('projects_details') && !Schema::hasTable('project_models')) {
+                    return null;
+                }
+                return ProjectModel::select(['project_name', 'logo'])->first();
+            });
+
+            $title = $detail->project_name ?? 'AdminLTE';
+            $logoPath = (!empty($detail?->logo))
+                ? 'storage/' . ltrim($detail->logo, '/')
+                : 'vendor/adminlte/dist/img/logo.png';
+
+            // Window/tab title
+            Config::set('adminlte.title', $title);
+
+            // Sidebar brand text (HTML allowed)
+            Config::set('adminlte.logo', e($title));
+
+            // Sidebar brand image + custom class (size via CSS)
+            Config::set('adminlte.logo_img', $logoPath);
+            Config::set('adminlte.logo_img_class', 'brand-image brand-image-custom');
+
+            // ====== SIZES YOU ASKED FOR ======
+            // Auth (login/register) logo size (px)
+            Config::set('adminlte.auth_logo.enabled', true);
+            Config::set('adminlte.auth_logo.img.path', $logoPath);
+            Config::set('adminlte.auth_logo.img.alt', $title);
+            Config::set('adminlte.auth_logo.img.width', 80);   // <- set your width
+            Config::set('adminlte.auth_logo.img.height', 40);
+            Config::set('adminlte.auth_logo.img.class', 'auth-logo-rounded');
+
+
+            // <- set your heigh// Allow full favicon links instead of .ico-only
+Config::set('adminlte.use_full_favicon', true);
+Config::set('adminlte.use_ico_only', false);
+
+            // Preloader image size (px)
+            Config::set('adminlte.preloader.enabled', true);
+            Config::set('adminlte.preloader.img.path', $logoPath);
+            Config::set('adminlte.preloader.img.alt', $title);
+            Config::set('adminlte.preloader.img.width', 60);    // <- set your width
+            Config::set('adminlte.preloader.img.height', 60);   // <- set your height
+            // ================================
+
+        } catch (\Throwable $e) {
+            // swallow errors during early boot/migrations
+        }
     }
 }

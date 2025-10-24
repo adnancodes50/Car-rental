@@ -400,6 +400,12 @@ return [
         'icon'  => 'fas fa-calendar-plus text-danger', // daily appointments
     ],
 
+[
+    'text' => 'Communication',
+    'route' => 'communication-setting.index',
+    'icon' => 'fas fa-envelope fa-lg text-success', // Email icon in blue
+],
+
 
 
 
@@ -426,6 +432,12 @@ return [
     'text' => 'Forget Password',
     'route'  => 'forget-password.edit',
     'icon' => 'fas fa-key text-warning',
+],
+
+[
+    'text' => 'Company Setting',
+    'route'  => 'company-setting.edit',
+    'icon' => 'fas fa-landmark text-warning',
 ],
 
 

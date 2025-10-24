@@ -1,10 +1,16 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
     <div class="container">
+        @php
+            $brandImg = config('adminlte.logo_img'); // e.g. 'storage/logo/img1234.png'
+            $brandAlt = config('adminlte.title', 'Rental'); // your project_name
+        @endphp
+
         <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-            <img src="{{ asset('vendor/adminlte/dist/img/logo.png') }}" alt="Rental Logo" class="me-2 img-fluid"
+            <img src="{{ asset($brandImg) }}" alt="{{ $brandAlt }}" class="me-2 img-fluid brand-image-custom"
                 style="height:40px; width:auto; object-fit:contain;">
-            <span class="fw-bold text-dark"></span>
+            <span class="fw-bold text-dark">{{ $brandAlt }}</span>
         </a>
+
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive"
             aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
