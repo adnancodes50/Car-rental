@@ -318,17 +318,17 @@
 @stop
 
 @section('css')
-    {{-- Flatpickr styles --}}
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <style>
-        /* Table row hover */
+
         table.table-hover tbody tr:hover {
             background-color: rgba(255, 193, 7, 0.1);
             transition: background-color 0.2s ease-in-out;
         }
 
-        /* Scrollbar for email log card body */
+
         .email-log-scroll {
             max-height: 500px;
             overflow-y: auto;
@@ -339,8 +339,6 @@
             background-color: #c7c9cc; border-radius: 4px;
         }
         .email-log-scroll::-webkit-scrollbar-thumb:hover { background-color: #a6a8ab; }
-
-        /* Booking date inputs forced white */
         .booking-start-date,
         .booking-end-date {
             background-color: #ffffff !important;
@@ -360,7 +358,7 @@
             cursor: not-allowed !important;
         }
 
-        /* Selected range styling */
+
         .flatpickr-day.selected,
         .flatpickr-day.startRange,
         .flatpickr-day.endRange {
@@ -369,7 +367,6 @@
             color: #000 !important;
         }
 
-        /* Hover for available dates */
         .flatpickr-day:not(.disabled):hover {
             background: #cce5ff !important;
             color: #000 !important;
