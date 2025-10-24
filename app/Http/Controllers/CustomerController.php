@@ -63,7 +63,6 @@ public function update(Request $request, $id)
 
     $customer->update($validated);
 
-    // ✅ Check if request came via AJAX (fetch)
     if ($request->expectsJson() || $request->ajax()) {
     return response()->json([
         'success' => true,
