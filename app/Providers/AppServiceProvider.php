@@ -53,40 +53,34 @@ class AppServiceProvider extends ServiceProvider
                 ? 'storage/' . ltrim($detail->logo, '/')
                 : 'vendor/adminlte/dist/img/logo.png';
 
-            // Window/tab title
             Config::set('adminlte.title', $title);
 
-            // Sidebar brand text (HTML allowed)
             Config::set('adminlte.logo', e($title));
 
-            // Sidebar brand image + custom class (size via CSS)
             Config::set('adminlte.logo_img', $logoPath);
             Config::set('adminlte.logo_img_class', 'brand-image brand-image-custom');
 
-            // ====== SIZES YOU ASKED FOR ======
-            // Auth (login/register) logo size (px)
+
             Config::set('adminlte.auth_logo.enabled', true);
             Config::set('adminlte.auth_logo.img.path', $logoPath);
             Config::set('adminlte.auth_logo.img.alt', $title);
-            Config::set('adminlte.auth_logo.img.width', 80);   // <- set your width
+            Config::set('adminlte.auth_logo.img.width', 80);
             Config::set('adminlte.auth_logo.img.height', 40);
             Config::set('adminlte.auth_logo.img.class', 'auth-logo-rounded');
 
 
-            // <- set your heigh// Allow full favicon links instead of .ico-only
-Config::set('adminlte.use_full_favicon', true);
-Config::set('adminlte.use_ico_only', false);
 
-            // Preloader image size (px)
+Config::set('adminlte.use_full_favicon', true);
+Config::set('adminlte.use_ico_only', true);
+
+
             Config::set('adminlte.preloader.enabled', true);
             Config::set('adminlte.preloader.img.path', $logoPath);
             Config::set('adminlte.preloader.img.alt', $title);
-            Config::set('adminlte.preloader.img.width', 60);    // <- set your width
-            Config::set('adminlte.preloader.img.height', 60);   // <- set your height
-            // ================================
-
+            Config::set('adminlte.preloader.img.width', 60);
+            Config::set('adminlte.preloader.img.height', 60);
         } catch (\Throwable $e) {
-            // swallow errors during early boot/migrations
+
         }
     }
 }
