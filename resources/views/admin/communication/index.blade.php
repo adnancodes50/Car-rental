@@ -14,17 +14,17 @@
 
         {{-- Send Email Card --}}
         <div class="card mb-4 shadow-sm border-0">
-            <div class="card-body p-4">
+            <div class="card-body p-4" >
                 <form action="{{ route('communication-setting.send') }}" method="POST">
                     @csrf
 
                     {{-- Customer Selector --}}
-                    <div class="mb-2">
+                    <div class="mb-1">
                         <label for="customer_ids" class="form-label">Select Customers</label>
                         <select name="customer_ids[]" id="customer_ids" class="form-control" multiple required>
                             @foreach ($customers as $customer)
                                 <option value="{{ $customer->id }}">
-                                    {{ $customer->name }} ({{ $customer->email }})
+                                     {{ $customer->email }}
                                 </option>
                             @endforeach
                         </select>
@@ -32,13 +32,13 @@
                     </div>
 
                     {{-- Subject --}}
-                    <div class="mb-2">
+                    <div class="mb-1">
                         <label for="subject" class="form-label">Subject</label>
                         <input type="text" name="subject" id="subject" class="form-control" required>
                     </div>
 
                     {{-- Body using Summernote (empty by default) --}}
-                    <div class="mb-2">
+                    <div class="mb-1">
                         <label for="body" class="form-label">Body</label>
                         <textarea id="summernote" name="body" required></textarea>
                     </div>
