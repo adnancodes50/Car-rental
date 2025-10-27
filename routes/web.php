@@ -117,21 +117,24 @@ Route::group([
 
 
 
-
 Route::group([
-    'middleware' => ['auth'],
-    'prefix'     => 'locations',
-    'as'         => 'locations.',
+    'middleware' => ['auth', function ($request, $next) {
+        if (! $request->user() || ! $request->user()->hasRole('super admin')) {
+            abort(403);
+        }
+        return $next($request);
+    }],
+    'prefix' => 'locations',
+    'as' => 'locations.',
 ], function () {
     Route::get('/', [LocationsController::class, 'index'])->name('index');
     Route::get('/create', [LocationsController::class, 'create'])->name('create');
-Route::get('/{location}/view', [LocationsController::class, 'view'])->name('view');
+    Route::get('/{location}/view', [LocationsController::class, 'view'])->name('view');
     Route::post('/', [LocationsController::class, 'store'])->name('store');
     Route::get('/{location}/edit', [LocationsController::class, 'edit'])->name('edit');
     Route::put('/{location}', [LocationsController::class, 'update'])->name('update');
-    Route::patch('/{location}', [LocationsController::class, 'update'])->name('update.partial'); // optional
+    Route::patch('/{location}', [LocationsController::class, 'update'])->name('update.partial');
     Route::put('/location-pricings/{pricing}', [LocationsController::class, 'updateprice'])->name('location-pricings.update');
-
     Route::delete('/{location}', [LocationsController::class, 'destroy'])->name('destroy');
 });
 
@@ -190,8 +193,14 @@ Route::group([
 });
 
 
+// ✅ Company Setting — only accessible to Super Admin
 Route::group([
-    'middleware' => ['auth'],
+    'middleware' => ['auth', function ($request, $next) {
+        if (! $request->user() || ! $request->user()->hasRole('super admin')) {
+            abort(403, 'You do not have permission to access this page.');
+        }
+        return $next($request);
+    }],
     'prefix' => 'company-setting',
     'as' => 'company-setting.'
 ], function () {
@@ -267,22 +276,4 @@ Route::get('/payfast/booking/return', [BookingController::class, 'payfastBooking
 Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
 
 require __DIR__ . '/auth.php';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

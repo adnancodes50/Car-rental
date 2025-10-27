@@ -12,6 +12,7 @@
         "jeroennoten/laravel-adminlte": "^3.15",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
+        "spatie/laravel-permission": "^6.21",
         "stripe/stripe-php": "^17.6",
         "yajra/laravel-datatables-oracle": "11.0"
     },

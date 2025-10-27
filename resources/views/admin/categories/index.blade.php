@@ -9,19 +9,14 @@
 @section('content')
     <div class="container-fluid">
 
-        {{-- Success Message
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif --}}
 
         <div class="card">
-            {{-- Card Header with Add Category Button --}}
             <div class="card-header">
                 <div class="d-flex w-100 align-items-center">
                     <h3 class="card-title mb-0">All Categories</h3>
                     <div class="ml-auto">
                         <a href="{{ route('categories.create') }}" class="btn btn-dark btn-sm">
-                            <i class="fas fa-plus"></i> Add Category
+                            <i class="fas fa-plus"></i> Add New
                         </a>
                     </div>
                 </div>
@@ -33,8 +28,7 @@
                         <thead>
                             <tr>
                                 <th style="width: 80px;">Image</th>
-                                <th>Name</th>
-                                <th>Description</th>
+                                <th >Name</th>
                                 <th>Status</th>
                                 <th style="width: 150px;">Actions</th>
                             </tr>
@@ -53,7 +47,6 @@
                                         @endif
                                     </td>
                                     <td>{{ $category->name }}</td>
-                                    <td>{{ $category->short_description }}</td>
                                     <td>
                                         @if ($category->status === 'active')
                                             <span class="badge badge-success">Active</span>
@@ -88,13 +81,8 @@
         </div>
     </div>
 @stop
-
-
-
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    {{-- ✅ Show success message --}}
     @if (session('success'))
         <script>
             Swal.fire({
@@ -105,8 +93,6 @@
             });
         </script>
     @endif
-
-    {{-- ✅ Show error message --}}
     @if (session('error'))
         <script>
             Swal.fire({
@@ -117,8 +103,6 @@
             });
         </script>
     @endif
-
-    {{-- ✅ Always active delete confirmation --}}
     <script>
         document.querySelectorAll('.delete-btn').forEach(button => {
             button.addEventListener('click', function(e) {

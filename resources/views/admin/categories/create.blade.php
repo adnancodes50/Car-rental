@@ -19,16 +19,10 @@
             </div>
 
             <div class="form-group">
-                <label>Short Description</label>
-                <textarea name="short_description" class="form-control">{{ old('short_description') }}</textarea>
-                @error('short_description') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label>Icon / Image</label>
-                <input type="text" name="image" class="form-control mb-2" placeholder="FontAwesome class e.g. fas fa-car">
+                <label>Image</label>
+                {{-- <input type="text" name="image" class="form-control mb-2" placeholder="FontAwesome class e.g. fas fa-car"> --}}
                 <input type="file" name="image_file" class="form-control-file">
-                <small class="text-muted">Upload an image OR enter a FontAwesome class.</small>
+
                 @error('image') <span class="text-danger">{{ $message }}</span> @enderror
                 @error('image_file') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
@@ -42,7 +36,11 @@
                 @error('status') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
 
-            <button type="submit" class="btn btn-dark">Save Category</button>
+            <div class="form-group d-flex justify-content-between mt-4">
+    <a href="{{ route('categories.index') }}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-dark">Save Category</button>
+</div>
+
         </form>
     </div>
 </div>

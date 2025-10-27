@@ -371,6 +371,7 @@ return [
         'text' => 'Locations',
         'url'  => '/locations',
         'icon' => 'fas fa-map-marker-alt fa-lg text-danger',
+          'can'  => 'is-super-admin',
     ],
     [
         'text' => 'Landing Page',
@@ -438,6 +439,7 @@ return [
     'text' => 'Company Setting',
     'route'  => 'company-setting.edit',
     'icon' => 'fas fa-landmark text-info',
+       'can'  => 'is-super-admin',
 ],
 
 

@@ -4,7 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use App\Models\User;
 
 class UserSeeder extends Seeder
 {
@@ -13,39 +14,63 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('users')->insert([
+        // Ensure roles exist (in case they haven't been seeded yet)
+        $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+
+        // --- SUPER ADMIN ---
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'zeltacodeofficial@gmail.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('zeltacode@2025'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $superAdmin->assignRole($superAdminRole);
+
+        // --- ADMIN USER ---
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin User',
-                'email' => 'admin@example.com',
                 'password' => Hash::make('admin@2025'),
                 'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            ]
+        );
+        $admin->assignRole($superAdminRole);
+
+        // --- REGULAR USER ---
+        $regularUser = User::firstOrCreate(
+            ['email' => 'user@example.com'],
             [
                 'name' => 'Regular User',
-                'email' => 'user@example.com',
                 'password' => Hash::make('user@2025'),
                 'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            ]
+        );
+        $regularUser->assignRole($userRole);
+
+        // --- ALEX ---
+        $alex = User::firstOrCreate(
+            ['email' => 'alex@landysworldwide.com'],
             [
                 'name' => 'Alex',
-                'email' => 'alex@landysworldwide.com',
                 'password' => Hash::make('alex@2025'),
                 'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            ]
+        );
+        $alex->assignRole($userRole);
+
+        // --- INFO ACCOUNT ---
+        $info = User::firstOrCreate(
+            ['email' => 'info@landysworldwide.com'],
             [
                 'name' => 'Info Account',
-                'email' => 'info@landysworldwide.com',
                 'password' => Hash::make('info@2025'),
                 'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+            ]
+        );
+        $info->assignRole($userRole);
     }
 }

@@ -22,27 +22,23 @@ class CategoryController extends Controller
     }
 
 
-   public function store(Request $request)
+public function store(Request $request)
 {
     $data = $request->validate([
         'name'              => ['required','string','max:255'],
-        'short_description' => ['required','string','max:500'],
-        'image_file'        => ['required','image','mimes:jpeg,png,jpg,gif,svg','max:2048'],
-        'image'             => ['required','string','max:255'],
+        'short_description' => ['nullable','string','max:500'], // changed from required → nullable
+        'image_file'        => ['nullable','image','mimes:jpeg,png,jpg,gif,svg','max:2048'],
+        'image'             => ['nullable','string','max:255'],
         'status'            => ['required','in:active,inactive'],
     ]);
 
-
-    if($request->hasFile('image_file')) {
+    if ($request->hasFile('image_file')) {
         $data['image'] = $request->file('image_file')->store('category', 'public');
-        }
+    }
 
-    // Category::create($data);
     Category::create($data);
 
-    // return redirect()->route('categories.index')->with('success', 'Category created successfully.');
-
-    return redirect()->route('categories.index')->with('success', 'Category Created successfully.');
+    return redirect()->route('categories.index')->with('success', 'Category created successfully.');
 }
 
 

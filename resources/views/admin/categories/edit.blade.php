@@ -20,19 +20,13 @@
             </div>
 
             <div class="form-group">
-                <label>Short Description</label>
-                <textarea name="short_description" class="form-control">{{ old('short_description', $category->short_description) }}</textarea>
-                @error('short_description') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label>Icon / Image</label>
-                <input type="text" name="image" class="form-control mb-2" value="{{ old('image', $category->image) }}">
+                <label>Image</label>
                 @if($category->image && !str_contains($category->image, 'fa-'))
-                    <img src="{{ asset('storage/'.$category->image) }}" width="100" class="mb-2">
+                    <div class="mb-2">
+                        <img src="{{ asset('storage/'.$category->image) }}" width="100" class="img-thumbnail">
+                    </div>
                 @endif
                 <input type="file" name="image_file" class="form-control-file">
-                <small class="text-muted">Upload new image to replace existing OR use FontAwesome class.</small>
                 @error('image') <span class="text-danger">{{ $message }}</span> @enderror
                 @error('image_file') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
@@ -46,7 +40,10 @@
                 @error('status') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
 
-            <button type="submit" class="btn btn-dark">Update Category</button>
+            <div class="form-group d-flex justify-content-between mt-4">
+                <a href="{{ route('categories.index') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-dark">Update Category</button>
+            </div>
         </form>
     </div>
 </div>

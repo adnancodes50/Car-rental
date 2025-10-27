@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\LocationPricing;
 use Illuminate\Http\Request;
+// use App\Rules\PhoneRule;
 
 class LocationsController extends Controller
 {
@@ -36,9 +37,9 @@ class LocationsController extends Controller
 
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'maz:255'],
-            'email' => ['required', 'email', 'maz:255'],
-            'phone' => ['required', 'phone', 'maz:255'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+'phone' => ['required', 'regex:/^\+?[0-9\s\-\(\)]{7,15}$/'],
             'status' => ['required', 'in:active,inactive'],
         ]);
 
