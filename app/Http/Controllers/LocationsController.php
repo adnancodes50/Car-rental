@@ -14,6 +14,12 @@ class LocationsController extends Controller
         return view('admin.locations.index', compact('locations'));
     }
 
+    // public function create()
+    // {
+    //     return view('admin.locations.create');
+    // }
+
+
     public function create()
     {
         return view('admin.locations.create');
@@ -21,26 +27,36 @@ class LocationsController extends Controller
 
     public function store(Request $request)
     {
+        // $data = $request->validate([
+        //     'name'   => ['required','string','max:255'],
+        //     'email'  => ['nullable','email','max:255'],
+        //     'phone'  => ['nullable','string','max:50'],
+        //     'status' => ['required','in:active,inactive'],
+        // ]);
+
+
         $data = $request->validate([
-            'name'   => ['required','string','max:255'],
-            'email'  => ['nullable','email','max:255'],
-            'phone'  => ['nullable','string','max:50'],
-            'status' => ['required','in:active,inactive'],
+            'name' => ['required', 'string', 'maz:255'],
+            'email' => ['required', 'email', 'maz:255'],
+            'phone' => ['required', 'phone', 'maz:255'],
+            'status' => ['required', 'in:active,inactive'],
         ]);
 
         // ✅ 1. Create the new location
-      $newLocation = Location::create($data);
-$newLocation->refresh();
+    $newLocation = Location::create($data);
 
-$existingLocations = Location::where('id', '!=', $newLocation->id)->get();
+    $newLocation->refresh();
+    //   $existingLocations = Location::where('id', '!=', $newLocation->id)->get();
+    $existingLocations = Location::where('id', '!=', $newLocation->id)->get();
 
-\DB::transaction(function () use ($newLocation, $existingLocations) {
-    foreach ($existingLocations as $location) {
-        LocationPricing::create([
-            'from_location_id' => $newLocation->id,
-            'to_location_id'   => $location->id,
-            'transfer_fee'     => 0,
-            'status'           => 'active',
+    //  \DB::transaction(function () use ($newLocation, $existingLocations) {
+    \DB::transaction(function () use ($newLocation, $existingLocations){
+        foreach ($existingLocations as $location) {
+           LocationPricing::create([
+             'from_location_id' => $newLocation->id,
+             'to_location_id'   => $location->id,
+             'transfer_fee'     => 0,
+             'status'           => 'active',
         ]);
 
         LocationPricing::create([
@@ -68,8 +84,8 @@ $existingLocations = Location::where('id', '!=', $newLocation->id)->get();
     {
         $data = $request->validate([
             'name'   => ['required','string','max:255'],
-            'email'  => ['nullable','email','max:255'],
-            'phone'  => ['nullable','string','max:50'],
+            'email'  => ['required','email','max:255'],
+            'phone'  => ['required','string','max:50'],
             'status' => ['required','in:active,inactive'],
         ]);
 
@@ -91,16 +107,27 @@ $existingLocations = Location::where('id', '!=', $newLocation->id)->get();
 }
 
 
-public function updateprice(Request $request, LocationPricing $pricing)
-{
+// public function updateprice(Request $request, LocationPricing $pricing)
+// {
+//     $data = $request->validate([
+//         'transfer_fee' => ['required','numeric','min:0'],
+//         'status'       => ['required','in:active,inactive'],
+//     ]);
+
+//     $pricing->update($data);
+
+//     return response()->json(['message' => 'Pricing updated successfully']);
+// }
+
+public function  updateprice(Request $request){
     $data = $request->validate([
-        'transfer_fee' => ['required','numeric','min:0'],
-        'status'       => ['required','in:active,inactive'],
+        'transfer_fee' => ['required', 'numeric', 'min:0'],
+        'status' => ['required', 'in:active,inactive'],
     ]);
 
-    $pricing->update($data);
 
-    return response()->json(['message' => 'Pricing updated successfully']);
+    $pricing->update($data);
+    return  response()->json(['message', 'Pricing Update Successfully ']);
 }
 
 

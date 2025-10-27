@@ -15,12 +15,9 @@ class LocationPricing extends Model
         'transfer_fee',
         'status',
     ];
-
-    public function fromLocation()
-    {
+    public function fromLocation(){
         return $this->belongsTo(Location::class, 'from_location_id');
     }
-
     public function toLocation()
     {
         return $this->belongsTo(Location::class, 'to_location_id');

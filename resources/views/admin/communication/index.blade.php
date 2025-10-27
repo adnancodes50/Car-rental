@@ -1,10 +1,10 @@
 @extends('adminlte::page')
 @section('title', 'Communication Center')
 @section('content_header')
-    <h1>Communication Center</h1>
+    <h1></h1>
 @stop
 @section('content')
-    <div class="container-fluid">
+    <div class="container-fluid mb-5">
         <div class="card mb-4 shadow-sm border-0">
             <div class="card-body p-4">
                 <form action="{{ route('communication-setting.send') }}" method="POST">
@@ -28,7 +28,7 @@
                         <textarea id="summernote" name="body" required></textarea>
                     </div>
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-dark">
+                        <button type="submit" class="btn btn-success py-2">
                             <i class="fas fa-paper-plane"></i> Send Email
                         </button>
                     </div>

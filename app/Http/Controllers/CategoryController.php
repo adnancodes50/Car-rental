@@ -26,20 +26,23 @@ class CategoryController extends Controller
 {
     $data = $request->validate([
         'name'              => ['required','string','max:255'],
-        'short_description' => ['nullable','string','max:500'],
-        'image_file'        => ['nullable','image','mimes:jpeg,png,jpg,gif,svg','max:2048'], // file upload
-        'image'             => ['nullable','string','max:255'], // FontAwesome class
+        'short_description' => ['required','string','max:500'],
+        'image_file'        => ['required','image','mimes:jpeg,png,jpg,gif,svg','max:2048'],
+        'image'             => ['required','string','max:255'],
         'status'            => ['required','in:active,inactive'],
     ]);
 
-    // Handle uploaded image
-    if ($request->hasFile('image_file')) {
-        $data['image'] = $request->file('image_file')->store('category', 'public');
-    }
 
+    if($request->hasFile('image_file')) {
+        $data['image'] = $request->file('image_file')->store('category', 'public');
+        }
+
+    // Category::create($data);
     Category::create($data);
 
-    return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+    // return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+
+    return redirect()->route('categories.index')->with('success', 'Category Created successfully.');
 }
 
 
@@ -79,15 +82,30 @@ public function update(Request $request, Category $category)
 
 
 
+    // public function destroy(Category $category)
+    // {
+
+    //     if ($category->image && Storage::disk('public')->exists($category->image)) {
+    //         Storage::disk('public')->delete($category->image);
+    //     }
+
+    //     $category->delete();
+
+    //     return redirect()->route('categories.index')->with('success', 'Category deleted successfully.');
+    // }
+
+
     public function destroy(Category $category)
     {
-
-        if ($category->image && Storage::disk('public')->exists($category->image)) {
+        if ($category->image && Storage::disk('public')->exists($category->image)){
             Storage::disk('public')->delete($category->image);
         }
 
         $category->delete();
 
-        return redirect()->route('categories.index')->with('success', 'Category deleted successfully.');
+
+
+        return Route::redirect()->route('categories.index')->with('success', 'Category Deleted Successfully.');
+
     }
 }

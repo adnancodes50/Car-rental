@@ -30,11 +30,7 @@ return $this->hasMany(Vehicle::class, 'location_id');
     {
         return $this->hasMany(LocationPricing::class, 'from_location_id');
     }
-
-    /**
-     * A location can have many incoming pricing rules
-     * (e.g. Gujranwala → Lahore, Islamabad → Lahore)
-     */
+    
     public function incomingPrices()
     {
         return $this->hasMany(LocationPricing::class, 'to_location_id');

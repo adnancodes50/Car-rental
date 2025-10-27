@@ -15,7 +15,7 @@
         </a>
 
         <form action="{{ route('customers.destroy', $customer->id) }}" method="POST"
-              onsubmit="return confirm('Delete this customer? This cannot be undone.');">
+            onsubmit="return confirm('Delete this customer? This cannot be undone.');">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-danger">
@@ -35,7 +35,8 @@
                     {{-- Customer form --}}
                     <div class="col-md-6">
                         <div class="p-3 rounded-3 border bg-light">
-                            <form id="customer-update-form" action="{{ route('customers.update', $customer->id) }}" method="POST">
+                            <form id="customer-update-form" action="{{ route('customers.update', $customer->id) }}"
+                                method="POST">
                                 @csrf
                                 @method('PATCH')
 
@@ -43,31 +44,31 @@
                                     <div class="col-md-6">
                                         <label for="customer_name" class="form-label"><strong>Name:</strong></label>
                                         <input type="text" id="customer_name" name="name" class="form-control"
-                                               value="{{ old('name', $customer->name) }}" required>
+                                            value="{{ old('name', $customer->name) }}" required>
                                     </div>
 
                                     <div class="col-md-6">
                                         <label for="customer_email" class="form-label"><strong>Email:</strong></label>
                                         <input type="email" id="customer_email" name="email" class="form-control"
-                                               value="{{ old('email', $customer->email) }}">
+                                            value="{{ old('email', $customer->email) }}">
                                     </div>
 
                                     <div class="col-md-6">
                                         <label for="customer_phone" class="form-label"><strong>Phone:</strong></label>
                                         <input type="text" id="customer_phone" name="phone" class="form-control"
-                                               value="{{ old('phone', $customer->phone) }}">
+                                            value="{{ old('phone', $customer->phone) }}">
                                     </div>
 
                                     <div class="col-md-6">
                                         <label for="customer_country" class="form-label"><strong>Country:</strong></label>
                                         <input type="text" id="customer_country" name="country" class="form-control"
-                                               value="{{ old('country', $customer->country) }}">
+                                            value="{{ old('country', $customer->country) }}">
                                     </div>
 
                                     <div class="col-md-12 mt-3">
                                         <label for="customer_notes" class="form-label"><strong>Notes:</strong></label>
                                         <textarea id="customer_notes" name="notes" class="form-control" rows="3"
-                                                  placeholder="Enter any notes about this customer...">{{ old('notes', $customer->notes) }}</textarea>
+                                            placeholder="Enter any notes about this customer...">{{ old('notes', $customer->notes) }}</textarea>
                                     </div>
                                 </div>
 
@@ -98,7 +99,8 @@
                             <div class="col-6">
                                 <div class="p-3 text-center py-4 bg-warning text-dark rounded">
                                     <h6 class="mb-1">Total Deposits</h6>
-                                    <h4 class="fw-bold">R{{ number_format($customer->total_purchase_deposit ?? 0, 2) }}</h4>
+                                    <h4 class="fw-bold">R{{ number_format($customer->total_purchase_deposit ?? 0, 2) }}
+                                    </h4>
                                 </div>
                             </div>
                             <div class="col-6">
@@ -141,22 +143,22 @@
                                     {{-- Status dropdown --}}
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="badge booking-status-badge" data-badge-for="{{ $booking->id }}"
-                                              @class([
-                                                  'bg-success' => $booking->status === 'completed',
-                                                  'bg-warning text-dark' => $booking->status === 'pending',
-                                                  'bg-danger' => $booking->status === 'canceled',
-                                                  'bg-primary' => $booking->status === 'confirmed',
-                                                  'bg-info' => $booking->status === 'ongoing',
-                                              ])>
+                                            @class([
+                                                'bg-success' => $booking->status === 'completed',
+                                                'bg-warning text-dark' => $booking->status === 'pending',
+                                                'bg-danger' => $booking->status === 'canceled',
+                                                'bg-primary' => $booking->status === 'confirmed',
+                                                'bg-info' => $booking->status === 'ongoing',
+                                            ])>
                                             {{ ucfirst($booking->status) }}
                                         </span>
 
                                         <form class="booking-status-form" data-booking-id="{{ $booking->id }}"
-                                              data-url="{{ route('customers.bookings.updateStatus', $booking->id) }}">
+                                            data-url="{{ route('customers.bookings.updateStatus', $booking->id) }}">
                                             @csrf
                                             @method('PATCH')
                                             <select name="status"
-                                                    class="form-select form-select-sm border-0 bg-light rounded-2 shadow-sm px-2 py-1">
+                                                class="form-select form-select-sm border-0 bg-light rounded-2 shadow-sm px-2 py-1">
                                                 @foreach (['pending', 'confirmed', 'completed', 'canceled'] as $st)
                                                     <option value="{{ $st }}" @selected($booking->status === $st)>
                                                         {{ ucfirst($st) }}
@@ -168,37 +170,34 @@
                                 </div>
 
                                 {{-- Dates form --}}
-                                <form class="booking-dates-form"
-                                      data-booking-id="{{ $booking->id }}"
-                                      data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
-                                      data-disabled-dates='@json($bookedRanges)'
-                                      data-daily-rate="{{ $booking->vehicle->rental_price_day }}">
+                                <form class="booking-dates-form" data-booking-id="{{ $booking->id }}"
+                                    data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
+                                    data-disabled-dates='@json($bookedRanges)'
+                                    data-daily-rate="{{ $booking->vehicle->rental_price_day }}">
                                     @csrf
                                     @method('PATCH')
 
                                     <div class="row g-2 align-items-center">
                                         <div class="col-md-6">
                                             <label class="form-label mb-1"><strong>Start Date:</strong></label>
-                                            <input type="text" name="start_date"
-                                                   value="{{ $booking->start_date }}"
-                                                   class="form-control form-control-sm booking-start-date"
-                                                   placeholder="Select start date">
+                                            <input type="text" name="start_date" value="{{ $booking->start_date }}"
+                                                class="form-control form-control-sm booking-start-date"
+                                                placeholder="Select start date">
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label mb-1"><strong>End Date:</strong></label>
-                                            <input type="text" name="end_date"
-                                                   value="{{ $booking->end_date }}"
-                                                   class="form-control form-control-sm booking-end-date"
-                                                   placeholder="Select end date">
+                                            <input type="text" name="end_date" value="{{ $booking->end_date }}"
+                                                class="form-control form-control-sm booking-end-date"
+                                                placeholder="Select end date">
                                         </div>
 
                                         <div class="col-md-6">
-                                            <label class="form-label mb-1 mt-1"><strong>Admin Note For Booking:</strong></label>
-                                            <input type="text" name="admin_note"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Enter a note about this booking"
-                                                   value="{{ old('admin_note', $booking->admin_note) }}">
+                                            <label class="form-label mb-1 mt-1"><strong>Admin Note For
+                                                    Booking:</strong></label>
+                                            <input type="text" name="admin_note" class="form-control form-control-sm"
+                                                placeholder="Enter a note about this booking"
+                                                value="{{ old('admin_note', $booking->admin_note) }}">
                                             @error('admin_note')
                                                 <span class="text-danger small">{{ $message }}</span>
                                             @enderror
@@ -207,7 +206,7 @@
                                         <div class="col-md-6">
                                             <label class="form-label mb-1 mt-1"><strong>Total Price:</strong></label>
                                             <input type="text" class="form-control form-control-sm" disabled
-                                                   value="R{{ number_format($booking->total_price, 2) }}">
+                                                value="R{{ number_format($booking->total_price, 2) }}">
                                         </div>
                                     </div>
 
@@ -245,10 +244,14 @@
                                     <span class="badge bg-primary">Purchase</span>
                                 </div>
 
-                                <p class="mb-1 text-muted"><strong>Purchased On:</strong> {{ $purchase->created_at->format('Y-m-d') }}</p>
-                                <p class="mb-1 text-muted"><strong>Total Price:</strong> R{{ number_format($purchase->total_price, 2) }}</p>
-                                <p class="mb-1 text-muted"><strong>Deposit Paid:</strong> R{{ number_format($purchase->deposit_paid ?? 0, 2) }}</p>
-                                <p class="mb-0 text-muted"><strong>Payment Method:</strong> {{ ucfirst($purchase->payment_method ?? 'N/A') }}</p>
+                                <p class="mb-1 text-muted"><strong>Purchased On:</strong>
+                                    {{ $purchase->created_at->format('Y-m-d') }}</p>
+                                <p class="mb-1 text-muted"><strong>Total Price:</strong>
+                                    R{{ number_format($purchase->total_price, 2) }}</p>
+                                <p class="mb-1 text-muted"><strong>Deposit Paid:</strong>
+                                    R{{ number_format($purchase->deposit_paid ?? 0, 2) }}</p>
+                                <p class="mb-0 text-muted"><strong>Payment Method:</strong>
+                                    {{ ucfirst($purchase->payment_method ?? 'N/A') }}</p>
                             </div>
                         </div>
                     @empty
@@ -267,22 +270,24 @@
                 {{-- <span class="badge bg-dark">{{ count($emailLogs) }} total</span> --}}
             </div>
 
-            <div class="card-body email-log-scroll">
-                @if($emailLogs->isEmpty())
+            <div class="card-body  email-log-scroll">
+                {{-- Email log entries --}}
+                @if ($emailLogs->isEmpty())
                     <div class="text-center text-muted py-4">
                         <i class="fas fa-inbox fa-2x mb-2"></i>
                         <p class="mb-0">No emails sent to this customer please.</p>
                     </div>
                 @else
-                    @foreach($emailLogs as $log)
+                    @foreach ($emailLogs as $log)
                         @php $isSender = optional($log->sender)->id === auth()->id(); @endphp
 
                         <div class="d-flex {{ $isSender ? 'justify-content-end' : 'justify-content-start' }} mb-3">
-                            <div class="d-flex {{ $isSender ? 'flex-row-reverse' : 'flex-row' }} align-items-start" style="max-width: 80%;">
+                            <div class="d-flex {{ $isSender ? 'flex-row-reverse' : 'flex-row' }} align-items-start"
+                                style="max-width: 80%;">
                                 {{-- Avatar --}}
                                 <div class="mx-2">
                                     <div class="rounded-circle d-flex justify-content-center align-items-center text-white"
-                                         style="width: 40px; height: 40px;
+                                        style="width: 40px; height: 40px;
                                          background-color: {{ $isSender ? '#007bff' : '#6c757d' }};
                                          font-weight: bold;">
                                         {{ strtoupper(substr(optional($log->sender)->name ?? 'S', 0, 1)) }}
@@ -291,7 +296,7 @@
 
                                 {{-- Message bubble --}}
                                 <div class="p-3 rounded-3 shadow-sm"
-                                     style="background-color: {{ $isSender ? '#e6f2ff' : '#ffffff' }};
+                                    style="background-color: {{ $isSender ? '#f2f2f2' : '#ffffff' }};
                                             border: 1px solid #dee2e6; min-width: 250px;">
                                     <div class="d-flex justify-content-between mb-1">
                                         <strong class="text-dark">{{ $log->subject }}</strong>
@@ -322,7 +327,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <style>
-
         table.table-hover tbody tr:hover {
             background-color: rgba(255, 193, 7, 0.1);
             transition: background-color 0.2s ease-in-out;
@@ -334,16 +338,26 @@
             overflow-y: auto;
             background-color: #f9fafb;
         }
-        .email-log-scroll::-webkit-scrollbar { width: 8px; }
-        .email-log-scroll::-webkit-scrollbar-thumb {
-            background-color: #c7c9cc; border-radius: 4px;
+
+        .email-log-scroll::-webkit-scrollbar {
+            width: 8px;
         }
-        .email-log-scroll::-webkit-scrollbar-thumb:hover { background-color: #a6a8ab; }
+
+        .email-log-scroll::-webkit-scrollbar-thumb {
+            background-color: #c7c9cc;
+            border-radius: 4px;
+        }
+
+        .email-log-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #a6a8ab;
+        }
+
         .booking-start-date,
         .booking-end-date {
             background-color: #ffffff !important;
             color: #000 !important;
         }
+
         .flatpickr-input[readonly] {
             background-color: #ffffff !important;
             color: #000 !important;
@@ -379,9 +393,6 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
-        /* =====================================================
-           BOOKING STATUS UPDATE
-        ===================================================== */
         (function() {
             document.addEventListener('focusin', (e) => {
                 const sel = e.target.closest('.booking-status-form select[name="status"]');
@@ -438,13 +449,16 @@
                             'Accept': 'application/json',
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ status: newStatus }),
+                        body: JSON.stringify({
+                            status: newStatus
+                        }),
                     });
 
                     const data = await res.json();
                     if (!res.ok || !data.success) throw new Error(data.message || 'Update failed');
 
-                    const badge = document.querySelector(`.booking-status-badge[data-badge-for="${bookingId}"]`);
+                    const badge = document.querySelector(
+                        `.booking-status-badge[data-badge-for="${bookingId}"]`);
                     if (badge) {
                         const clsMap = {
                             completed: 'bg-success',
@@ -455,7 +469,8 @@
                         };
                         badge.textContent = (data.status || newStatus).replace(/^./, c => c.toUpperCase());
                         badge.className = 'badge booking-status-badge';
-                        (clsMap[data.status] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(c));
+                        (clsMap[data.status] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(
+                            c));
                     }
 
                     Swal.fire({
@@ -474,9 +489,6 @@
             });
         })();
 
-        /* =====================================================
-           CUSTOMER DETAILS UPDATE (PATCH)
-        ===================================================== */
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('#customer-update-form');
             if (!form) return;
@@ -508,7 +520,8 @@
                     });
 
                     const resData = await res.json();
-                    if (!res.ok || !resData.success) throw new Error(resData.message || 'Update failed');
+                    if (!res.ok || !resData.success) throw new Error(resData.message ||
+                    'Update failed');
 
                     Swal.fire({
                         icon: 'success',
@@ -540,7 +553,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.booking-dates-form').forEach(form => {
                 const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
-                const disabledDates = disabledRanges.map(r => ({ from: r.from, to: r.to }));
+                const disabledDates = disabledRanges.map(r => ({
+                    from: r.from,
+                    to: r.to
+                }));
 
                 const startInput = form.querySelector('.booking-start-date');
                 const endInput = form.querySelector('.booking-end-date');
@@ -594,7 +610,8 @@
                     }
 
                     if (conflicts.length > 0) {
-                        const conflictList = conflicts.map(r => `• <b>${r.from}</b> → <b>${r.to}</b>`).join('<br>');
+                        const conflictList = conflicts.map(r =>
+                            `• <b>${r.from}</b> → <b>${r.to}</b>`).join('<br>');
                         Swal.fire({
                             icon: 'error',
                             title: 'Date Conflicts Found',
@@ -625,12 +642,14 @@
                                 start_date: start,
                                 end_date: end,
                                 admin_note: adminNote,
-                                total_price: priceField.value.replace(/[^\d.]/g, '')
+                                total_price: priceField.value.replace(/[^\d.]/g,
+                                    '')
                             })
                         });
 
                         const data = await res.json();
-                        if (!res.ok || !data.success) throw new Error(data.message || 'Update failed');
+                        if (!res.ok || !data.success) throw new Error(data.message ||
+                            'Update failed');
 
                         Swal.fire({
                             icon: 'success',
