@@ -32,7 +32,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-success py-2">
+                        <button type="submit" class="btn btn-success py-2 px-4">
                             <i class="fas fa-paper-plane"></i> Send Email
                         </button>
                     </div>
@@ -40,7 +40,7 @@
             </div>
         </div>
 
-        {{-- Chat Style Email Logs --}}
+        {{-- Modern Chat-Style Email Logs --}}
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white text-black d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Email Conversation Logs</h5>
@@ -58,32 +58,47 @@
                 </form>
             </div>
 
+            <div class="card-body chat-box">
+    @forelse($emailLogs as $log)
+        @php
+            // Handle null sender (system messages)
+            $isSentByUser = $log->sent_by == auth()->id();
+            $isSystem = is_null($log->sent_by);
+            $chatClass = $isSentByUser || $isSystem ? 'sent' : 'received';
+            $senderName = $log->sender->name ?? 'Super Admin';
+            $senderInitial = strtoupper(substr($senderName, 0, 1));
+        @endphp
 
-            <div class="card-body chat-box" style="background:white; height: 500px; overflow-y:auto; padding:20px;">
-                @forelse($emailLogs as $log)
-                    <div class="chat-message {{ $log->sent_by == auth()->id() ? 'sent' : 'received' }}">
-                        <div class="message-header">
-                            <strong>{{ $log->sender->name ?? 'System' }}</strong>
-                            <span class="timestamp">{{ \Carbon\Carbon::parse($log->sent_at)->format('d M Y h:i A') }}</span>
-                        </div>
-
-                        <div class="message-body">
-                            <p class="subject"><strong>Subject:</strong> {{ $log->subject }}</p>
-                            <div class="body-text">{!! $log->body !!}</div>
-                        </div>
-
-                        <div class="message-footer">
-                            <small>To: {{ $log->customer->name ?? 'Unknown' }}
-                                ({{ $log->customer->email ?? 'N/A' }})</small>
-                        </div>
-                    </div>
-                @empty
-                    <div class="text-center text-muted mt-4">
-                        <i class="fas fa-envelope-open-text fa-2x mb-2"></i>
-                        <p>No email logs found.</p>
-                    </div>
-                @endforelse
+        <div class="chat-message {{ $chatClass }}">
+            <div class="chat-avatar">
+                <div class="avatar-circle">{{ $senderInitial }}</div>
             </div>
+
+            <div class="chat-bubble">
+                <div class="message-info">
+                    <strong>{{ $senderName }}</strong>
+                    <small class="text-muted">{{ \Carbon\Carbon::parse($log->sent_at)->format('d M Y, h:i A') }}</small>
+                </div>
+                <div class="message-body">
+                    <p><strong>Subject:</strong> {{ $log->subject }}</p>
+                    <div class="message-content">{!! $log->body !!}</div>
+                </div>
+                <div class="message-footer text-end">
+                    <small>
+                        To: {{ $log->customer->name ?? 'Unknown' }}
+                        ({{ $log->customer->email ?? 'N/A' }})
+                    </small>
+                </div>
+            </div>
+        </div>
+    @empty
+        <div class="text-center text-muted mt-4">
+            <i class="fas fa-envelope-open-text fa-2x mb-2"></i>
+            <p>No email logs found.</p>
+        </div>
+    @endforelse
+</div>
+
 
             <div class="card-footer text-center">
                 {{ $emailLogs->links() }}
@@ -95,85 +110,99 @@
 @section('css')
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs4.min.css" rel="stylesheet">
+
     <style>
-        .note-editor.note-frame {
-            border: 1px solid #ced4da;
-        }
-
-        .note-editor.note-frame .note-editable {
-            background-color: #fff;
-        }
-
-        .note-editor .dropdown-menu {
-            z-index: 2050;
-        }
+        /* General styling */
         .chat-box {
-            background: white;
+            background: #f5f7fa;
             border-radius: 10px;
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
         }
+
         .chat-message {
-            max-width: 75%;
-            padding: 12px 16px;
-            margin-bottom: 15px;
-            border-radius: 15px;
-            position: relative;
-            word-wrap: break-word;
+            display: flex;
+            margin-bottom: 20px;
         }
+
+        /* Avatar circle */
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* Sent messages (right side) */
         .chat-message.sent {
+            flex-direction: row-reverse;
+        }
+
+        .chat-message.sent .chat-bubble {
             background-color: #d1e7dd;
-            margin-left: auto;
+            border-radius: 15px 15px 0 15px;
+            margin-right: 10px;
             text-align: left;
-            border-bottom-right-radius: 0;
         }
-        .chat-message.received {
+
+        /* Received messages (left side) */
+        .chat-message.received .chat-bubble {
             background-color: #ffffff;
-            margin-right: auto;
-            border-bottom-left-radius: 0;
+            border-radius: 15px 15px 15px 0;
+            margin-left: 10px;
         }
-        .card-header form#filterForm {
-            margin-left: auto;
+
+        .chat-bubble {
+            padding: 12px 16px;
+            max-width: 70%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        .message-header {
+
+        .message-info {
             display: flex;
             justify-content: space-between;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-        .message-header strong {
-            color: #2c3e50;
-        }
-        .timestamp {
-            font-size: 0.8rem;
-            color: #888;
+            margin-bottom: 6px;
         }
 
-        .message-body {
-            font-size: 0.95rem;
-            color: #333;
-        }
-
-        .subject {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .body-text {
-            background: #f9f9f9;
+        .message-content {
+            background: #f8f9fa;
             padding: 8px 10px;
-            border-radius: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
         }
 
         .message-footer {
-            text-align: right;
-            font-size: 0.8rem;
-            color: #777;
             margin-top: 8px;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .card-header form#filterForm {
+            margin-left: auto;
+        }
+
+        /* Smooth scrollbar */
+        .chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
         }
     </style>
 @stop
 
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs4.min.js"></script>
 
     <script>

@@ -6,7 +6,8 @@
 <div id="app">
     <div>
         @php
-            $heroBg = $settings && $settings->hero_image_path ? asset($settings->hero_image_path) : asset('images/bg.jpg');
+            $heroBg =
+                $settings && $settings->hero_image_path ? asset($settings->hero_image_path) : asset('images/bg.jpg');
         @endphp
 
         <section class="hero d-flex align-items-center text-center text-white position-relative" id="home-section"
@@ -47,14 +48,16 @@
                         <div class="d-flex flex-column align-items-center text-center">
                             <i class="bi bi-shield-lock display-4 mb-3" style="color:#CF9B4D;"></i>
                             <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
-                            <p class="text-light">Every Land Rover restored to original specifications with modern reliability.</p>
+                            <p class="text-light">Every Land Rover restored to original specifications with modern
+                                reliability.</p>
                         </div>
                     </div>
                     <div class="col-12 col-md-4">
                         <div class="d-flex flex-column align-items-center text-center">
                             <i class="bi bi-compass display-4 mb-3" style="color:#CF9B4D;"></i>
                             <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
-                            <p class="text-light">Equipped for multi-day expeditions with premium overland accessories.</p>
+                            <p class="text-light">Equipped for multi-day expeditions with premium overland accessories.
+                            </p>
                         </div>
                     </div>
                     <div class="col-12 col-md-4">
@@ -69,82 +72,93 @@
         </section>
     </div>
 
-    <!-- Fleet Section -->
-    <section class="bg-light py-5" id="vehicles-section">
-        <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold text-dark mb-3">Our Fleet</h2>
-                <p class="lead text-muted mx-auto" style="max-width: 700px;">
-                    Each Land Rover in our collection has been meticulously restored and prepared for your next adventure.
-                </p>
-            </div>
+    <!-- Categories Section -->
+    <!-- Categories Section -->
+<section class="py-5 bg-light" id="categories-section" style="overflow: hidden;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold text-dark mb-3">Categories</h2>
+            <p class="lead text-muted mx-auto" style="max-width: 700px;">
+                Each Land Rover in our collection has been meticulously restored and prepared <br>
+                for your next adventure.
+            </p>
+        </div>
 
-            <div class="row g-4 align-items-stretch">
-                @forelse($vehicles as $vehicle)
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card vehicle-card shadow-sm border-0 h-100 rounded-4 overflow-hidden">
-                            <div class="position-relative">
-                                <img src="{{ $vehicle->mainImage() }}" class="card-img-top" alt="{{ $vehicle->model }}">
-                                <span class="badge bg-success position-absolute top-0 end-0 m-3 px-3 py-2">
-                                    {{ ucfirst($vehicle->status) }}
-                                </span>
-                                @if ($vehicle->model)
-                                    <span class="position-absolute bottom-0 start-0 m-3 px-3 py-1 bg-dark text-white small rounded">
-                                        {{ $vehicle->year }} {{ $vehicle->model }}
-                                    </span>
-                                @endif
-                            </div>
+        <div class="row g-4 justify-content-center">
+            @forelse($categories as $category)
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="category-card position-relative overflow-hidden rounded-4 shadow-sm">
+                        @if($category->image)
+                            <img src="{{ asset('storage/' . $category->image) }}"
+                                 alt="{{ $category->name }}"
+                                 class="img-fluid w-100 h-100 category-bg">
+                        @else
+                            <img src="https://via.placeholder.com/600x400?text=Category+Image"
+                                 alt="{{ $category->name }}"
+                                 class="img-fluid w-100 h-100 category-bg">
+                        @endif
 
-                            <div class="card-body d-flex flex-column mt-2">
-                                <h5 class="card-title fw-bold">{{ $vehicle->name }}</h5>
-                                <p class="card-text text-muted">{{ Str::limit($vehicle->description, 100) }}</p>
-
-                                <div class="row small text-muted mb-3">
-                                    @if ($vehicle->seats)
-                                        <div class="col-8 mb-2"><i class="bi bi-people-fill me-1"></i>{{ $vehicle->seats }} seats</div>
-                                    @endif
-                                    @if ($vehicle->fuel_type)
-                                        <div class="col-4 mb-2"><i class="bi bi-fuel-pump-fill me-1"></i>{{ $vehicle->fuel_type }}</div>
-                                    @endif
-                                    @if ($vehicle->location)
-                                        <div class="col-8 mb-2"><i class="bi bi-geo-alt-fill me-1"></i>{{ $vehicle->location }}</div>
-                                    @endif
-                                    @if ($vehicle->status)
-                                        <div class="col-4 mb-2"><i class="bi bi-gear-fill me-1"></i>{{ $vehicle->transmission }}</div>
-                                    @endif
-                                </div>
-
-                                <hr class="mt-auto">
-
-                                <div class="mb-3 d-flex justify-content-between">
-                                    @if ($vehicle->rental_price_week)
-                                        <div>
-                                            <div class="text-muted small">From</div>
-                                            <p class="h5 text-dark mb-0"><strong>R{{ number_format($vehicle->rental_price_week) }}/week</strong></p>
-                                        </div>
-                                    @endif
-                                    @if ($vehicle->purchase_price)
-                                        <div class="text-end">
-                                            <div class="text-muted small">Purchase from</div>
-                                            <p class="h5 text-dark mb-0">R{{ number_format($vehicle->purchase_price) }}</p>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <a href="{{ route('fleet.view', $vehicle->id) }}" class="btn btn-dark w-100 d-flex align-items-center py-3 justify-content-center mt-auto">
-                                    <i class="bi bi-eye me-2"></i> View Details
-                                </a>
+                        <div class="category-overlay d-flex flex-column justify-content-end p-4">
+                            <div class="text-start text-white">
+                                <h5 class="fw-bold mb-2">{{ $category->name }}</h5> <br>
+                                {{-- <h5 class=" mb-2">{{ $category->short_description }}</h5> --}}
+                                {{-- <p class="small mb-0">{{ Str::limit($category->short_description, 80) }}</p> --}}
                             </div>
                         </div>
+
+                        <a href="#"
+                           class="category-arrow  position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle bg-light text-dark">
+                            <i class="bi bi-arrow-up-right fs-5"></i>
+                        </a>
                     </div>
-                @empty
-                    <div class="col-12">
-                        <p class="text-center text-muted">No vehicles available at the moment.</p>
-                    </div>
-                @endforelse
-            </div>
+                </div>
+            @empty
+                <div class="col-12 text-center text-muted">
+                    <p>No categories available at the moment.</p>
+                </div>
+            @endforelse
         </div>
-    </section>
+    </div>
+</section>
+
+    <style>
+        .category-card {
+      height: 420px;
+    cursor: pointer;
+    transition: all 0.4s ease;
+}
+.category-card:hover .category-bg {
+    transform: scale(1.08);
+}
+.category-bg {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+    filter: brightness(70%);
+}
+.category-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.1));
+    border-radius: 1rem;
+}
+.category-arrow {
+    width: 42px;
+    height: 42px;
+    background-color: #CF9B4D; /* Gold color */
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.category-arrow:hover {
+    background-color: #b8893d; /* Slightly darker gold */
+    color: #fff;
+}
+
+
+    </style>
+
 </div>
 
 {{-- @section('css') --}}

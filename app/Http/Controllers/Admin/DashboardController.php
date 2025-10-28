@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Category;
+use App\Models\Equipment;
+use App\Models\Location;
 use App\Models\Purchase;
 use Illuminate\View\View;
 use Carbon\Carbon;
@@ -16,6 +18,10 @@ class DashboardController extends Controller
     {
         // Total number of bookings
         $totalBookings = Booking::count();
+
+        $totalItems = Equipment::count();
+
+        $totalBranches = Location::count();
 
         $totalCategories = Category::count();
 
@@ -59,7 +65,9 @@ class DashboardController extends Controller
             'totalEarnings',
             'totalPurchaseAmount',
             'totalEarnings',
-              'totalCategories' 
+              'totalCategories',
+              'totalItems',
+              'totalBranches'
         ));
     }
 }

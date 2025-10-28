@@ -32,9 +32,9 @@
                             <th>Weekly</th>
                             <th>Monthly</th>
                             <th>For Sale</th>
-                            @foreach ($locations as $location)
+                            {{-- @foreach ($locations as $location)
                                 <th>{{ $location->name }} Stock</th>
-                            @endforeach
+                            @endforeach --}}
                             <th style="width: 220px;">Actions</th>
                         </tr>
                     </thead>
@@ -62,9 +62,9 @@
                                 <td>{{ $category->weekly_price ?? '-' }}</td>
                                 <td>{{ $category->monthly_price ?? '-' }}</td>
                                 <td>{{ $category->is_for_sale ? 'Yes' : 'No' }}</td>
-                                @foreach ($locations as $location)
+                                {{-- @foreach ($locations as $location)
                                     <td>{{ $category->equipment->sum(fn($e) => $e->stockForLocation($location->id)) }}</td>
-                                @endforeach
+                                @endforeach --}}
                                 <td class="d-flex align-items-center">
                                     <button type="button" class="btn btn-info btn-sm mr-1 add-equipment-btn"
                                             data-toggle="modal" data-target="#addEquipmentModal"
@@ -150,7 +150,7 @@
                     <h5 class="mb-3">Stock per Location</h5>
                     <div class="form-row">
                         @foreach ($locations as $location)
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-6">
                                 <label>{{ $location->name }}</label>
                                 <input type="number"
                                        name="stocks[{{ $location->id }}]"

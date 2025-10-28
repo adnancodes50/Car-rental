@@ -24,10 +24,11 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ForgetPasswordController;
 use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\HomeController;
 
 
 
-Route::get('/', [VehicleController::class, 'frontendIndex'])->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/fleet/{vehicle}', [VehicleController::class, 'view'])
     ->name('fleet.view');
 

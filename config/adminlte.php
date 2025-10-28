@@ -404,7 +404,7 @@ return [
     ],
 
 [
-    'text' => 'Communication',
+    'text' => 'Communicator',
     'route' => 'communication-setting.index',
     'icon' => 'fas fa-envelope fa-lg text-success', // Email icon in blue
 ],
