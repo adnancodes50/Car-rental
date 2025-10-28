@@ -107,13 +107,10 @@
         .note-editor .dropdown-menu {
             z-index: 2050;
         }
-
-        /* Chat message styling */
         .chat-box {
             background: white;
             border-radius: 10px;
         }
-
         .chat-message {
             max-width: 75%;
             padding: 12px 16px;
@@ -122,36 +119,29 @@
             position: relative;
             word-wrap: break-word;
         }
-
         .chat-message.sent {
             background-color: #d1e7dd;
             margin-left: auto;
             text-align: left;
             border-bottom-right-radius: 0;
         }
-
         .chat-message.received {
             background-color: #ffffff;
             margin-right: auto;
             border-bottom-left-radius: 0;
         }
-
         .card-header form#filterForm {
             margin-left: auto;
         }
-
-
         .message-header {
             display: flex;
             justify-content: space-between;
             font-size: 0.9rem;
             margin-bottom: 5px;
         }
-
         .message-header strong {
             color: #2c3e50;
         }
-
         .timestamp {
             font-size: 0.8rem;
             color: #888;
@@ -184,7 +174,6 @@
 
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs4.min.js"></script>
 
     <script>

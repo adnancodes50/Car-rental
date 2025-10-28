@@ -120,15 +120,24 @@ class LocationsController extends Controller
 //     return response()->json(['message' => 'Pricing updated successfully']);
 // }
 
-public function  updateprice(Request $request){
+public function updateprice(Request $request, $pricing)
+{
+    // Find the pricing record
+    $pricing = LocationPricing::findOrFail($pricing);
+
+    // Validate input
     $data = $request->validate([
         'transfer_fee' => ['required', 'numeric', 'min:0'],
         'status' => ['required', 'in:active,inactive'],
     ]);
 
-
+    // Update record
     $pricing->update($data);
-    return  response()->json(['message', 'Pricing Update Successfully ']);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Pricing updated successfully!'
+    ]);
 }
 
 
