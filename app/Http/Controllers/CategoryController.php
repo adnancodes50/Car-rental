@@ -13,6 +13,7 @@ class CategoryController extends Controller
     public function index()
     {
         $locations = Location::all();
+        
         $categories = Category::withCount('equipment')->get();
 
         return view('admin.categories.index', compact('categories', 'locations'));
