@@ -32,6 +32,8 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/fleet/{vehicle}', [VehicleController::class, 'view'])
     ->name('fleet.view');
 
+    Route::get('/categories', [CategoryController::class, 'view'])->name('categories.view');
+
 Route::get('/home', function () {
     return redirect()->route('admin.dashboard.index');
 })->name('home');

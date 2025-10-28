@@ -102,7 +102,7 @@
                             <div class="text-start text-white">
                                 <h5 class="fw-bold mb-2">{{ $category->name }}</h5> <br>
                                 {{-- <h5 class=" mb-2">{{ $category->short_description }}</h5> --}}
-                                {{-- <p class="small mb-0">{{ Str::limit($category->short_description, 80) }}</p> --}}
+                                <p class="small mb-0">{{ Str::limit($category->short_description, 80) }}</p>
                             </div>
                         </div>
 
