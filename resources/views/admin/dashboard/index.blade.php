@@ -9,12 +9,14 @@
     @php
         $cards = [
             ['title' => 'Total Earnings', 'value' => '$'.number_format($totalEarnings,2), 'icon'=>'fa-wallet', 'color'=>'#28a745'],
+                        ['title' => 'Total Categories', 'value' =>  $totalCategories, 'icon'=>'fa-shopping-cart', 'color'=>'green', 'link' => route('categories.index')],
             ['title' => 'Total Booking Amount', 'value' => '$'.number_format($totalBookingAmount,2), 'icon'=>'fa-book', 'color'=>'#007bff'],
             ['title' => 'Total Vehicle Sales', 'value' => '$'.number_format($totalPurchaseAmount,2), 'icon'=>'fa-car', 'color'=>'#ffc107'],
             ['title' => 'Total Customers', 'value' => $totalCustomers, 'icon'=>'fa-users', 'color'=>'#17a2b8', 'link' => route('customers.index')],
             ['title' => 'Active Bookings', 'value' => $activeBookings, 'icon'=>'fa-calendar-check', 'color'=>'#dc3545', 'link' => route('bookings.index')],
             ['title' => 'Total Bookings', 'value' => $totalBookings, 'icon'=>'fa-list', 'color'=>'#343a40', 'link' => route('bookings.index')],
             ['title' => 'Sale Count', 'value' => $totalPurchases, 'icon'=>'fa-shopping-cart', 'color'=>'#6c757d'],
+
         ];
     @endphp
 

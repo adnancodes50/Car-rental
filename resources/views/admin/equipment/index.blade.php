@@ -12,11 +12,6 @@
         <div class="card-header">
             <div class="d-flex w-100 align-items-center">
                 <h3 class="card-title mb-0">All Equipment</h3>
-                <div class="ml-auto">
-                    <a href="{{ route('equipment.create') }}" class="btn btn-dark btn-sm">
-                        <i class="fas fa-plus"></i> Add New
-                    </a>
-                </div>
             </div>
         </div>
 
@@ -28,8 +23,10 @@
                             <th style="width: 80px;">Image</th>
                             <th>Name</th>
                             <th>Category</th>
-                            <th>Location</th>
-                            <th>Stock</th>
+                            @foreach ($locations as $location)
+                                <th>{{ $location->name }} Stock</th>
+                            @endforeach
+                            <th>Total Stock</th>
                             <th>Status</th>
                             <th style="width: 150px;">Actions</th>
                         </tr>
@@ -44,8 +41,18 @@
                                 </td>
                                 <td>{{ $item->name }}</td>
                                 <td>{{ $item->category->name ?? '-' }}</td>
-                                <td>{{ $item->location->name ?? '-' }}</td>
-                                <td>{{ $item->stock ?? 0 }}</td>
+
+                                {{-- Show stock per location --}}
+                                @foreach ($locations as $location)
+                                    @php
+                                        $stockRecord = $item->stocks->firstWhere('location_id', $location->id);
+                                    @endphp
+                                    <td>{{ $stockRecord ? $stockRecord->stock : 0 }}</td>
+                                @endforeach
+
+                                {{-- Total stock across all locations --}}
+                                <td>{{ $item->stocks->sum('stock') }}</td>
+
                                 <td>
                                     @if ($item->status === 'active')
                                         <span class="badge badge-success">Active</span>
@@ -68,7 +75,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center p-4">No equipment found.</td>
+                                <td colspan="{{ 5 + $locations->count() }}" class="text-center p-4">No equipment found.</td>
                             </tr>
                         @endforelse
                     </tbody>

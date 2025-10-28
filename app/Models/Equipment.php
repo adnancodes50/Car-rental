@@ -9,30 +9,34 @@ class Equipment extends Model
 {
     use HasFactory;
 
-    // Enable mass assignment for these fields
     protected $fillable = [
         'name',
         'image',
         'description',
-        'location_id',
+        // 'location_id', // optional, can remove if using stock per location
         'category_id',
         'status',
-        'stock', // Added stock field
     ];
 
-    /**
-     * Relationship: Equipment belongs to a Category
-     */
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id');
+        return $this->belongsTo(Category::class);
     }
 
-    /**
-     * Relationship: Equipment belongs to a Location
-     */
-    public function location()
+    public function stocks()
     {
-        return $this->belongsTo(Location::class, 'location_id');
+        return $this->hasMany(EquipmentStock::class);
+    }
+
+    public function stockForLocation($locationId)
+    {
+        return $this->stocks()->where('location_id', $locationId)->first()?->stock ?? 0;
+    }
+
+      public function locations()
+    {
+        return $this->belongsToMany(Location::class, 'equipment_stocks')
+                    ->withPivot('stock')
+                    ->withTimestamps();
     }
 }

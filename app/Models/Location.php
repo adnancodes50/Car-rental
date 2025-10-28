@@ -47,4 +47,6 @@ return $this->hasMany(Vehicle::class, 'location_id');
 }
 
 
+
+
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Customer;
+use App\Models\Category;
 use App\Models\Purchase;
 use Illuminate\View\View;
 use Carbon\Carbon;
@@ -15,6 +16,8 @@ class DashboardController extends Controller
     {
         // Total number of bookings
         $totalBookings = Booking::count();
+
+        $totalCategories = Category::count();
 
         // Total booking amount (sum of total_price column)
         // $totalBookingAmount = Booking::sum('total_price');
@@ -55,7 +58,8 @@ class DashboardController extends Controller
             'totalPurchaseAmount',
             'totalEarnings',
             'totalPurchaseAmount',
-            'totalEarnings'
+            'totalEarnings',
+              'totalCategories' 
         ));
     }
 }

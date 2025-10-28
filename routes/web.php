@@ -144,7 +144,7 @@ Route::group([
     Route::put('/{category}', [CategoryController::class, 'update'])->name('update');
     Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
 
- 
+    // Store equipment with stock per location
     Route::post('/store-equipment', [CategoryController::class, 'storeEquipmentFromModal'])
         ->name('storeEquipmentFromModal');
 });

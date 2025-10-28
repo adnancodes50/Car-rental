@@ -38,30 +38,48 @@ class CategoryController extends Controller
             ->with('success', 'Category created successfully.');
     }
 
-    public function storeEquipmentFromModal(Request $request)
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'location_id' => ['required', 'exists:locations,id'],
-            'status' => ['required', 'in:active,inactive'],
-            'stock' => ['nullable', 'integer', 'min:0'],
-        ]);
+public function storeEquipmentFromModal(Request $request)
+{
+    $data = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'description' => ['nullable', 'string'],
+        'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+        'category_id' => ['required', 'exists:categories,id'],
+        'status' => ['required', 'in:active,inactive'],
+        'stocks' => ['nullable', 'array'],
+        'stocks.*' => ['nullable', 'integer', 'min:0'],
+    ]);
 
-        if ($request->hasFile('image_file')) {
-            $data['image'] = $request->file('image_file')->store('equipment', 'public');
-        }
-
-        unset($data['image_file']);
-
-        Equipment::create($data);
-
-        return redirect()
-            ->route('categories.index')
-            ->with('success', 'Equipment added successfully.');
+    if ($request->hasFile('image_file')) {
+        $data['image'] = $request->file('image_file')->store('equipment', 'public');
     }
+
+    unset($data['image_file'], $data['stocks']);
+
+    // Create the equipment item
+    $equipment = \App\Models\Equipment::create($data);
+
+    // Create or update stock for each location
+    if ($request->filled('stocks')) {
+        foreach ($request->stocks as $locationId => $stock) {
+            if ($stock > 0) {
+                \App\Models\EquipmentStock::updateOrCreate(
+                    [
+                        'equipment_id' => $equipment->id,
+                        'location_id' => $locationId,
+                    ],
+                    ['stock' => $stock]
+                );
+            }
+        }
+    }
+
+    return redirect()
+        ->route('categories.index')
+        ->with('success', 'Equipment added successfully.');
+}
+
+
 
     public function edit(Category $category)
     {
@@ -102,6 +120,20 @@ class CategoryController extends Controller
 
     private function validateCategory(Request $request): array
     {
+        $numericFields = [
+            'daily_price',
+            'weekly_price',
+            'monthly_price',
+            'deposit_price',
+            'total_amount',
+        ];
+
+        foreach ($numericFields as $field) {
+            if ($request->has($field) && $request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'short_description' => ['nullable', 'string', 'max:500'],

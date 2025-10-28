@@ -10,19 +10,16 @@ return new class extends Migration {
         Schema::create('equipment', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('image')->nullable();          // store path or filename
-            $table->text('description')->nullable();     // description of equipment
+            $table->string('image')->nullable(); // store image path
+            $table->text('description')->nullable();
 
-            // Foreign keys
-            $table->unsignedBigInteger('location_id');
+            // ✅ only keep category_id (location_id is handled in equipment_stocks)
             $table->unsignedBigInteger('category_id');
 
-            $table->enum('status', ['active','inactive'])->default('active');
-
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
 
-            // Foreign key constraints
-            $table->foreign('location_id')->references('id')->on('locations')->onDelete('cascade');
+            // ✅ foreign key to categories
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
         });
     }
