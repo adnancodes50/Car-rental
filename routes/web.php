@@ -23,6 +23,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ForgetPasswordController;
 use App\Http\Controllers\CommunicationController;
+use App\Http\Controllers\EquipmentController;
 
 
 
@@ -45,23 +46,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
 });
-Route::group([
-    'middleware' => ['auth'],
-    'prefix' => 'vehicles',
-    'as' => 'vehicles.'
-], function () {
-    Route::get('/', [VehicleController::class, 'index'])->name('index');
-    Route::get('/create', [VehicleController::class, 'create'])->name('create');
-    Route::post('/', [VehicleController::class, 'store'])->name('store');
-    Route::get('/{vehicle}/edit', [VehicleController::class, 'edit'])->name('edit');
-    Route::put('/{vehicle}', [VehicleController::class, 'update'])->name('update');
-    Route::get('/{vehicle}', [VehicleController::class, 'show'])->name('show');
-    Route::delete('/{vehicle}', [VehicleController::class, 'destroy'])->name('destroy');
-    Route::post('/{vehicle}/bookings', [VehicleController::class, 'storeBooking'])->name('bookings.store');
-    Route::delete('/{vehicle}/bookings/{booking}', [VehicleController::class, 'destroyBooking'])
-        ->name('bookings.destroy');
 
-});
+
 
 Route::group([
     'middleware' => ['auth'],
@@ -141,6 +127,11 @@ Route::group([
 
 
 
+
+
+
+
+
 Route::group([
     'middleware' => ['auth'],
     'prefix'     => 'categories',
@@ -152,7 +143,18 @@ Route::group([
     Route::get('/{category}/edit', [CategoryController::class, 'edit'])->name('edit');
     Route::put('/{category}', [CategoryController::class, 'update'])->name('update');
     Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
+
+ 
+    Route::post('/store-equipment', [CategoryController::class, 'storeEquipmentFromModal'])
+        ->name('storeEquipmentFromModal');
 });
+
+
+
+
+
+
+
 
 
 
@@ -169,6 +171,21 @@ Route::group([
     Route::get('bookings/{booking}', [BookingController::class, 'show'])->name('show');
 
 });
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'equipment',
+    'as' => 'equipment.'
+], function () {
+    Route::get('/', [EquipmentController::class, 'index'])->name('index');
+    Route::get('/create', [EquipmentController::class, 'create'])->name('create');
+    Route::post('/', [EquipmentController::class, 'store'])->name('store');
+    Route::get('/{equipment}/edit', [EquipmentController::class, 'edit'])->name('edit');
+    Route::put('/{equipment}', [EquipmentController::class, 'update'])->name('update');
+    Route::delete('/{equipment}', [EquipmentController::class, 'destroy'])->name('destroy');
+});
+
 
 
 

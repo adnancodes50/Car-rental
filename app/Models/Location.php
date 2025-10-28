@@ -30,7 +30,7 @@ return $this->hasMany(Vehicle::class, 'location_id');
     {
         return $this->hasMany(LocationPricing::class, 'from_location_id');
     }
-    
+
     public function incomingPrices()
     {
         return $this->hasMany(LocationPricing::class, 'to_location_id');
@@ -40,5 +40,11 @@ return $this->hasMany(Vehicle::class, 'location_id');
     {
         return $this->hasMany(AddOn::class, 'location_id');
     }
+
+    public function equipment()
+{
+    return $this->hasMany(Equipment::class, 'location_id');
+}
+
 
 }

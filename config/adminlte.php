@@ -354,6 +354,13 @@ return [
     'icon' => 'fas fa-tachometer-alt fa-lg text-success', // Big blue car icon
 ],
 
+[
+        'text' => 'Locations',
+        'url'  => '/locations',
+        'icon' => 'fas fa-map-marker-alt fa-lg text-danger',
+          'can'  => 'is-super-admin',
+    ],
+
 
 
    [
@@ -363,16 +370,11 @@ return [
 ],
 
         [
-        'text' => 'Vehicles',
-        'url'  => '/vehicles',
-        'icon' => 'fas fa-car fa-lg text-primary', // Big car icon in blue
+        'text' => 'Equipments',
+        'url'  => '/equipment',
+        'icon' => 'fas fa-tools fa-lg text-primary', // Big car icon in blue
     ],
-      [
-        'text' => 'Locations',
-        'url'  => '/locations',
-        'icon' => 'fas fa-map-marker-alt fa-lg text-danger',
-          'can'  => 'is-super-admin',
-    ],
+
     [
         'text' => 'Landing Page',
         'route' => 'admin.landing-settings.index',
