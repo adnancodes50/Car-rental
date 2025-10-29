@@ -65,6 +65,7 @@
                 <label class="form-check-label" for="is_for_sale">Is For Sale</label>
             </div>
 
+            {{-- Sale Fields --}}
             <div class="sale-fields">
                 <div class="form-group">
                     <label>Deposit Price</label>
@@ -87,25 +88,26 @@
         </form>
     </div>
 </div>
+@endsection
 
 @push('js')
+
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const saleCheckbox = document.getElementById('is_for_sale');
-        const saleFields = document.querySelector('.sale-fields');
+document.addEventListener('DOMContentLoaded', function () {
+    const saleCheckbox = document.getElementById('is_for_sale');
+    const saleFields = document.querySelector('.sale-fields');
 
-        const toggleSaleFields = (checked) => {
-            saleFields.style.display = checked ? 'block' : 'none';
-            if (!checked) {
-                saleFields.querySelectorAll('input').forEach(i => i.value = '');
-            }
-        };
+    const toggleSaleFields = (checked) => {
+        saleFields.style.display = checked ? 'block' : 'none';
+        if (!checked) {
+            saleFields.querySelectorAll('input').forEach(i => i.value = '');
+        }
+    };
 
-        toggleSaleFields(saleCheckbox.checked);
-        saleCheckbox.addEventListener('change', function () {
-            toggleSaleFields(this.checked);
-        });
+    toggleSaleFields(saleCheckbox.checked);
+    saleCheckbox.addEventListener('change', function () {
+        toggleSaleFields(this.checked);
     });
+});
 </script>
 @endpush
-@stop

@@ -68,13 +68,22 @@
 
                     <!-- Action Buttons -->
                     <div class="d-flex flex-wrap gap-3 mt-3">
-                        <a href="#" class="btn btn-dark flex-grow-1 py-3 fw-semibold">
-                            <i class="bi bi-calendar-check me-2"></i> Book Equipment
+                        <a href="#" class="btn  flex-grow-1 py-3 fw-semibold"
+                            style="background-color: #679767; color: black;">
+                            <i class="bi bi-calendar-check me-2"></i> Book {{ $equipment->name }}
                         </a>
 
                         @if ($equipment->category && $equipment->category->is_for_sale)
-                            <a href="#" class="btn btn-outline-dark flex-grow-1 py-3 fw-semibold">
-                                <i class="bi bi-bag-check me-2"></i> Purchase Equipment
+                            @php $isSoldBtn = ($equipment->status ?? null) === 'sold'; @endphp
+
+                            <a href="javascript:void(0)"
+                                class="btn flex-grow-1 py-3 fw-semibold purchase-trigger {{ ($equipment->status ?? null) === 'sold' ? 'disabled' : '' }}"
+                                data-bs-toggle="modal" data-bs-target="#purchaseModal"
+                                aria-disabled="{{ ($equipment->status ?? null) === 'sold' ? 'true' : 'false' }}"
+                                style="background-color:white;color:black;border:2px solid #679767;transition:all .3s;{{ ($equipment->status ?? null) === 'sold' ? 'pointer-events:none;opacity:.55;' : '' }}"
+                                onmouseover="this.style.backgroundColor='#679767';this.style.color='white';"
+                                onmouseout="this.style.backgroundColor='white';this.style.color='black';">
+                                <i class="bi bi-bag-check me-2"></i> Purchase {{ $equipment->name }}
                             </a>
                         @endif
                     </div>
@@ -82,21 +91,26 @@
 
                     <!-- Stock Info -->
                     @if ($equipment->stocks && $equipment->stocks->count() > 0)
-                        <div class="mt-3">
-                            <h6 class="fw-bold">Stock Availability</h6>
-                            <ul class="list-unstyled small text-muted">
+                        <div class="mt-4">
+                            <h6 class="fw-bold mb-3">Stock Availability</h6>
+
+                            <div class="row row-cols-1 row-cols-sm-2 g-2 text-muted small">
                                 @foreach ($equipment->stocks as $stock)
-                                    <li>
-                                        <i class="bi bi-geo-alt-fill me-1"></i>
-                                        {{ $stock->location->name ?? 'Unknown Location' }} — {{ $stock->stock }} in stock
-                                    </li>
+                                    <div class="col d-flex align-items-center">
+                                        <i class="bi bi-geo-alt-fill me-2 text-dark"></i>
+                                        <span>{{ $stock->location->name ?? 'Unknown Location' }} — {{ $stock->stock }} in
+                                            stock</span>
+                                    </div>
                                 @endforeach
-                            </ul>
+                            </div>
                         </div>
                     @endif
+
 
                 </div>
             </div>
         </div>
     </div>
+
+    @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])
 @endsection

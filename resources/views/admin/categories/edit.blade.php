@@ -3,7 +3,7 @@
 @section('title', 'Edit Category')
 
 @section('content_header')
-<h1>Edit Category</h1>
+    <h1>Edit Category</h1>
 @stop
 
 @section('content')
@@ -16,16 +16,24 @@
             {{-- Name --}}
             <div class="form-group">
                 <label>Name <span class="text-danger">*</span></label>
-                <input type="text" name="name" class="form-control" value="{{ old('name', $category->name) }}" required>
+                <input type="text" name="name" class="form-control"
+                    value="{{ old('name', $category->name) }}" required>
                 @error('name') <span class="text-danger">{{ $message }}</span> @enderror
+            </div>
+
+            {{-- Short Description --}}
+            <div class="form-group">
+                <label>Short Description</label>
+                <textarea name="short_description" class="form-control" rows="2">{{ old('short_description', $category->short_description) }}</textarea>
+                @error('short_description') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
 
             {{-- Image --}}
             <div class="form-group">
                 <label>Image</label>
-                @if($category->image)
+                @if ($category->image)
                     <div class="mb-2">
-                        <img src="{{ asset('storage/'.$category->image) }}" width="100" class="img-thumbnail">
+                        <img src="{{ asset('storage/' . $category->image) }}" width="100" class="img-thumbnail">
                     </div>
                 @endif
                 <input type="file" name="image_file" class="form-control-file">
@@ -36,8 +44,8 @@
             <div class="form-group">
                 <label>Status <span class="text-danger">*</span></label>
                 <select name="status" class="form-control" required>
-                    <option value="active" {{ (old('status', $category->status) === 'active') ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ (old('status', $category->status) === 'inactive') ? 'selected' : '' }}>Inactive</option>
+                    <option value="active" {{ old('status', $category->status) === 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ old('status', $category->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
                 </select>
                 @error('status') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
@@ -72,10 +80,12 @@
 
             {{-- For Sale Checkbox --}}
             <div class="form-group form-check">
-                <input type="checkbox" class="form-check-input" id="is_for_sale" name="is_for_sale" {{ $is_for_sale ? 'checked' : '' }}>
+                <input type="checkbox" class="form-check-input" id="is_for_sale" name="is_for_sale"
+                    {{ $is_for_sale ? 'checked' : '' }}>
                 <label class="form-check-label" for="is_for_sale">Is For Sale</label>
             </div>
 
+            {{-- Sale Fields --}}
             <div class="sale-fields">
                 <div class="form-group">
                     <label>Deposit Price</label>
@@ -98,8 +108,10 @@
         </form>
     </div>
 </div>
+@stop
 
 @push('js')
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const saleCheckbox = document.getElementById('is_for_sale');
@@ -112,11 +124,13 @@
             }
         };
 
+        // Initialize on page load
         toggleSaleFields(saleCheckbox.checked);
+
+        // Handle change event
         saleCheckbox.addEventListener('change', function () {
             toggleSaleFields(this.checked);
         });
     });
 </script>
 @endpush
-@stop

@@ -26,6 +26,8 @@ use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\HomeController;
 
+use App\Http\Controllers\EquipmentPurchaseController;
+
 
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -50,6 +52,19 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
 });
+
+
+// routes/web.php
+
+
+Route::prefix('equipment-purchase')->group(function () {
+    Route::post('/store', [EquipmentPurchaseController::class, 'store'])->name('equipment.purchase.store');
+    Route::post('/{purchaseId}/pay-with-stripe', [EquipmentPurchaseController::class, 'payWithStripe'])->name('equipment.purchase.stripe');
+    Route::post('/{purchase}/payfast/init', [EquipmentPurchaseController::class, 'initPayfast'])->name('equipment.purchase.payfast.init');
+});
+Route::post('/equipment-purchase/payfast/notify', [EquipmentPurchaseController::class, 'payfastNotify'])->name('equipment.purchase.payfast.notify');
+
+
 
 
 

@@ -10,47 +10,17 @@ class Customer extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'country',
-        'notes',
+        'name','email','phone','country',
     ];
 
-    /**
-     * A customer can have many bookings.
-     */
-    public function bookings()
+    public function equipmentPurchases()
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(EquipmentPurchase::class, 'customer_id');
     }
 
+    // If you also have a purchases table for vehicles:
     public function purchases()
     {
-        return $this->hasMany(Purchase::class);
+        return $this->hasMany(Purchase::class, 'customer_id');
     }
-
-    public function hasActiveBooking()
-    {
-        return $this->bookings->whereIn('status', ['pending', 'confirmed'])->count() > 0;
-    }
-
-   public function activeBookingCount()
-{
-    return $this->bookings()
-        ->whereDate('start_date', '<=', now())   // already started
-        ->whereDate('end_date', '>=', now())     // not yet ended
-        ->whereIn('status', ['confirmed', 'ongoing']) // only valid active statuses
-        ->count();
-}
-
-
-public function emailLogs()
-{
-    return $this->hasMany(EmailLog::class);
-}
-
-
-
-
 }
