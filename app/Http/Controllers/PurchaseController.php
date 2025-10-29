@@ -3,51 +3,62 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-
-use App\Models\SystemSetting;
+use App\Models\Purchase;
 use App\Models\Customer;
-use App\Models\Purchase;              // vehicle purchases table (existing)
-use App\Models\Vehicles;              // vehicles
-use App\Models\Equipment;             // equipment
-use App\Models\EquipmentStock;        // per-location stock
-use App\Models\EquipmentPurchase;     // new per-equipment purchases
-
+use App\Models\PayfastSetting;
+use Log;
+use Illuminate\Support\Facades\Schema;
+use Str;
+use Stripe\Stripe;
+use App\Models\Vehicles;
+use Stripe\PaymentIntent;
+use Illuminate\Support\Facades\Mail;
 use App\Mail\PurchaseReceipt;
 use App\Mail\OwnerPurchaseAlert;
 
+use Illuminate\Support\Facades\Config;
+use App\Models\SystemSetting;
+
+
+
 class PurchaseController extends Controller
 {
-    /* ===================== STORE ===================== */
+    /**
+     * Store a new purchase
+     */
+public function store(Request $request)
+{
+    // ✅ Validate inputs
+    $validated = $request->validate([
+        'vehicle_id'     => ['required','exists:vehicles,id'],
+        'name'           => ['required','string','max:255'],
+        'email'          => ['required','email:rfc,filter','max:255'],
+        'phone'          => ['required','regex:/^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/'],
+        'country'        => ['required','string','max:100'],
 
-    public function store(Request $request)
-    {
-        // Accept either vehicle_id OR equipment_id (+ location_id + quantity for equipment)
-        $validated = $request->validate([
-            'vehicle_id'     => ['nullable','exists:vehicles,id'],
-            'equipment_id'   => ['nullable','exists:equipment,id'],
-            'location_id'    => ['nullable','exists:locations,id'],   // required for equipment
-            'quantity'       => ['nullable','integer','min:1'],       // required for equipment
-            'name'           => ['required','string','max:255'],
-            'email'          => ['required','email:rfc,filter','max:255'],
-            'phone'          => ['required','regex:/^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/'],
-            'country'        => ['required','string','max:100'],
-            'total_price'    => ['nullable','numeric','min:0'],
-            'payment_method' => ['nullable','string','max:255'],
-            'deposit_paid'   => ['nullable','numeric','min:0'],
-        ], [
-            'phone.regex' => 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.',
-        ]);
+        // client can send these, but we won't trust the price field
+        'total_price'    => ['required','numeric','min:0'],
+        'payment_method' => ['nullable','string','max:255'],
+        'deposit_paid'   => ['nullable','numeric','min:0'],
+    ], [
+        'phone.regex' => 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.',
+    ]);
 
-        if (empty($validated['vehicle_id']) && empty($validated['equipment_id'])) {
-            return response()->json(['success'=>false,'message'=>'Missing item (vehicle or equipment).'], 422);
-        }
+    // ✅ Load vehicle and block if sold
+    $vehicle = Vehicles::findOrFail($validated['vehicle_id']);
+    if (($vehicle->status ?? null) === 'sold') {
+        return response()->json([
+            'success' => false,
+            'message' => 'This vehicle has already been sold.',
+        ], 422);
+    }
 
-        // Create/find customer
+    // ✅ Use server-side prices to avoid tampering
+    $serverTotalPrice = (float) ($vehicle->purchase_price ?? 0);
+    $serverDeposit    = (float) ($vehicle->deposit_amount ?? 0);
+
+    // ✅ Create / find customer (prefer email, fallback to phone)
+    if (!empty($validated['email'])) {
         $customer = Customer::firstOrCreate(
             ['email' => $validated['email']],
             [
@@ -56,527 +67,388 @@ class PurchaseController extends Controller
                 'country' => $validated['country'] ?? null,
             ]
         );
-
-        /* -------- VEHICLE BRANCH -------- */
-        if (!empty($validated['vehicle_id'])) {
-            $vehicle = Vehicles::findOrFail($validated['vehicle_id']);
-            if (($vehicle->status ?? null) === 'sold') {
-                return response()->json(['success'=>false,'message'=>'This vehicle has already been sold.'], 422);
-            }
-
-            $serverTotalPrice = (float) ($vehicle->purchase_price ?? 0);
-            $serverDeposit    = (float) ($vehicle->deposit_amount ?? 0);
-
-            $purchase = Purchase::create([
-                'customer_id'     => $customer->id,
-                'vehicle_id'      => $vehicle->id,
-                'total_price'     => $serverTotalPrice,
-                'deposit_expected'=> $serverDeposit > 0 ? $serverDeposit : null,
-                'deposit_paid'    => (float) ($validated['deposit_paid'] ?? 0),
-                'payment_method'  => $validated['payment_method'] ?? null,
-                'payment_status'  => 'pending',
-            ]);
-
-            return response()->json([
-                'success'     => true,
-                'purchase_id' => $purchase->id,
-                'message'     => 'Purchase saved successfully.',
-            ]);
-        }
-
-        /* -------- EQUIPMENT BRANCH (per LOCATION + QUANTITY) -------- */
-        $equipment   = Equipment::with('category')->findOrFail($validated['equipment_id']);
-        if (($equipment->status ?? null) === 'sold') {
-            return response()->json(['success'=>false,'message'=>'This equipment has already been sold.'], 422);
-        }
-        $locationId = $validated['location_id'] ?? null;
-        $quantity   = (int) ($validated['quantity'] ?? 1);
-        if (!$locationId) return response()->json(['success'=>false,'message'=>'Location is required.'], 422);
-        if ($quantity < 1) return response()->json(['success'=>false,'message'=>'Quantity must be at least 1.'], 422);
-
-        $stockRow = EquipmentStock::where('equipment_id', $equipment->id)->where('location_id', $locationId)->lockForUpdate()->first();
-        if (!$stockRow) return response()->json(['success'=>false,'message'=>'Selected location has no stock record for this equipment.'], 422);
-        if ($stockRow->stock < $quantity) {
-            return response()->json(['success'=>false,'message'=>"Insufficient stock at location. Available: {$stockRow->stock}"], 422);
-        }
-
-        $unitPrice   = (float) ($equipment->sale_price ?? 0);
-        $unitDeposit = (float) ($equipment->deposit_amount ?? 0);
-
-        $purchase = EquipmentPurchase::create([
-            'customer_id'     => $customer->id,
-            'equipment_id'    => $equipment->id,
-            'location_id'     => $locationId,
-            'quantity'        => $quantity,
-            'total_price'     => $unitPrice * $quantity,
-            'deposit_expected'=> $unitDeposit > 0 ? $unitDeposit * $quantity : null,
-            'deposit_paid'    => 0,
-            'payment_status'  => 'pending',
-            'payment_method'  => null,
-            // stock_before/after will be filled on payment success
-        ]);
-
-        return response()->json([
-            'success'       => true,
-            'purchase_id'   => $purchase->id,
-            'message'       => 'Purchase saved successfully.',
+    } elseif (!empty($validated['phone'])) {
+        $customer = Customer::firstOrCreate(
+            ['phone' => $validated['phone']],
+            [
+                'name'    => $validated['name'],
+                'email'   => $validated['email'] ?? null,
+                'country' => $validated['country'] ?? null,
+            ]
+        );
+    } else {
+        // Defensive fallback (shouldn’t hit due to validation)
+        $customer = Customer::create([
+            'name'    => $validated['name'],
+            'email'   => $validated['email'] ?? null,
+            'phone'   => $validated['phone'] ?? null,
+            'country' => $validated['country'] ?? null,
         ]);
     }
 
-    /* ===================== MAIL HELPERS (unchanged) ===================== */
+    // ✅ Create purchase (mark pending until Stripe/PayFast completes)
+    $purchase = Purchase::create([
+        'customer_id'    => $customer->id,
+        'vehicle_id'     => $vehicle->id,
+        'total_price'    => $serverTotalPrice,                  // trust server
+        'payment_method' => $validated['payment_method'] ?? null,
+        'deposit_paid'   => (float) ($validated['deposit_paid'] ?? 0),
+        'payment_status' => 'pending',                          // clearer state
+        // Optional: seed expected deposit to help PayFast/Stripe flows later
+        'deposit_expected'=> $serverDeposit > 0 ? $serverDeposit : null,
+    ]);
 
-    private function configureMailerFromSettings(?SystemSetting $settings = null): bool
-    {
-        $settings = $settings ?: SystemSetting::first();
-        if (!$settings || !$settings->mail_enabled) return false;
-        if (!$settings->mail_host || !$settings->mail_port || !$settings->mail_username || !$settings->mail_password) {
-            return false;
-        }
-        Config::set('mail.default', 'smtp');
-        Config::set('mail.from.address', $settings->mail_from_address ?: config('mail.from.address'));
-        Config::set('mail.from.name', $settings->mail_from_name ?: config('mail.from.name'));
-        Config::set('mail.mailers.smtp', [
-            'transport'  => 'smtp',
-            'host'       => $settings->mail_host,
-            'port'       => (int) $settings->mail_port,
-            'encryption' => $settings->mail_encryption ?: null,
-            'username'   => $settings->mail_username,
-            'password'   => $settings->mail_password,
-            'timeout'    => null,
-            'auth_mode'  => null,
-        ]);
-        return true;
+    return response()->json([
+        'success'     => true,
+        'purchase_id' => $purchase->id,
+        'message'     => 'Purchase saved successfully.',
+    ]);
+}
+
+
+
+
+    /**
+ * Program the mailer from DB settings at runtime.
+ */
+private function configureMailerFromSettings(?SystemSetting $settings = null): bool
+{
+    $settings = $settings ?: SystemSetting::first();
+    if (!$settings || !$settings->mail_enabled) return false;
+
+    if (!$settings->mail_host || !$settings->mail_port || !$settings->mail_username || !$settings->mail_password) {
+        return false;
     }
 
-    private function resolveOwnerEmail(?SystemSetting $settings = null): ?string
-    {
-        $settings = $settings ?: SystemSetting::first();
-        if (!empty($settings?->mail_owner_address)) return $settings->mail_owner_address;
-        return $settings?->mail_from_address ?: (config('mail.from.address') ?: env('OWNER_EMAIL'));
+    Config::set('mail.default', 'smtp');
+    Config::set('mail.from.address', $settings->mail_from_address ?: config('mail.from.address'));
+    Config::set('mail.from.name', $settings->mail_from_name ?: config('mail.from.name'));
+    Config::set('mail.mailers.smtp', [
+        'transport'  => 'smtp',
+        'host'       => $settings->mail_host,
+        'port'       => (int) $settings->mail_port,
+        'encryption' => $settings->mail_encryption ?: null, // 'tls'|'ssl'|null
+        'username'   => $settings->mail_username,
+        'password'   => $settings->mail_password,
+        'timeout'    => null,
+        'auth_mode'  => null,
+    ]);
+
+    return true;
+}
+
+/**
+ * Resolve owner email with sensible fallbacks.
+ */
+private function resolveOwnerEmail(?SystemSetting $settings = null): ?string
+{
+    $settings = $settings ?: SystemSetting::first();
+
+    // If you added 'mail_owner_address' in system_settings, prefer it.
+    if (!empty($settings?->mail_owner_address)) {
+        return $settings->mail_owner_address;
     }
 
-    private function sendPurchaseEmails($purchase, float $paidNow): void
-    {
-        try {
-            $settings = SystemSetting::first();
-            $this->configureMailerFromSettings($settings);
-            $ownerEmail = $this->resolveOwnerEmail($settings);
+    // Fallback to from.address or env
+    return $settings?->mail_from_address
+        ?: (config('mail.from.address') ?: env('OWNER_EMAIL'));
+}
 
-            if ($purchase->customer?->email) {
-                Mail::to($purchase->customer->email)->send(new PurchaseReceipt($purchase, $paidNow));
-            }
-            if ($ownerEmail) {
-                Mail::to($ownerEmail)->send(new OwnerPurchaseAlert($purchase, $paidNow));
-            }
-        } catch (\Throwable $mailErr) {
-            Log::warning('✉️ Email send failed', [
-                'purchase_id' => $purchase->id ?? null,
-                'error'       => $mailErr->getMessage(),
-            ]);
-        }
-    }
-
-    /* ===================== STRIPE: VEHICLES ===================== */
-
-    public function payWithStripe(Request $request, $purchaseId)
-    {
-        $request->validate(['payment_method_id' => 'required|string']);
-        $purchase = Purchase::with(['vehicle','customer'])->findOrFail($purchaseId);
-
-        $requiredDeposit = $purchase->deposit_expected ?? $purchase->vehicle->deposit_amount ?? null;
-        if (!$requiredDeposit || $requiredDeposit <= 0) {
-            return response()->json(['success'=>false,'message'=>'No valid deposit amount found for this purchase.'], 422);
-        }
-
-        $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
-        $toCharge    = max((float) $requiredDeposit - $alreadyPaid, 0);
-        if ($toCharge <= 0) return response()->json(['success'=>false,'message'=>'Deposit already paid for this purchase.'], 422);
-
+/**
+ * Send emails to customer and owner (safe to call in Stripe success & PayFast ITN).
+ */
+private function sendPurchaseEmails($purchase, float $paidNow): void
+{
+    try {
         $settings = SystemSetting::first();
-        if (!$settings || empty($settings->stripe_secret)) {
-            return response()->json(['success'=>false,'message'=>'Stripe secret key not configured.'], 500);
+        $this->configureMailerFromSettings($settings);
+        $ownerEmail = $this->resolveOwnerEmail($settings);
+
+        if ($purchase->customer?->email) {
+            Mail::to($purchase->customer->email)
+                ->send(new PurchaseReceipt($purchase, $paidNow));
         }
 
-        \Stripe\Stripe::setApiKey($settings->stripe_secret);
-
-        try {
-            $pi = \Stripe\PaymentIntent::create([
-                'amount'               => (int) round($toCharge * 100),
-                'currency'             => 'zar',
-                'payment_method'       => $request->payment_method_id,
-                'confirmation_method'  => 'manual',
-                'confirm'              => true,
-                'description'          => "Deposit for Purchase #{$purchase->id}",
-                'metadata'             => ['purchase_id'=>$purchase->id, 'type'=>'vehicle_purchase_deposit'],
-                'payment_method_types' => ['card'],
-                'receipt_email'        => $purchase->customer->email ?? null,
-            ]);
-
-            if ($pi->status !== 'succeeded') {
-                return response()->json([
-                    'success' => false,
-                    'requires_action' => true,
-                    'payment_intent_client_secret' => $pi->client_secret,
-                ]);
-            }
-
-            $charge = $pi->charges->data[0] ?? null;
-            $purchase->update([
-                'payment_method'             => 'stripe',
-                'deposit_paid'               => $alreadyPaid + $toCharge,
-                'payment_status'             => 'paid',
-                'stripe_payment_intent_id'   => $pi->id,
-                'stripe_payment_method_id'   => is_string($pi->payment_method ?? null) ? $pi->payment_method : null,
-                'stripe_charge_id'           => $charge->id ?? null,
-                'card_brand'                 => $charge?->payment_method_details?->card?->brand,
-                'card_last4'                 => $charge?->payment_method_details?->card?->last4,
-                'card_exp_month'             => $charge?->payment_method_details?->card?->exp_month,
-                'card_exp_year'              => $charge?->payment_method_details?->card?->exp_year,
-                'receipt_url'                => $charge?->receipt_url,
-            ]);
-
-            // mark vehicle as sold (string or boolean)
-            if ($purchase->vehicle) $this->markItemSold($purchase->vehicle);
-
-            $this->sendPurchaseEmails($purchase, $toCharge);
-
-            return response()->json([
-                'success'      => true,
-                'message'      => 'Deposit payment successful.',
-                'purchase_id'  => $purchase->id,
-                'paid'         => $toCharge,
-                'receipt_url'  => $charge?->receipt_url,
-                'redirect_to'  => url('/'),
-            ]);
-        } catch (\Stripe\Exception\CardException $ce) {
-            Log::error('Stripe card error', ['purchase_id' => $purchase->id, 'error' => $ce->getMessage()]);
-            return response()->json(['success' => false, 'message' => $ce->getMessage()], 402);
-        } catch (\Throwable $e) {
-            Log::error('Stripe payment error', ['purchase_id' => $purchase->id, 'error' => $e->getMessage()]);
-            return response()->json(['success' => false, 'message' => 'Payment failed. ' . $e->getMessage()], 500);
+        if ($ownerEmail) {
+            Mail::to($ownerEmail)
+                ->send(new OwnerPurchaseAlert($purchase, $paidNow));
         }
-    }
-
-    /* ===================== STRIPE: EQUIPMENT (by location) ===================== */
-
-    public function payWithStripeEquipment(Request $request, $purchaseId)
-    {
-        $request->validate(['payment_method_id' => 'required|string']);
-        $purchase = EquipmentPurchase::with(['equipment','location','customer'])->findOrFail($purchaseId);
-
-        $requiredDeposit = $purchase->deposit_expected ?? null;
-        if (!$requiredDeposit || $requiredDeposit <= 0) {
-            return response()->json(['success'=>false,'message'=>'No valid deposit amount found.'], 422);
-        }
-
-        $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
-        $toCharge    = max((float) $requiredDeposit - $alreadyPaid, 0);
-        if ($toCharge <= 0) return response()->json(['success'=>false,'message'=>'Deposit already paid.'], 422);
-
-        $settings = SystemSetting::first();
-        if (!$settings || empty($settings->stripe_secret)) {
-            return response()->json(['success'=>false,'message'=>'Stripe secret key not configured.'], 500);
-        }
-        \Stripe\Stripe::setApiKey($settings->stripe_secret);
-
-        try {
-            $res = DB::transaction(function () use ($request, $purchase, $toCharge) {
-                $pi = \Stripe\PaymentIntent::create([
-                    'amount'               => (int) round($toCharge * 100),
-                    'currency'             => 'zar',
-                    'payment_method'       => $request->payment_method_id,
-                    'confirmation_method'  => 'manual',
-                    'confirm'              => true,
-                    'description'          => "Deposit for EquipmentPurchase #{$purchase->id}",
-                    'metadata'             => ['equipment_purchase_id'=>$purchase->id, 'type'=>'equipment_purchase_deposit'],
-                    'payment_method_types' => ['card'],
-                    'receipt_email'        => $purchase->customer->email ?? null,
-                ]);
-
-                if ($pi->status !== 'succeeded') {
-                    return [
-                        'requires_action' => true,
-                        'client_secret'   => $pi->client_secret,
-                    ];
-                }
-
-                // Decrement stock at this location
-                $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
-                    ->where('location_id', $purchase->location_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$stockRow || $stockRow->stock < $purchase->quantity) {
-                    throw new \RuntimeException('Insufficient stock at the selected location.');
-                }
-
-                $before = (int)$stockRow->stock;
-                $after  = $before - (int)$purchase->quantity;
-                $stockRow->stock = $after;
-                $stockRow->save();
-
-                $charge = $pi->charges->data[0] ?? null;
-
-                $purchase->update([
-                    'payment_method'             => 'stripe',
-                    'deposit_paid'               => $purchase->deposit_paid + $toCharge,
-                    'payment_status'             => 'paid',
-                    'stripe_payment_intent_id'   => $pi->id,
-                    'stripe_payment_method_id'   => is_string($pi->payment_method ?? null) ? $pi->payment_method : null,
-                    'stripe_charge_id'           => $charge->id ?? null,
-                    'card_brand'                 => $charge?->payment_method_details?->card?->brand,
-                    'card_last4'                 => $charge?->payment_method_details?->card?->last4,
-                    'card_exp_month'             => $charge?->payment_method_details?->card?->exp_month,
-                    'card_exp_year'              => $charge?->payment_method_details?->card?->exp_year,
-                    'receipt_url'                => $charge?->receipt_url,
-                    'stock_before'               => $before,
-                    'stock_after'                => $after,
-                ]);
-
-                // If overall stock across all locations is 0, mark equipment as sold
-                $remaining = EquipmentStock::where('equipment_id', $purchase->equipment_id)->sum('stock');
-                if ((int)$remaining <= 0 && $purchase->equipment) {
-                    $this->markItemSold($purchase->equipment);
-                }
-
-                return [
-                    'requires_action' => false,
-                    'receipt_url'     => $charge?->receipt_url,
-                ];
-            });
-
-            if ($res['requires_action'] ?? false) {
-                return response()->json([
-                    'success' => false,
-                    'requires_action' => true,
-                    'payment_intent_client_secret' => $res['client_secret'],
-                ]);
-            }
-
-            $this->sendPurchaseEmails($purchase, $toCharge);
-
-            return response()->json([
-                'success'      => true,
-                'message'      => 'Deposit payment successful.',
-                'purchase_id'  => $purchase->id,
-                'paid'         => $toCharge,
-                'receipt_url'  => $res['receipt_url'] ?? null,
-                'redirect_to'  => url('/'),
-            ]);
-        } catch (\Stripe\Exception\CardException $ce) {
-            Log::error('Stripe card error', ['equipment_purchase_id' => $purchase->id, 'error' => $ce->getMessage()]);
-            return response()->json(['success' => false, 'message' => $ce->getMessage()], 402);
-        } catch (\Throwable $e) {
-            Log::error('Stripe payment error', ['equipment_purchase_id' => $purchase->id, 'error' => $e->getMessage()]);
-            return response()->json(['success' => false, 'message' => 'Payment failed. ' . $e->getMessage()], 500);
-        }
-    }
-
-    /* ===================== PAYFAST: VEHICLES ===================== */
-    public function initPayfast(Request $request, Purchase $purchase)
-    {
-        $purchase->load('vehicle','customer');
-        $settings = SystemSetting::first();
-        if (!$settings || !$settings->payfast_enabled) {
-            return response()->json(['success' => false, 'message' => 'PayFast is not configured.'], 422);
-        }
-
-        $requiredDeposit = $purchase->deposit_expected ?? $purchase->vehicle->deposit_amount ?? null;
-        if (!$requiredDeposit || $requiredDeposit <= 0) {
-            return response()->json(['success' => false, 'message' => 'No valid deposit amount found.'], 422);
-        }
-
-        $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
-        $toCharge    = max($requiredDeposit - $alreadyPaid, 0);
-        if ($toCharge <= 0) return response()->json(['success' => false, 'message' => 'Deposit already paid.'], 422);
-
-        $action = $settings->payfast_test_mode
-            ? 'https://sandbox.payfast.co.za/eng/process'
-            : ($settings->payfast_live_url ?: 'https://www.payfast.co.za/eng/process');
-
-        $m_payment_id = 'pur-' . $purchase->id . '-' . Str::random(6);
-        $amount       = number_format($toCharge, 2, '.', '');
-        $returnUrl    = url('/?payfast_success=1');
-
-        $fields = [
-            'merchant_id'   => $settings->payfast_merchant_id,
-            'merchant_key'  => $settings->payfast_merchant_key,
-            'return_url'    => $returnUrl,
-            'cancel_url'    => url('/payments/cancel'),
-            'notify_url'    => route('purchase.payfast.notify', [], true),
-            'm_payment_id'  => $m_payment_id,
-            'amount'        => $amount,
-            'item_name'     => 'Deposit for ' . ($purchase->vehicle->name ?? 'Vehicle'),
-            'name_first'    => $purchase->customer->name ?? '',
-            'email_address' => $purchase->customer->email ?? '',
-            'custom_str1'   => (string) $purchase->id,
-            'custom_str2'   => 'vehicle',
-        ];
-
-        $fields['signature'] = $this->pfSignature($fields, $settings->payfast_passphrase ?? null);
-
-        $purchase->update([
-            'payment_method'     => 'payfast',
-            'payfast_payment_id' => $m_payment_id,
-            'deposit_expected'   => $toCharge,
-            'payment_status'     => $purchase->payment_status ?: 'pending',
+    } catch (\Throwable $mailErr) {
+        Log::warning('✉️ Email send failed', [
+            'purchase_id' => $purchase->id ?? null,
+            'error'       => $mailErr->getMessage(),
         ]);
-
-        return response()->json(['success'=>true,'action'=>$action,'fields'=>$fields]);
-    }
-
-    /* ===================== PAYFAST: EQUIPMENT ===================== */
-    public function initPayfastEquipment(Request $request, EquipmentPurchase $purchase)
-    {
-        $purchase->load('equipment','location','customer');
-        $settings = SystemSetting::first();
-        if (!$settings || !$settings->payfast_enabled) {
-            return response()->json(['success' => false, 'message' => 'PayFast is not configured.'], 422);
-        }
-
-        $requiredDeposit = $purchase->deposit_expected ?? null;
-        if (!$requiredDeposit || $requiredDeposit <= 0) {
-            return response()->json(['success' => false, 'message' => 'No valid deposit amount found.'], 422);
-        }
-
-        $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
-        $toCharge    = max($requiredDeposit - $alreadyPaid, 0);
-        if ($toCharge <= 0) return response()->json(['success' => false, 'message' => 'Deposit already paid.'], 422);
-
-        $action = $settings->payfast_test_mode
-            ? 'https://sandbox.payfast.co.za/eng/process'
-            : ($settings->payfast_live_url ?: 'https://www.payfast.co.za/eng/process');
-
-        $m_payment_id = 'epur-' . $purchase->id . '-' . Str::random(6);
-        $amount       = number_format($toCharge, 2, '.', '');
-        $returnUrl    = url('/?payfast_success=1');
-
-        $fields = [
-            'merchant_id'   => $settings->payfast_merchant_id,
-            'merchant_key'  => $settings->payfast_merchant_key,
-            'return_url'    => $returnUrl,
-            'cancel_url'    => url('/payments/cancel'),
-            'notify_url'    => route('purchase.payfast.notify', [], true),
-            'm_payment_id'  => $m_payment_id,
-            'amount'        => $amount,
-            'item_name'     => 'Deposit for ' . ($purchase->equipment->name ?? 'Equipment'),
-            'name_first'    => $purchase->customer->name ?? '',
-            'email_address' => $purchase->customer->email ?? '',
-            'custom_str1'   => (string) $purchase->id,
-            'custom_str2'   => 'equipment',
-        ];
-
-        $fields['signature'] = $this->pfSignature($fields, $settings->payfast_passphrase ?? null);
-
-        $purchase->update([
-            'payment_method'     => 'payfast',
-            'payfast_payment_id' => $m_payment_id,
-            'payment_status'     => $purchase->payment_status ?: 'pending',
-        ]);
-
-        return response()->json(['success'=>true,'action'=>$action,'fields'=>$fields]);
-    }
-
-    /* ===================== PAYFAST RETURN/CANCEL/NOTIFY ===================== */
-
-    public function payfastReturn(Request $request)
-    {
-        return redirect(url('/'))->with('payfast_success', 'We are processing your payment. You’ll receive email confirmation shortly.');
-    }
-
-    public function payfastCancel(Request $request)
-    {
-        return view('payments.cancel');
-    }
-
-    public function payfastNotify(Request $request)
-    {
-        Log::info('PayFast ITN', $request->all());
-
-        $id     = $request->input('custom_str1');
-        $kind   = $request->input('custom_str2', 'vehicle'); // 'vehicle' or 'equipment'
-        $status = strtolower($request->input('payment_status', ''));
-        $amount = (float) $request->input('amount_gross', 0);
-
-        if ($kind === 'equipment') {
-            $purchase = EquipmentPurchase::with(['equipment','customer','location'])->find($id);
-            if (!$purchase) return response('Not found', 404);
-
-            if ($status === 'complete' && $amount > 0) {
-                try {
-                    DB::transaction(function () use ($purchase, $amount) {
-                        // decrement stock at this location
-                        $row = EquipmentStock::where('equipment_id',$purchase->equipment_id)
-                            ->where('location_id',$purchase->location_id)
-                            ->lockForUpdate()
-                            ->first();
-
-                        if ($row && $row->stock >= $purchase->quantity) {
-                            $before = (int)$row->stock;
-                            $after  = $before - (int)$purchase->quantity;
-                            $row->stock = $after; $row->save();
-
-                            $purchase->stock_before = $before;
-                            $purchase->stock_after  = $after;
-                        }
-
-                        $purchase->payment_status = 'paid';
-                        $purchase->payment_method = 'payfast';
-                        $purchase->deposit_paid   = ($purchase->deposit_paid ?? 0) + $amount;
-                        $purchase->save();
-
-                        // mark sold if global stock zero
-                        $remain = EquipmentStock::where('equipment_id',$purchase->equipment_id)->sum('stock');
-                        if ((int)$remain <= 0 && $purchase->equipment) {
-                            $this->markItemSold($purchase->equipment);
-                        }
-                    });
-
-                    $this->sendPurchaseEmails($purchase, $amount);
-                } catch (\Throwable $e) {
-                    Log::error('PayFast ITN equipment error', ['id'=>$id,'err'=>$e->getMessage()]);
-                }
-            }
-            return response('OK');
-        }
-
-        // vehicle
-        $purchase = Purchase::with(['vehicle','customer'])->find($id);
-        if (!$purchase) return response('Not found', 404);
-
-        if ($status === 'complete' && $amount > 0) {
-            $purchase->payment_status = 'paid';
-            $purchase->payment_method = 'payfast';
-            $purchase->deposit_paid   = ($purchase->deposit_paid ?? 0) + $amount;
-            $purchase->save();
-
-            if ($purchase->vehicle) $this->markItemSold($purchase->vehicle);
-            $this->sendPurchaseEmails($purchase, $amount);
-        }
-
-        return response('OK');
-    }
-
-    /* ===================== HELPERS ===================== */
-
-    private function pfSignature(array $fields, ?string $passphrase): string
-    {
-        $sigData = $fields;
-        if (!empty($passphrase)) $sigData['passphrase'] = $passphrase;
-        ksort($sigData);
-        $pairs = [];
-        foreach ($sigData as $k => $v) {
-            if ($v === '' || $v === null) continue;
-            $pairs[] = $k . '=' . urlencode(trim($v));
-        }
-        return md5(implode('&', $pairs));
-    }
-
-    private function markItemSold($item): void
-    {
-        if (!$item) return;
-        $current = $item->status;
-        $item->status = (is_numeric($current) || in_array($current, [0,1,'0','1'], true)) ? 1 : 'sold';
-        $item->save();
     }
 }
+
+
+
+
+public function payWithStripe(Request $request, $purchaseId)
+{
+    $request->validate([
+        'payment_method_id' => 'required|string',
+    ]);
+
+    $purchase = \App\Models\Purchase::with(['vehicle', 'customer'])->findOrFail($purchaseId);
+
+    // 1) Deposit rules
+    $requiredDeposit = $purchase->deposit_amount ?? $purchase->vehicle->deposit_amount ?? null;
+    if (!$requiredDeposit || $requiredDeposit <= 0) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No valid deposit amount found for this purchase.',
+        ], 422);
+    }
+
+    $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
+    $toCharge    = max((float) $requiredDeposit - $alreadyPaid, 0);
+    if ($toCharge <= 0) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Deposit already paid for this purchase.',
+        ], 422);
+    }
+
+    $amountInCents = (int) round($toCharge * 100);
+
+    // 2) Stripe config from DB
+    $settings = SystemSetting::first();
+    if (!$settings || empty($settings->stripe_secret)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Stripe secret key not configured.',
+        ], 500);
+    }
+
+    \Stripe\Stripe::setApiKey($settings->stripe_secret);
+
+    try {
+        // 3) Create + confirm PaymentIntent
+        $paymentIntent = \Stripe\PaymentIntent::create([
+            'amount'               => $amountInCents,
+            'currency'             => 'zar',
+            'payment_method'       => $request->payment_method_id,
+            'confirmation_method'  => 'manual',
+            'confirm'              => true,
+            'description'          => "Deposit for Purchase #{$purchase->id}",
+            'metadata'             => [
+                'purchase_id' => (string) $purchase->id,
+                'customer_id' => (string) ($purchase->customer_id ?? ''),
+                'type'        => 'purchase_deposit',
+            ],
+            'payment_method_types' => ['card'],
+            'receipt_email'        => $purchase->customer->email ?? null,
+        ]);
+
+        // 4) Handle 3DS
+       // 4) Handle 3DS
+if ($paymentIntent->status !== 'succeeded') {
+    return response()->json([
+        'success' => false,
+        'requires_action' => true,
+        'payment_intent_client_secret' => $paymentIntent->client_secret,
+    ]);
+}
+
+// 5) Update purchase + vehicle
+$newDepositPaid = $alreadyPaid + $toCharge;
+$pmId   = $paymentIntent->payment_method ?? null;
+$charge = $paymentIntent->charges->data[0] ?? null;
+
+$purchase->update([
+    'payment_method'             => 'stripe',
+    'deposit_paid'               => $newDepositPaid,
+    'payment_status'             => 'paid', // finalize deposit
+    'stripe_payment_intent_id'   => $paymentIntent->id,
+    'stripe_payment_method_id'   => is_string($pmId) ? $pmId : null,
+    'stripe_charge_id'           => $charge->id ?? null,
+    'card_brand'                 => $charge?->payment_method_details?->card?->brand,
+    'card_last4'                 => $charge?->payment_method_details?->card?->last4,
+    'card_exp_month'             => $charge?->payment_method_details?->card?->exp_month,
+    'card_exp_year'              => $charge?->payment_method_details?->card?->exp_year,
+    'receipt_url'                => $charge?->receipt_url,
+]);
+
+// mark vehicle as sold/unavailable
+if ($purchase->vehicle && in_array('status', $purchase->vehicle->getFillable() ?? [])) {
+    $purchase->vehicle->status = 'sold';
+    $purchase->vehicle->save();
+}
+
+// 6) Emails (customer + owner) using SMTP from DB
+$this->sendPurchaseEmails($purchase, $toCharge);
+
+// 7) Tell the frontend where to go next
+return response()->json([
+    'success'      => true,
+    'message'      => 'Deposit payment successful.',
+    'purchase_id'  => $purchase->id,
+    'paid'         => $toCharge,
+    'receipt_url'  => $charge?->receipt_url,
+    'redirect_to'  => url('/'), // main URL
+]);
+
+    } catch (\Stripe\Exception\CardException $ce) {
+        Log::error('Stripe card error', ['purchase_id' => $purchase->id, 'error' => $ce->getMessage()]);
+        return response()->json(['success' => false, 'message' => $ce->getMessage()], 402);
+    } catch (\Throwable $e) {
+        Log::error('Stripe payment error', ['purchase_id' => $purchase->id, 'error' => $e->getMessage()]);
+        return response()->json(['success' => false, 'message' => 'Payment failed. ' . $e->getMessage()], 500);
+    }
+}
+
+
+
+
+// use App\Models\PayfastSetting;
+
+public function initPayfast(Request $request, \App\Models\Purchase $purchase)
+{
+    $purchase->load('vehicle');
+
+    $settings = SystemSetting::first();
+    if (!$settings || !$settings->payfast_enabled) {
+        return response()->json(['success' => false, 'message' => 'PayFast is not configured.'], 422);
+    }
+
+    $requiredDeposit = $purchase->deposit_amount ?? $purchase->vehicle->deposit_amount ?? null;
+    if (!$requiredDeposit || $requiredDeposit <= 0) {
+        return response()->json(['success' => false, 'message' => 'No valid deposit amount found.'], 422);
+    }
+
+    $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
+    $toCharge    = max($requiredDeposit - $alreadyPaid, 0);
+    if ($toCharge <= 0) {
+        return response()->json(['success' => false, 'message' => 'Deposit already paid.'], 422);
+    }
+
+    $action = $settings->payfast_test_mode
+        ? 'https://sandbox.payfast.co.za/eng/process'
+        : ($settings->payfast_live_url ?: 'https://www.payfast.co.za/eng/process');
+
+    $m_payment_id = 'pur-' . $purchase->id . '-' . Str::random(6);
+    $amount       = number_format($toCharge, 2, '.', '');
+    $returnUrl    = route('fleet.view', ['vehicle' => $purchase->vehicle->id]);
+
+    $fields = [
+        'merchant_id'   => $settings->payfast_merchant_id,
+        'merchant_key'  => $settings->payfast_merchant_key,
+        'return_url'    => $returnUrl,
+        'cancel_url'    => url('/payments/cancel'),
+'notify_url' => route('purchase.payfast.notify', [], true),
+        'm_payment_id'  => $m_payment_id,
+        'amount'        => $amount,
+        'item_name'     => 'Deposit for ' . ($purchase->vehicle->name ?? 'Vehicle'),
+        'name_first'    => $request->input('name', ''),
+        'email_address' => $request->input('email', ''),
+        'custom_str1'   => (string) $purchase->id, // our purchase ID
+    ];
+
+    // Signature
+    $sigData = $fields;
+    if (!empty($settings->payfast_passphrase)) {
+        $sigData['passphrase'] = $settings->payfast_passphrase;
+    }
+    ksort($sigData);
+    $pairs = [];
+    foreach ($sigData as $key => $val) {
+        if ($val === '' || $val === null) continue;
+        $pairs[] = $key . '=' . urlencode(trim($val));
+    }
+    $fields['signature'] = md5(implode('&', $pairs));
+
+    // Persist chosen method + expected amount
+    $purchase->update([
+        'payment_method'     => 'payfast',
+        'payfast_payment_id' => $m_payment_id,
+        'deposit_expected'   => $toCharge,
+        'payment_status'     => $purchase->payment_status ?: 'pending',
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'action'  => $action,
+        'fields'  => $fields,
+    ]);
+}
+
+public function payfastReturn(Request $request)
+{
+    $purchaseId = $request->input('custom_str1');
+    $purchase   = \App\Models\Purchase::with('vehicle','customer')->find($purchaseId);
+
+    if (!$purchase) {
+        return redirect(url('/'))->with('error', 'Purchase not found.');
+    }
+
+    $message = $purchase->payment_status === 'paid'
+        ? 'Your deposit payment was successful!'
+        : 'We are processing your payment. You’ll receive email confirmation shortly.';
+
+    return redirect(url('/'))->with('payfast_success', $message);
+}
+
+
+public function payfastCancel(Request $request)
+{
+    return view('payments.cancel');
+}
+
+
+public function payfastNotify(Request $request)
+{
+Log::info('ITN HIT', $request->all());
+
+    $purchaseId = $request->input('custom_str1');
+    $purchase   = \App\Models\Purchase::with(['vehicle','customer'])->find($purchaseId);
+
+    if (!$purchase) {
+        Log::error("PayFast Notify: Purchase not found", ['purchase_id' => $purchaseId]);
+        return response('Purchase not found', 404);
+    }
+
+    // TODO: (recommended) perform full PayFast validation (IPN verification, signature, source IP)
+
+    $paymentStatus = strtolower($request->input('payment_status', ''));
+    $amountPaid    = (float) $request->input('amount_gross', 0);
+    $pfPaymentId   = $request->input('pf_payment_id'); // PayFast reference
+    $mPaymentId    = $request->input('m_payment_id');  // your unique ref
+
+   if ($paymentStatus === 'complete' && $amountPaid > 0) {
+    $purchase->payment_status     = 'paid';
+    $purchase->payment_method     = 'payfast';
+    $purchase->save();
+
+    // also mark vehicle as sold/unavailable
+    if ($purchase->vehicle && in_array('status', $purchase->vehicle->getFillable() ?? [])) {
+        $purchase->vehicle->status = 'sold';
+        $purchase->vehicle->save();
+    }
+
+    // Send emails via SMTP from DB
+    $this->sendPurchaseEmails($purchase, $amountPaid);
+}
+ else {
+        Log::warning("⚠️ PayFast Notify: Payment not complete or amount missing", [
+            'purchase_id'   => $purchase->id,
+            'payment_status'=> $paymentStatus,
+            'amount_gross'  => $request->input('amount_gross'),
+        ]);
+    }
+
+    return response('OK');
+}
+
+
+
+
+
+
+}
+
+
+
+// php artisan tinker
+// >>> (new \App\Http\Controllers\PurchaseController)->configureMailerFromSettings();
+// >>> Mail::raw('SMTP OK', fn($m) => $m->to('you@example.com')->subject('Ping'));
