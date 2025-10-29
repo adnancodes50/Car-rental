@@ -108,16 +108,13 @@
 
             <div class="mb-2">
               <label class="form-label">Quantity</label>
-              <input type="number"
-                     inputmode="numeric"
-                     name="quantity"
-                     id="qtyInput"
-                     class="form-control rounded-3"
-                     min="1"
-                     step="1"
-                     value="1"
-                     required
-                     {{ $isSold ? 'disabled' : '' }}>
+              <select name="quantity"
+                      id="qtySelect"
+                      class="form-select rounded-3"
+                      required
+                      {{ $isSold ? 'disabled' : '' }}>
+                <option value="" selected disabled>Select location first</option>
+              </select>
             </div>
           @endif
 
@@ -437,6 +434,51 @@
   const formatCurrency = (value) => ZAR.format(Number(value) || 0);
   const findLocationRecord = (locId) => LOCATION_STOCK.find(x => String(x.id) === String(locId));
 
+  function resetQuantitySelect(placeholder = 'Select location first') {
+    const select = document.getElementById('qtySelect');
+    if (!select) return;
+    select.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = placeholder;
+    opt.disabled = true;
+    opt.selected = true;
+    select.appendChild(opt);
+    select.disabled = true;
+    selectedQuantity = 0;
+  }
+
+  function populateQuantityOptions(stock, { preserveCurrent = false } = {}) {
+    const select = document.getElementById('qtySelect');
+    if (!select) return;
+
+    if (!stock || stock < 1) {
+      resetQuantitySelect('Out of stock');
+      return;
+    }
+
+    const currentValue = preserveCurrent
+      ? parseInt(select.value || '1', 10)
+      : 1;
+
+    const nextValue = Number.isInteger(currentValue) && currentValue > 0
+      ? Math.min(currentValue, stock)
+      : 1;
+
+    select.disabled = false;
+    select.innerHTML = '';
+
+    for (let i = 1; i <= stock; i++) {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = String(i);
+      select.appendChild(opt);
+    }
+
+    select.value = String(nextValue);
+    selectedQuantity = nextValue;
+  }
+
   function notify(key, { icon='error', title='Invalid input', text='' }) {
     window.__deb ||= new Map();
     const now = Date.now(), last = window.__deb.get(key) || 0;
@@ -462,17 +504,31 @@
   function updatePricingSummary() {
     if (!formRef) return;
 
+    let locRecord = null;
+
     if (TYPE === 'equipment') {
       selectedLocationId = formRef.location_id?.value || '';
-      const locRecord = findLocationRecord(selectedLocationId);
+      locRecord = findLocationRecord(selectedLocationId);
       selectedLocationName = locRecord?.name || '';
 
-      let qty = parseInt(formRef.quantity?.value || '1', 10);
-      if (!Number.isInteger(qty) || qty < 1) qty = 1;
+      const quantityField = formRef.quantity;
+      let qty = parseInt(quantityField?.value ?? '', 10);
 
-      if (locRecord && locRecord.stock >= 0 && qty > locRecord.stock) {
-        qty = locRecord.stock > 0 ? locRecord.stock : 1;
-        if (formRef.quantity) formRef.quantity.value = qty;
+      if (!Number.isInteger(qty) || qty < 1) {
+        qty = quantityField && quantityField.disabled ? 0 : 1;
+      }
+
+      if (locRecord && locRecord.stock >= 0) {
+        if (qty === 0 && quantityField && !quantityField.disabled) {
+          qty = 1;
+        }
+
+        if (qty > locRecord.stock) {
+          qty = locRecord.stock > 0 ? locRecord.stock : 0;
+          if (quantityField && !quantityField.disabled) {
+            quantityField.value = qty > 0 ? String(qty) : '';
+          }
+        }
       }
       selectedQuantity = qty;
 
@@ -487,20 +543,31 @@
       selectedQuantity = 1;
     }
 
-    const totalPrice = ITEM_PRICE * selectedQuantity;
-    const totalDeposit = ITEM_DEPOSIT * selectedQuantity;
+    const quantityForTotals = (TYPE === 'equipment')
+      ? (selectedLocationId && selectedQuantity > 0 ? selectedQuantity : 0)
+      : Math.max(selectedQuantity || 1, 1);
+    const totalPrice = ITEM_PRICE * quantityForTotals;
+    const totalDeposit = ITEM_DEPOSIT * quantityForTotals;
     const remaining = Math.max(totalPrice - totalDeposit, 0);
 
     const quantityDisplay = document.getElementById('quantityDisplay');
     if (quantityDisplay) {
-      quantityDisplay.textContent = selectedQuantity === 1
-        ? '1 unit'
-        : `${selectedQuantity} units`;
+      if (selectedLocationId && selectedQuantity > 0) {
+        quantityDisplay.textContent = selectedQuantity === 1
+          ? '1 unit'
+          : `${selectedQuantity} units`;
+      } else {
+        quantityDisplay.textContent = '—';
+      }
     }
 
     const selectedLocationDisplay = document.getElementById('selectedLocationDisplay');
     if (selectedLocationDisplay) {
-      selectedLocationDisplay.textContent = selectedLocationName || 'Select a location';
+      if (locRecord && locRecord.stock < 1) {
+        selectedLocationDisplay.textContent = `${selectedLocationName} (Out of stock)`;
+      } else {
+        selectedLocationDisplay.textContent = selectedLocationName || 'Select a location';
+      }
     }
 
     const unitPriceDisplay = document.getElementById('unitPriceDisplay');
@@ -525,10 +592,20 @@
     if (summaryUnitDeposit) summaryUnitDeposit.textContent = `${formatCurrency(ITEM_DEPOSIT)} ZAR`;
 
     const summaryLocation = document.getElementById('summaryLocation');
-    if (summaryLocation) summaryLocation.textContent = selectedLocationName || 'Select a location';
+    if (summaryLocation) {
+      if (locRecord && locRecord.stock < 1) {
+        summaryLocation.textContent = `${selectedLocationName} (Out of stock)`;
+      } else {
+        summaryLocation.textContent = selectedLocationName || 'Select a location';
+      }
+    }
 
     const summaryQuantity = document.getElementById('summaryQuantity');
-    if (summaryQuantity) summaryQuantity.textContent = String(selectedQuantity);
+    if (summaryQuantity) {
+      summaryQuantity.textContent = (selectedLocationId && selectedQuantity > 0)
+        ? String(selectedQuantity)
+        : '—';
+    }
 
     const summaryTotalPrice = document.getElementById('summaryTotalPrice');
     if (summaryTotalPrice) summaryTotalPrice.textContent = `${formatCurrency(totalPrice)} ZAR`;
@@ -577,7 +654,11 @@
     }
 
     if (!Number.isInteger(qty) || qty < 1) {
-      if (showAlerts) notify('qty', { title:'Invalid quantity', text:'Enter a valid quantity (1 or more).' });
+      if (record && record.stock < 1) {
+        if (showAlerts) notify('qty0', { title:'Out of stock', text:`${record.name} currently has no stock available.` });
+      } else if (showAlerts) {
+        notify('qty', { title:'Invalid quantity', text:'Enter a valid quantity (1 or more).' });
+      }
       return { ok: false };
     }
 
@@ -619,17 +700,13 @@
   }
 
   function clampQtyByLocation(locId) {
-    const qtyEl = document.getElementById('qtyInput');
-    if (!qtyEl) return;
     const rec = findLocationRecord(locId);
     if (!rec) {
-      qtyEl.max = '';
-      if (+qtyEl.value < 1) qtyEl.value = 1;
+      resetQuantitySelect();
       updatePricingSummary();
       return;
     }
-    qtyEl.max = rec.stock || 0;
-    if (+qtyEl.value > rec.stock) qtyEl.value = rec.stock > 0 ? rec.stock : 1;
+    populateQuantityOptions(rec.stock);
     updatePricingSummary();
   }
 
@@ -643,13 +720,20 @@
     formRef = $('purchaseForm');
     const form = formRef;
 
+    if (TYPE === 'equipment') {
+      resetQuantitySelect();
+      const initialLocation = form?.location_id?.value;
+      if (initialLocation) {
+        clampQtyByLocation(initialLocation);
+      }
+    }
+
     updatePricingSummary();
 
     form?.location_id?.addEventListener('change', (event) => {
       clampQtyByLocation(event.target.value);
     });
 
-    form?.quantity?.addEventListener('input', () => updatePricingSummary());
     form?.quantity?.addEventListener('change', () => updatePricingSummary());
 
     $('purchaseStep1Next')?.addEventListener('click', () => {
