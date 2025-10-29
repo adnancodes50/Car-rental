@@ -1,12 +1,12 @@
 <!-- Contact Section -->
-<section id="contact-section" class="py-5 bg-gray">
+<section id="contact-section" class="py-5 bg-white">
     <div class="container text-center">
         <!-- Heading -->
         <div class="mb-5">
             <div class="d-flex align-items-center justify-content-center mb-3">
                 <i class="bi bi-headset display-5" style="color: #CF9B4D;"></i>
             </div>
-            <h2 class="fw-bold display-6 text-dark mb-3">Get in Touch</h2>
+            <h2 class="fw-bold display-6  mb-3" style="color: #679767;">Get in Touch</h2>
             <p class="fs-5 text-muted mx-auto" style="max-width: 600px;">
                 Ready to start your adventure? Contact Alex directly to discuss your Land Rover rental or purchase.
             </p>
@@ -41,9 +41,9 @@
 
         <!-- Right: Links -->
         <div class="footer-links d-flex align-items-center justify-content-center">
-            <a href="#" class="text-muted text-decoration-none me-3">Privacy Policy</a>
+            <a  class="text-muted text-decoration-none me-3">Privacy Policy</a>
             <span class="text-muted">|</span>
-            <a href="#" class="text-muted text-decoration-none ms-3">Terms & Conditions</a>
+            <a  class="text-muted text-decoration-none ms-3">Terms & Conditions</a>
         </div>
     </div>
 </footer>
@@ -61,15 +61,15 @@
     width: 65px;
     height: 65px;
     border-radius: 50%;
-    background-color: #212529;
-    color: #fff;
+    background-color: white;
+    color: black;
     transition: all 0.3s ease;
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
 .contact-icon-btn:hover {
-    background-color: #fff;
-    color: #000;
+    background-color: #679767;
+    color: white;
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0,0,0,0.25);
 }

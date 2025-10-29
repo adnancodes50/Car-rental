@@ -137,8 +137,13 @@ public function storeEquipmentFromModal(Request $request)
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'short_description' => ['nullable', 'string', 'max:500'],
-            'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
-            'image' => ['nullable', 'string', 'max:255'],
+'image_file' => [
+    'nullable',
+    'file',
+    'mimetypes:image/jpeg,image/png,image/jpg,image/gif,image/webp,image/svg+xml,image/x-icon',
+    'max:4096',
+],
+                'image' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
             'daily_price' => ['nullable', 'numeric', 'min:0'],
             'weekly_price' => ['nullable', 'numeric', 'min:0'],

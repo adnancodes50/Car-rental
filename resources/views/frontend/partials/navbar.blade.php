@@ -23,7 +23,7 @@
                     <a class="nav-link fw-semibold px-3" href="{{ url('/#home-section') }}">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link fw-semibold px-3" href="{{ url('/#vehicles-section') }}">Vehicles</a>
+                    <a class="nav-link fw-semibold px-3" href="{{ url('/#category-section') }}">Category</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link fw-semibold px-3" href="{{ url('/#contact-section') }}">Contact</a>
@@ -36,7 +36,7 @@
 <style>
     /* Inactive links */
     .navbar-dark .navbar-nav .nav-link {
-        color: #CF9B4D;
+        color: #679767;
         /* yellow */
         position: relative;
         font-weight: 500;

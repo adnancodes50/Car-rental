@@ -29,8 +29,9 @@ use App\Http\Controllers\HomeController;
 
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/fleet/{vehicle}', [VehicleController::class, 'view'])
-    ->name('fleet.view');
+Route::get('/category/{id}', [HomeController::class, 'show'])->name('category.show');
+Route::get('/equipment/{equipment}', [HomeController::class, 'viewEquipment'])
+    ->name('equipment.view');
 
     Route::get('/categories', [CategoryController::class, 'view'])->name('categories.view');
 
