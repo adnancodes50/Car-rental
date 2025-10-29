@@ -36,7 +36,7 @@
 
         <!-- Left: Copyright -->
         <div class="text-muted small mb-2 mb-md-0 d-flex align-items-center justify-content-center">
-            &copy; {{ date('Y') }} Alex's Land Rover Rentals. All rights reserved.
+           Designed and Hosted by AppCity
         </div>
 
         <!-- Right: Links -->

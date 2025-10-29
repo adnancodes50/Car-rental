@@ -85,23 +85,72 @@
             </div>
           @endif
 
-          <div class="text-center mb-4">
-            <h5 class="fw-semibold mb-2">Purchase Process Information</h5>
-            <p class="text-muted mb-0">Pay a deposit to place this {{ $type }} under offer. Full process continues offline.</p>
+          <div class="text-center mb-2">
+            <h5 class="fw-semibold mb-2">Choose Quantity &amp; Location</h5>
+            {{-- <p class="text-muted mb-0">
+              Select the branch and quantity you need. Pricing updates instantly so you know exactly what you will pay today.
+            </p> --}}
           </div>
 
-          <div class="bg-light rounded-3 p-3 mb-4">
+          @if($type === 'equipment')
+            <div class="mb-1">
+              <label class="form-label">Location</label>
+              <select name="location_id" id="locationSelect" class="form-select rounded-3" required {{ $isSold ? 'disabled' : '' }}>
+                <option value="" disabled selected>Select a location</option>
+                @foreach (($item->stocks ?? []) as $s)
+                  <option value="{{ $s->location->id }}" data-stock="{{ (int) $s->stock }}">
+                    {{ $s->location->name }} &mdash; In stock: {{ (int) $s->stock }}
+                  </option>
+                @endforeach
+              </select>
+              <div class="form-text" id="stockHint">Select a location to see available stock.</div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Quantity</label>
+              <input type="number"
+                     inputmode="numeric"
+                     name="quantity"
+                     id="qtyInput"
+                     class="form-control rounded-3"
+                     min="1"
+                     step="1"
+                     value="1"
+                     required
+                     {{ $isSold ? 'disabled' : '' }}>
+            </div>
+          @endif
+
+          <div class="bg-light rounded-3 p-3 mb-4 border">
             <div class="d-flex justify-content-between mb-2">
               <span class="fw-medium text-secondary">{{ ucfirst($type) }}:</span>
-              <span class="fw-normal text-dark">{{ $item->name }}</span>
+              <span class="fw-semibold text-dark" id="itemNameDisplay">{{ $item->name }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span class="fw-medium text-secondary">Sale Price:</span>
-              <span class="fw-normal text-dark">R{{ number_format($price) }} ZAR</span>
+              <span class="fw-medium text-secondary">Unit Price:</span>
+              <span class="fw-bold text-dark" id="unitPriceDisplay">R{{ number_format($price, 2) }} ZAR</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-medium text-secondary">Deposit (per unit):</span>
+              <span class="fw-bold text-dark" id="unitDepositDisplay">R{{ number_format($deposit, 2) }} ZAR</span>
+            </div>
+            @if($type === 'equipment')
+              <div class="d-flex justify-content-between mb-2">
+                <span class="fw-medium text-secondary">Selected Quantity:</span>
+                <span class="fw-semibold text-dark" id="quantityDisplay">1 unit</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span class="fw-medium text-secondary">Selected Location:</span>
+                <span class="fw-semibold text-dark" id="selectedLocationDisplay">Select a location</span>
+              </div>
+            @endif
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-medium text-secondary">Total Price:</span>
+              <span class="fw-semibold text-dark" id="totalPriceDisplay">R{{ number_format($price, 2) }} ZAR</span>
             </div>
             <div class="d-flex justify-content-between">
-              <span class="fw-medium text-secondary">Required Deposit:</span>
-              <span class="fw-bold" style="color:#CF9B4D">R{{ number_format($deposit) }} ZAR</span>
+              <span class="fw-medium text-secondary">Deposit Due Now:</span>
+              <span class="fw-bold" style="color:#CF9B4D" id="totalDepositDisplay">R{{ number_format($deposit, 2) }} ZAR</span>
             </div>
           </div>
 
@@ -148,24 +197,6 @@
               </select>
             </div>
 
-            @if($type === 'equipment')
-              <div class="col-12">
-                <label class="form-label">Location</label>
-                <select name="location_id" id="locationSelect" class="form-select rounded-3" required {{ $isSold ? 'disabled' : '' }}>
-                  <option value="" disabled selected>Select a location</option>
-                  @foreach (($item->stocks ?? []) as $s)
-                    <option value="{{ $s->location->id }}" data-stock="{{ (int)$s->stock }}">
-                      {{ $s->location->name }} — In stock: {{ (int)$s->stock }}
-                    </option>
-                  @endforeach
-                </select>
-                <div class="form-text" id="stockHint">Select a location to see available stock.</div>
-              </div>
-              <div class="col-12">
-                <label class="form-label">Quantity</label>
-                <input type="number" inputmode="numeric" name="quantity" id="qtyInput" class="form-control rounded-3" min="1" step="1" value="1" required {{ $isSold ? 'disabled' : '' }}>
-              </div>
-            @endif
           </div>
         </div>
         <div class="modal-footer border-0 d-flex justify-content-between">
@@ -199,6 +230,7 @@
           @if($isSold)
             <div class="alert alert-danger mb-3">This {{ $type }} is sold and cannot be purchased.</div>
           @endif
+         
           <div class="row g-3 align-items-stretch justify-content-center">
             @if ($settings->stripe_enabled)
               <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
@@ -273,7 +305,7 @@
                     </div>
                     <div class="text-end">
                       <div class="small text-muted">Price</div>
-                      <div class="fw-semibold">R{{ number_format($price, 2) }}</div>
+                      <div class="fw-semibold" id="stripeUnitPriceDisplay">R{{ number_format($price, 2) }}</div>
                     </div>
                   </div>
                 </div>
@@ -286,19 +318,19 @@
                 <div class="bg-light rounded-3 p-2 px-3">
                   <div class="d-flex justify-content-between small">
                     <span>Total Price</span>
-                    <span>R{{ number_format($price, 2) }}</span>
+                    <span id="stripeTotalPriceDisplay">R{{ number_format($price, 2) }}</span>
                   </div>
                   <div class="d-flex justify-content-between small">
                     <span>Deposit (Due Now)</span>
-                    <span>R{{ number_format($deposit, 2) }}</span>
+                    <span id="stripeDepositDisplay">R{{ number_format($deposit, 2) }}</span>
                   </div>
                   <div class="border-top mt-2 pt-2 d-flex justify-content-between">
                     <span class="fw-semibold">Total Due Now</span>
-                    <span class="fw-bold text-success">R{{ number_format($deposit, 2) }}</span>
+                    <span class="fw-bold text-success" id="stripeTotalDueNowDisplay">R{{ number_format($deposit, 2) }}</span>
                   </div>
                   <div class="d-flex justify-content-between mt-1">
                     <span class="fw-semibold text-muted">Total Payable Later</span>
-                    <span class="fw-bold text-muted">R{{ number_format($remaining, 2) }}</span>
+                    <span class="fw-bold text-muted" id="stripeRemainingDisplay">R{{ number_format($remaining, 2) }}</span>
                   </div>
                 </div>
               </div>
@@ -397,6 +429,14 @@
       : url('/purchase/{id}/payfast/init')
   );
 
+  let formRef = null;
+  let selectedLocationId = '';
+  let selectedLocationName = '';
+  let selectedQuantity = 1;
+
+  const formatCurrency = (value) => ZAR.format(Number(value) || 0);
+  const findLocationRecord = (locId) => LOCATION_STOCK.find(x => String(x.id) === String(locId));
+
   function notify(key, { icon='error', title='Invalid input', text='' }) {
     window.__deb ||= new Map();
     const now = Date.now(), last = window.__deb.get(key) || 0;
@@ -417,6 +457,136 @@
       to.show();
     }, { once:true });
     from.hide();
+  }
+
+  function updatePricingSummary() {
+    if (!formRef) return;
+
+    if (TYPE === 'equipment') {
+      selectedLocationId = formRef.location_id?.value || '';
+      const locRecord = findLocationRecord(selectedLocationId);
+      selectedLocationName = locRecord?.name || '';
+
+      let qty = parseInt(formRef.quantity?.value || '1', 10);
+      if (!Number.isInteger(qty) || qty < 1) qty = 1;
+
+      if (locRecord && locRecord.stock >= 0 && qty > locRecord.stock) {
+        qty = locRecord.stock > 0 ? locRecord.stock : 1;
+        if (formRef.quantity) formRef.quantity.value = qty;
+      }
+      selectedQuantity = qty;
+
+      const stockHint = document.getElementById('stockHint');
+      if (stockHint) {
+        if (locRecord) stockHint.textContent = `Available: ${locRecord.stock}`;
+        else stockHint.textContent = 'Select a location to see available stock.';
+      }
+    } else {
+      selectedLocationId = '';
+      selectedLocationName = '';
+      selectedQuantity = 1;
+    }
+
+    const totalPrice = ITEM_PRICE * selectedQuantity;
+    const totalDeposit = ITEM_DEPOSIT * selectedQuantity;
+    const remaining = Math.max(totalPrice - totalDeposit, 0);
+
+    const quantityDisplay = document.getElementById('quantityDisplay');
+    if (quantityDisplay) {
+      quantityDisplay.textContent = selectedQuantity === 1
+        ? '1 unit'
+        : `${selectedQuantity} units`;
+    }
+
+    const selectedLocationDisplay = document.getElementById('selectedLocationDisplay');
+    if (selectedLocationDisplay) {
+      selectedLocationDisplay.textContent = selectedLocationName || 'Select a location';
+    }
+
+    const unitPriceDisplay = document.getElementById('unitPriceDisplay');
+    if (unitPriceDisplay) unitPriceDisplay.textContent = `${formatCurrency(ITEM_PRICE)} ZAR`;
+
+    const unitDepositDisplay = document.getElementById('unitDepositDisplay');
+    if (unitDepositDisplay) unitDepositDisplay.textContent = `${formatCurrency(ITEM_DEPOSIT)} ZAR`;
+
+    const totalPriceDisplay = document.getElementById('totalPriceDisplay');
+    if (totalPriceDisplay) totalPriceDisplay.textContent = `${formatCurrency(totalPrice)} ZAR`;
+
+    const totalDepositDisplay = document.getElementById('totalDepositDisplay');
+    if (totalDepositDisplay) totalDepositDisplay.textContent = `${formatCurrency(totalDeposit)} ZAR`;
+
+    const summaryItemName = document.getElementById('summaryItemName');
+    if (summaryItemName) summaryItemName.textContent = ITEM_NAME;
+
+    const summaryUnitPrice = document.getElementById('summaryUnitPrice');
+    if (summaryUnitPrice) summaryUnitPrice.textContent = `${formatCurrency(ITEM_PRICE)} ZAR`;
+
+    const summaryUnitDeposit = document.getElementById('summaryUnitDeposit');
+    if (summaryUnitDeposit) summaryUnitDeposit.textContent = `${formatCurrency(ITEM_DEPOSIT)} ZAR`;
+
+    const summaryLocation = document.getElementById('summaryLocation');
+    if (summaryLocation) summaryLocation.textContent = selectedLocationName || 'Select a location';
+
+    const summaryQuantity = document.getElementById('summaryQuantity');
+    if (summaryQuantity) summaryQuantity.textContent = String(selectedQuantity);
+
+    const summaryTotalPrice = document.getElementById('summaryTotalPrice');
+    if (summaryTotalPrice) summaryTotalPrice.textContent = `${formatCurrency(totalPrice)} ZAR`;
+
+    const summaryDeposit = document.getElementById('summaryDeposit');
+    if (summaryDeposit) summaryDeposit.textContent = `${formatCurrency(totalDeposit)} ZAR`;
+
+    const stripeUnitPriceDisplay = document.getElementById('stripeUnitPriceDisplay');
+    if (stripeUnitPriceDisplay) stripeUnitPriceDisplay.textContent = `${formatCurrency(ITEM_PRICE)} ZAR`;
+
+    const stripeTotalPriceDisplay = document.getElementById('stripeTotalPriceDisplay');
+    if (stripeTotalPriceDisplay) stripeTotalPriceDisplay.textContent = `${formatCurrency(totalPrice)} ZAR`;
+
+    const stripeDepositDisplay = document.getElementById('stripeDepositDisplay');
+    if (stripeDepositDisplay) stripeDepositDisplay.textContent = `${formatCurrency(totalDeposit)} ZAR`;
+
+    const stripeTotalDueNowDisplay = document.getElementById('stripeTotalDueNowDisplay');
+    if (stripeTotalDueNowDisplay) stripeTotalDueNowDisplay.textContent = `${formatCurrency(totalDeposit)} ZAR`;
+
+    const stripeRemainingDisplay = document.getElementById('stripeRemainingDisplay');
+    if (stripeRemainingDisplay) stripeRemainingDisplay.textContent = `${formatCurrency(remaining)} ZAR`;
+
+    if (formRef.total_price) {
+      formRef.total_price.value = totalPrice.toFixed(2);
+    }
+  }
+
+  function getEquipmentSelection(showAlerts = true) {
+    if (TYPE !== 'equipment') {
+      return { ok: true, quantity: 1 };
+    }
+    if (!formRef) return { ok: false };
+
+    const locId = formRef.location_id?.value || '';
+    const qty = parseInt(formRef.quantity?.value || '1', 10);
+
+    if (!locId) {
+      if (showAlerts) notify('loc', { title:'Location required', text:'Please select a location.' });
+      return { ok: false };
+    }
+
+    const record = findLocationRecord(locId);
+    if (!record) {
+      if (showAlerts) notify('loc2', { title:'Invalid location', text:'Selected location is not valid for this item.' });
+      return { ok: false };
+    }
+
+    if (!Number.isInteger(qty) || qty < 1) {
+      if (showAlerts) notify('qty', { title:'Invalid quantity', text:'Enter a valid quantity (1 or more).' });
+      return { ok: false };
+    }
+
+    if (qty > record.stock) {
+      if (showAlerts) notify('qty2', { title:'Insufficient stock', text:`Only ${record.stock} available at ${record.name}.` });
+      return { ok: false };
+    }
+
+    return { ok: true, locationId: locId, quantity: qty, location: record };
   }
 
   document.addEventListener('click', (e) => {
@@ -450,13 +620,17 @@
 
   function clampQtyByLocation(locId) {
     const qtyEl = document.getElementById('qtyInput');
-    const hint = document.getElementById('stockHint');
     if (!qtyEl) return;
-    const rec = LOCATION_STOCK.find(x => String(x.id) === String(locId));
-    if (!rec) { qtyEl.max = ''; hint && (hint.textContent = 'No stock entry for this location.'); return; }
+    const rec = findLocationRecord(locId);
+    if (!rec) {
+      qtyEl.max = '';
+      if (+qtyEl.value < 1) qtyEl.value = 1;
+      updatePricingSummary();
+      return;
+    }
     qtyEl.max = rec.stock || 0;
     if (+qtyEl.value > rec.stock) qtyEl.value = rec.stock > 0 ? rec.stock : 1;
-    hint && (hint.textContent = `Available: ${rec.stock}`);
+    updatePricingSummary();
   }
 
   document.addEventListener('change', (e) => {
@@ -466,10 +640,23 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal').forEach(m => modalInst(m));
     const $ = (id) => document.getElementById(id);
-    const form = $('purchaseForm');
+    formRef = $('purchaseForm');
+    const form = formRef;
+
+    updatePricingSummary();
+
+    form?.location_id?.addEventListener('change', (event) => {
+      clampQtyByLocation(event.target.value);
+    });
+
+    form?.quantity?.addEventListener('input', () => updatePricingSummary());
+    form?.quantity?.addEventListener('change', () => updatePricingSummary());
 
     $('purchaseStep1Next')?.addEventListener('click', () => {
       if (IS_SOLD) return notify('sold1', { title:'Sold', text:`This ${TYPE} is sold.` });
+      const selection = getEquipmentSelection(true);
+      if (!selection.ok) return;
+      updatePricingSummary();
       swapModal('purchaseModal','purchaseCustomer');
     });
 
@@ -477,6 +664,8 @@
 
     $('purchaseStep2Next')?.addEventListener('click', async () => {
       if (IS_SOLD) return notify('sold2', { title:'Sold', text:`This ${TYPE} is sold.` });
+
+       updatePricingSummary();
 
       const name    = (form.name?.value || '').trim();
       const email   = (form.email?.value || '').trim();
@@ -495,19 +684,12 @@
       payload[idName] = form[idName].value;
 
       // Extra validation for equipment
+      let selection = { ok: true, locationId: null, quantity: 1 };
       if (TYPE === 'equipment') {
-        const locId = form.location_id?.value || '';
-        const qtyVal = form.quantity?.value || '1';
-        const qty = parseInt(qtyVal, 10);
-
-        if (!locId) { notify('loc', { title:'Location required', text:'Please select a location.' }); return; }
-        const rec = LOCATION_STOCK.find(x => String(x.id) === String(locId));
-        if (!rec) { notify('loc2', { title:'Invalid location', text:'Selected location is not valid for this item.' }); return; }
-        if (!Number.isInteger(qty) || qty < 1) { notify('qty', { title:'Invalid quantity', text:'Enter a valid quantity (1 or more).' }); return; }
-        if (qty > rec.stock) { notify('qty2', { title:'Insufficient stock', text:`Only ${rec.stock} available at ${rec.name}.` }); return; }
-
-        payload.location_id = locId;
-        payload.quantity = qty;
+        selection = getEquipmentSelection(true);
+        if (!selection.ok) return;
+        payload.location_id = selection.locationId;
+        payload.quantity = selection.quantity;
       }
 
       try {
@@ -523,6 +705,7 @@
         if (!hid) { hid = document.createElement('input'); hid.type='hidden'; hid.name='purchase_id'; form.appendChild(hid); }
         hid.value = data.purchase_id;
 
+        updatePricingSummary();
         swapModal('purchaseCustomer','purchasePayment');
       } catch (e) {
         Swal.fire({ icon:'error', title:'Error', text:e.message || 'Network error.' });
@@ -532,6 +715,7 @@
     $('backToCustomer')?.addEventListener('click', () => swapModal('purchasePayment','purchaseCustomer'));
 
     $('purchasePayment')?.addEventListener('show.bs.modal', () => {
+      updatePricingSummary();
       document.querySelectorAll('#purchasePayment input[name="payment_method"]').forEach(r => r.checked = false);
     });
 

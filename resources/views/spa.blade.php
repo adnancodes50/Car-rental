@@ -4,47 +4,70 @@
 @include('frontend.partials.navbar')
 
 <div id="app">
-    @php
-    $heroBg = $settings && $settings->hero_image_path
-        ? asset($settings->hero_image_path)
-        : asset('images/bg.jpg');
-@endphp
+    <div>
+        @php
+            $heroBg = $settings && $settings->hero_image_path ? asset($settings->hero_image_path) : asset('images/bg.jpg');
+        @endphp
 
-<section class="hero-section position-relative d-flex align-items-center py-5" id="home-section"
-    style="min-height: 100vh; background: url('{{ $heroBg }}') center center/cover no-repeat;">
+        <section class="hero d-flex align-items-center text-center text-white position-relative" id="home-section"
+            style="min-height: 100vh; overflow: hidden;">
 
-    <!-- Overlay -->
-    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-color: rgba(0,0,0,0.6); z-index: 0;"></div>
-
-    <div class="container position-relative z-1">
-        <div class="row align-items-center g-5">
-
-            <!-- Left Column -->
-            <div class="col-lg-7 text-white">
-                <h1 class="display-3 fw-bold mb-4" style="text-shadow: 0 4px 12px rgba(0,0,0,0.8);">
-                    Rent 2 Recover
-                </h1>
-<p class="lead mb-4 fw-normal" style="max-width: 600px;">
-                    We specialise in a wide range of mobility equipment including electric wheelchairs,
-                    scooters, hospital beds, bath lifts, oxygen concentrators, and much more.
-                    <span class="text-light-50">
-                        We also offer medical equipment for purchase with a guaranteed buyback option (T’s & C’s apply).
-                    </span>
-                </p>
-
-                <a href="{{ url('/#category-section') }}" class="btn btn-lg fw-bold px-4 py-3" style="background-color:#679767; color:white;">
-                    Rent Your Recovery Equipment Now <i class="bi bi-arrow-right ms-2"></i>
-                </a>
+            <div class="position-absolute top-0 start-0 w-100 h-100"
+                style="background: url('{{ $heroBg }}') center center/cover no-repeat;
+                    filter: blur(0px);
+                    transform: scale(1.1);
+                    z-index: 0;">
             </div>
 
-            <!-- Right Column (Image or Placeholder) -->
-            {{-- <div class="col-lg-5 text-center d-none d-lg-block">
-                <img src="{{ asset('images/wheelchair.png') }}" alt="Mobility Equipment"
-                    class="img-fluid rounded-4 shadow-lg" style="max-height: 450px; object-fit: contain;">
-            </div> --}}
-        </div>
+            <div class="position-absolute top-0 start-0 w-100 h-100"
+                style="background-color: rgba(0,0,0,0.5); z-index: 1;"></div>
+
+            <div class="container mt-5 position-relative" style="z-index: 2;">
+                <h1 class="display-3 fw-bold mb-4"
+                    style="text-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 2px 6px rgba(0,0,0,0.8);">
+                    Rent 2 Recover <br>
+                    {{-- <span class="" style=" color: #CF9B4D; text-shadow: 0 3px 8px rgba(146, 116, 27, 0.2);">
+                        adventure was born
+                    </span> --}}
+                </h1>
+
+                <p class="lead fw-normal text-light mb-5 mx-auto" style="max-width: 700px;">
+                    We specialise in a wide range of mobility equipment including electric wheelchairs, electric scooters, hospital beds, knee scooters, bath lifts, oxygen concentrator machines and many more. We also have a wide range of medical equipment available for purchase. The purchase option offers a guaranteed buyback. (T’s and C’s apply).
+                </p>
+
+                <div class="d-flex justify-content-center mb-5">
+                    <a href="{{ url('/#vehicles-section') }}" class="btn btn-lg fw-bold px-4 py-3"
+                        style="background-color: #679767">
+                        RENT YOUR RECOVERY EQUIPMENT NOW  <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+
+                <div class="row justify-content-center g-4 px-3 px-lg-5">
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <i class="bi bi-shield-lock display-4 mb-3" style="color:#679767;"></i>
+                            <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
+                            <p class="text-light">Every Land Rover restored to original specifications with modern reliability.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <i class="bi bi-compass display-4 mb-3" style="color:#679767;"></i>
+                            <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
+                            <p class="text-light">Equipped for multi-day expeditions with premium overland accessories.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <i class="bi bi-arrow-right-circle display-4 mb-3" style="color:#679767;"></i>
+                            <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
+                            <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
-</section>
 
 
     <!-- Categories Section -->
