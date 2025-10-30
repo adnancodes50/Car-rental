@@ -79,7 +79,7 @@
                     @php
                         $existingStock = $equipment->stocks->firstWhere('location_id', $location->id);
                     @endphp
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-6">
                         <label>{{ $location->name }}</label>
                         <input type="number"
                                name="stocks[{{ $location->id }}]"

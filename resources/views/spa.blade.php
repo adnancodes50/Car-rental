@@ -33,7 +33,7 @@
                 </p>
 
                 <div class="d-flex justify-content-center mb-5">
-                    <a href="{{ url('/#vehicles-section') }}" class="btn btn-lg fw-bold px-4 py-3"
+                    <a href="#category-section" class="btn btn-lg fw-bold px-4 py-3"
                         style="background-color: #679767">
                         RENT YOUR RECOVERY EQUIPMENT NOW  <i class="bi bi-arrow-right ms-2"></i>
                     </a>
@@ -68,26 +68,36 @@
 
 
     <!-- Categories Section -->
-    <section class="py-5 bg-light" id="category-section" style="overflow: hidden;">
-        <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold text-dark mb-3">Categories</h2>
-                <p class="lead text-muted mx-auto" style="max-width: 700px;">
-                    Each Land Rover in our collection has been meticulously restored and prepared <br>
-                    for your next adventure.
-                </p>
-            </div>
+<section class="py-5 bg-light" id="category-section" style="overflow: hidden;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold text-dark mb-3">Categories</h2>
+            <p class="lead text-muted mx-auto" style="max-width: 700px;">
+                Each Land Rover in our collection has been meticulously restored and prepared <br>
+                for your next adventure.
+            </p>
+        </div>
 
-            <div class="row g-4 justify-content-center">
-                @forelse($categories as $category)
+        <div class="row g-4 justify-content-start">
+            @php
+                // we'll track if we rendered at least 1 active category
+                $hasActive = false;
+            @endphp
+
+            @foreach($categories as $category)
+                @if($category->status === 'active')
+                    @php $hasActive = true; @endphp
+
                     <div class="col-12 col-sm-6 col-lg-3">
                         <div class="category-card position-relative overflow-hidden rounded-4 shadow-sm">
                             @if ($category->image)
-                                <img src="{{ asset('storage/' . $category->image) }}" alt="{{ $category->name }}"
-                                    class="img-fluid w-100 h-100 category-bg">
+                                <img src="{{ asset('storage/' . $category->image) }}"
+                                     alt="{{ $category->name }}"
+                                     class="img-fluid w-100 h-100 category-bg">
                             @else
                                 <img src="https://via.placeholder.com/600x400?text=Category+Image"
-                                    alt="{{ $category->name }}" class="img-fluid w-100 h-100 category-bg">
+                                     alt="{{ $category->name }}"
+                                     class="img-fluid w-100 h-100 category-bg">
                             @endif
 
                             <div class="category-overlay d-flex flex-column justify-content-end p-4">
@@ -98,20 +108,22 @@
                             </div>
 
                             <a href="{{ route('category.show', $category->id) }}"
-                                class="category-arrow position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle text-white">
+                               class="category-arrow position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle text-white">
                                 <i class="bi bi-arrow-up-right fs-5"></i>
                             </a>
-
                         </div>
                     </div>
-                @empty
-                    <div class="col-12 text-center text-muted">
-                        <p>No categories available at the moment.</p>
-                    </div>
-                @endforelse
-            </div>
+                @endif
+            @endforeach
+
+            @if(!$hasActive)
+                <div class="col-12 text-center text-muted">
+                    <p>No categories available at the moment.</p>
+                </div>
+            @endif
         </div>
-    </section>
+    </div>
+</section>
 
     <style>
         .category-card {

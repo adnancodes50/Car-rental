@@ -365,7 +365,7 @@
 
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fw-medium text-secondary">Deposit Due Now:</span>
-                            <span class="fw-bold text-warning" id="totalDepositDisplay">
+                            <span class="fw-bold " id="totalDepositDisplay" style="color: #679767;">
                                 R{{ number_format($deposit, 2) }} ZAR
                             </span>
                         </div>

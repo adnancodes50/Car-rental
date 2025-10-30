@@ -44,27 +44,27 @@ class DashboardController extends Controller
 
         // ✅ Total purchases
         // $totalPurchases = Purchase::count();
-        $totalPurchases = Purchase::count();
+        // $totalPurchases = Purchase::count();
 
         // ✅ Total purchase amount
-        $totalPurchaseAmount = Purchase::sum('total_price');
+        // $totalPurchaseAmount = Purchase::sum('total_price');
 
         $totalBookingAmount = Booking::sum('total_price');
 
-        $totalPurchaseAmount = Purchase::sum('total_price');
+        // $totalPurchaseAmount = Purchase::sum('total_price');
 
-        $totalEarnings = $totalBookingAmount + $totalPurchaseAmount;
+        // $totalEarnings = $totalBookingAmount + $totalPurchaseAmount;
 
         return view('admin.dashboard.index', compact(
             'totalBookings',
             'totalBookingAmount',
             'activeBookings',
             'totalCustomers',
-            'totalPurchases',
-            'totalPurchaseAmount',
-            'totalEarnings',
-            'totalPurchaseAmount',
-            'totalEarnings',
+            // 'totalPurchases',
+            // 'totalPurchaseAmount',
+            // 'totalEarnings',
+            // 'totalPurchaseAmount',
+            // 'totalEarnings',
               'totalCategories',
               'totalItems',
               'totalBranches'

@@ -35,12 +35,12 @@
                     'icon' => 'fa-book',
                     'color' => '#007bff',
                 ],
-                [
-                    'title' => 'Total Vehicle Sales',
-                    'value' => '$' . number_format($totalPurchaseAmount, 2),
-                    'icon' => 'fa-car',
-                    'color' => '#ffc107',
-                ],
+                // [
+                //     'title' => 'Total Vehicle Sales',
+                //     'value' => '$' . number_format($totalPurchaseAmount, 2),
+                //     'icon' => 'fa-car',
+                //     'color' => '#ffc107',
+                // ],
                 [
                     'title' => 'Total Customers',
                     'value' => $totalCustomers,
@@ -62,12 +62,12 @@
                     'color' => '#343a40',
                     'link' => route('bookings.index'),
                 ],
-                [
-                    'title' => 'Sale Count',
-                    'value' => $totalPurchases,
-                    'icon' => 'fa-shopping-cart',
-                    'color' => '#6c757d',
-                ],
+                // [
+                //     'title' => 'Sale Count',
+                //     'value' => $totalPurchases,
+                //     'icon' => 'fa-shopping-cart',
+                //     'color' => '#6c757d',
+                // ],
             ];
         @endphp
 
