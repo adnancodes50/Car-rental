@@ -26,9 +26,6 @@
                 <h1 class="display-3 fw-bold mb-4"
                     style="text-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 2px 6px rgba(0,0,0,0.8);">
                     Rent 2 Recover <br>
-                    {{-- <span class="" style=" color: #CF9B4D; text-shadow: 0 3px 8px rgba(146, 116, 27, 0.2);">
-                        adventure was born
-                    </span> --}}
                 </h1>
 
                 <p class="lead fw-normal text-light mb-5 mx-auto" style="max-width: 700px;">
@@ -96,13 +93,12 @@
                             <div class="category-overlay d-flex flex-column justify-content-end p-4">
                                 <div class="text-start text-white">
                                     <h5 class="fw-bold mb-2">{{ $category->name }}</h5> <br>
-                                    {{-- <h5 class=" mb-2">{{ $category->short_description }}</h5> --}}
                                     <p class="small mb-0">{{ Str::limit($category->short_description, 80) }}</p>
                                 </div>
                             </div>
 
                             <a href="{{ route('category.show', $category->id) }}"
-                                class="category-arrow position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle bg-light text-dark">
+                                class="category-arrow position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle text-white">
                                 <i class="bi bi-arrow-up-right fs-5"></i>
                             </a>
 
@@ -143,18 +139,17 @@
             border-radius: 1rem;
         }
 
+        /* ✅ Updated category arrow button color */
         .category-arrow {
             width: 42px;
             height: 42px;
-            background-color: #CF9B4D;
-            /* Gold color */
+            background-color: #679767; /* Updated green color */
             color: #fff;
             transition: all 0.3s ease;
         }
 
         .category-arrow:hover {
-            background-color: #b8893d;
-            /* Slightly darker gold */
+            background-color: #558157; /* Slightly darker green */
             color: #fff;
         }
     </style>
