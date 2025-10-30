@@ -250,153 +250,144 @@
     {{-- client-sent total is ignored server-side, but we can keep it for display --}}
     <input type="hidden" name="total_price" value="{{ $price }}">
 
- {{-- Step 1: Info --}}
-<div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md modal-dialog-centered">
-        <div class="modal-content rounded-4 shadow-lg overflow-hidden">
+    {{-- Step 1: Info --}}
+    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow-lg overflow-hidden">
 
-            {{-- Header --}}
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold d-flex align-items-center">
-                    <i class="bi bi-bag-check-fill me-2 text-success fs-5"></i>
-                    Purchase {{ $item->name }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            {{-- Body --}}
-            <div class="modal-body p-4 pt-3">
-
-                {{-- Sold Alert --}}
-                @if ($isSold)
-                    <div class="alert alert-danger mb-3 rounded-3">
-                        This {{ $type }} is sold and cannot be purchased.
-                    </div>
-                @endif
-
-                {{-- Title --}}
-                <div class="text-center mb-4">
-                    <h5 class="fw-normal mb-0">Choose Quantity &amp; Location</h5>
-                    <hr class="mt-2 mb-0 opacity-10">
+                {{-- Header --}}
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold d-flex align-items-center">
+                        <i class="bi bi-bag-check-fill me-2 text-success fs-5"></i>
+                        Purchase {{ $item->name }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                {{-- Equipment Section --}}
-                @if ($type === 'equipment')
-                    <div class="row g-3 align-items-end mb-4">
-                        {{-- Location --}}
-                        <div class="col-12 col-md-8">
-                            <div class="d-flex justify-content-between align-items-baseline">
-                                <label class="form-label mb-1">Location</label>
-                                <small class="text-muted ms-2" id="stockHint">
-                                    Select a location to view available stock.
-                                </small>
+
+                    <hr class="mt-3 mb-0 opacity-10">
+
+                {{-- Body --}}
+                <div class="modal-body p-4 pt-3">
+
+                    {{-- Sold Alert --}}
+                    {{-- @if ($isSold)
+                        <div class="alert alert-danger mb-3 rounded-3">
+                            This {{ $type }} is sold and cannot be purchased.
+                        </div>
+                    @endif --}}
+
+                    {{-- Title --}}
+                    <div class="text-center mb-4">
+                        <h5 class="fw-normal mb-0">Choose Quantity &amp; Location</h5>
+                        {{-- <hr class="mt-2 mb-0 opacity-10"> --}}
+                    </div>
+
+                    {{-- Equipment Section --}}
+                    @if ($type === 'equipment')
+                        <div class="row g-3 align-items-end mb-4">
+                            {{-- Location --}}
+                            <div class="col-12 col-md-9">
+                                <div class="d-flex justify-content-between align-items-baseline">
+                                    <label class="form-label mb-1">Location</label>
+                                    <small class="text-muted ms-2" id="stockHint">
+                                        Select a location to view available stock.
+                                    </small>
+                                </div>
+
+                                <select name="location_id" id="locationSelect" class="form-select rounded-3" required
+                                    {{ $isSold ? 'disabled' : '' }}>
+                                    <option value="" disabled selected>Select a location</option>
+                                    @foreach ($item->stocks ?? [] as $s)
+                                        <option value="{{ $s->location->id }}" data-stock="{{ (int) $s->stock }}">
+                                            {{ $s->location->name }} — In stock: {{ (int) $s->stock }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
 
-                            <select
-                                name="location_id"
-                                id="locationSelect"
-                                class="form-select rounded-3"
-                                required
-                                {{ $isSold ? 'disabled' : '' }}
-                            >
-                                <option value="" disabled selected>Select a location</option>
-                                @foreach ($item->stocks ?? [] as $s)
-                                    <option value="{{ $s->location->id }}" data-stock="{{ (int) $s->stock }}">
-                                        {{ $s->location->name }} — In stock: {{ (int) $s->stock }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                            {{-- Quantity --}}
+                            <div class="col-6 col-md-3">
+                                <label class="form-label mb-1 d-flex justify-content-between">
+                                    <span>Quantity</span>
+                                    <small class="text-muted" id="qtyHint" style="font-weight:400;"></small>
+                                </label>
 
-                        {{-- Quantity --}}
-                        <div class="col-6 col-md-4">
-                            <label class="form-label mb-1 d-flex justify-content-between">
-                                <span>Quantity</span>
-                                <small class="text-muted" id="qtyHint" style="font-weight:400;"></small>
-                            </label>
-
-                            <select
-                                name="quantity"
-                                id="qtySelect"
-                                class="form-select rounded-3"
-                                required
-                                {{ $isSold ? 'disabled' : '' }}
-                            >
-                                <option value="" selected disabled>Select</option>
-                            </select>
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Summary Card --}}
-                <div class="bg-light rounded-4 p-3 border border-light shadow-sm mb-4">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="fw-medium text-secondary">{{ ucfirst($type) }}:</span>
-                        <span class="fw-semibold text-dark" id="itemNameDisplay">{{ $item->name }}</span>
-                    </div>
-
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="fw-medium text-secondary">Unit Price:</span>
-                        <span class="fw-bold text-dark" id="unitPriceDisplay">
-                            R{{ number_format($price, 2) }} ZAR
-                        </span>
-                    </div>
-
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="fw-medium text-secondary">Deposit (per unit):</span>
-                        <span class="fw-bold text-dark" id="unitDepositDisplay">
-                            R{{ number_format($deposit, 2) }} ZAR
-                        </span>
-                    </div>
-
-                    @if ($type === 'equipment')
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="fw-medium text-secondary">Selected Quantity:</span>
-                            <span class="fw-semibold text-dark" id="quantityDisplay">1 unit</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="fw-medium text-secondary">Selected Location:</span>
-                            <span class="fw-semibold text-dark" id="selectedLocationDisplay">
-                                Select a location
-                            </span>
+                                <select name="quantity" id="qtySelect" class="form-select rounded-3" required
+                                    {{ $isSold ? 'disabled' : '' }}>
+                                    <option value="" selected disabled>Select</option>
+                                </select>
+                            </div>
                         </div>
                     @endif
 
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="fw-medium text-secondary">Total Price:</span>
-                        <span class="fw-semibold text-dark" id="totalPriceDisplay">
-                            R{{ number_format($price, 2) }} ZAR
-                        </span>
+                    {{-- Summary Card --}}
+                    <div class="bg-light rounded-4 p-3 border border-light shadow-sm mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-medium text-secondary">{{ ucfirst($type) }}:</span>
+                            <span class="fw-semibold text-dark" id="itemNameDisplay">{{ $item->name }}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-medium text-secondary">Unit Price:</span>
+                            <span class="fw-bold text-dark" id="unitPriceDisplay">
+                                R{{ number_format($price, 2) }} ZAR
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-medium text-secondary">Deposit (per unit):</span>
+                            <span class="fw-bold text-dark" id="unitDepositDisplay">
+                                R{{ number_format($deposit, 2) }} ZAR
+                            </span>
+                        </div>
+
+                        @if ($type === 'equipment')
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="fw-medium text-secondary">Selected Quantity:</span>
+                                <span class="fw-semibold text-dark" id="quantityDisplay">1 unit</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="fw-medium text-secondary">Selected Location:</span>
+                                <span class="fw-semibold text-dark" id="selectedLocationDisplay">
+                                    Select a location
+                                </span>
+                            </div>
+                        @endif
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-medium text-secondary">Total Price:</span>
+                            <span class="fw-semibold text-dark" id="totalPriceDisplay">
+                                R{{ number_format($price, 2) }} ZAR
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-medium text-secondary">Deposit Due Now:</span>
+                            <span class="fw-bold text-warning" id="totalDepositDisplay">
+                                R{{ number_format($deposit, 2) }} ZAR
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-medium text-secondary">Deposit Due Now:</span>
-                        <span class="fw-bold text-warning" id="totalDepositDisplay">
-                            R{{ number_format($deposit, 2) }} ZAR
-                        </span>
-                    </div>
+                    {{-- Continue Button --}}
+                    <button type="button" id="purchaseStep1Next" class="btn btn-dark w-100 py-2 fw-semibold rounded-3"
+                        {{ $isSold ? 'disabled' : '' }}>
+                        Continue
+                    </button>
+
                 </div>
-
-                {{-- Continue Button --}}
-                <button
-                    type="button"
-                    id="purchaseStep1Next"
-                    class="btn btn-dark w-100 py-2 fw-semibold rounded-3"
-                    {{ $isSold ? 'disabled' : '' }}
-                >
-                    Continue
-                </button>
-
             </div>
         </div>
     </div>
-</div>
 
 
 
 
     {{-- Step 2: Customer (+ Location & Quantity for equipment) --}}
-    <div class="modal fade" id="purchaseCustomer" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+    <div class="modal fade" id="purchaseCustomer" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg overflow-hidden">
                 <div class="modal-header">
@@ -472,7 +463,8 @@
     @endphp
 
     {{-- Step 3a: Payment method --}}
-    <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+    <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
@@ -539,7 +531,7 @@
 
     {{-- Step 3b: Stripe --}}
     <div class="modal fade mt-2" id="stripePaymentModal" tabindex="-1" aria-hidden="true"
-        data-bs-backdrop="false">
+        data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
@@ -633,7 +625,8 @@
     </div>
 
     {{-- Step 4: Thank you --}}
-    <div class="modal fade" id="purchaseThankYou" tabindex="-1" aria-hidden="true" data-bs-backdrop="false">
+    <div class="modal fade" id="purchaseThankYou" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow text-center p-4 border-0">
                 <div class="modal-body text-center py-5">
@@ -652,6 +645,11 @@
 </form>
 
 <style>
+    .modal-backdrop.show {
+        background-color: transparent;
+        opacity: 0;
+    }
+
     #stripePaymentModal .modal-body {
         max-height: 70vh;
         overflow: auto;
@@ -821,9 +819,9 @@
 
         const modalInst = (el) =>
             bootstrap.Modal.getOrCreateInstance(el, {
-                backdrop: true,
+                backdrop: 'static',
                 focus: true,
-                keyboard: true,
+                keyboard: false,
             });
 
         function swapModal(fromId, toId) {
@@ -882,15 +880,15 @@
 
                 if (stockHint) {
                     if (locRecord) {
-                        stockHint.textContent = `Available: ${locRecord.stock}`;
+                        stockHint.textContent = ``;
                     } else {
-                        stockHint.textContent = 'Select a location to see available stock.';
+                        stockHint.textContent = '';
                     }
                 }
 
                 if (qtyHint) {
                     if (selectedLocationId && selectedQuantity > 0) {
-                        qtyHint.textContent = `${selectedQuantity} unit${selectedQuantity > 1 ? 's' : ''}`;
+                        qtyHint.textContent = ``;
                     } else {
                         qtyHint.textContent = '';
                     }

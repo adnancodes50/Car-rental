@@ -14,11 +14,13 @@
         <div class="row g-4 g-lg-5">
             <!-- Image Section -->
             <div class="col-12 col-md-6">
-                <div class="card shadow-lg mb-3" style="border: 3px solid #679767; border-radius: 10px;">
-                    <img src="{{ asset('storage/' . $equipment->image) }}" class="card-img-top rounded img-fluid"
-                        alt="{{ $equipment->name }}" style="object-fit: cover; max-height: 380px;">
+                <div class="card shadow-lg mb-3 border-3 rounded-4 "
+                    style="border-color: #679767; height: 430px; overflow: hidden;">
+                    <img src="{{ asset('storage/' . $equipment->image) }}" alt="{{ $equipment->name }}"
+                        class="card-img-top img-fluid w-100 h-100" style="object-fit: cover; object-position: center;">
                 </div>
             </div>
+
 
             <!-- Equipment Details -->
             <div class="col-12 col-md-6">
