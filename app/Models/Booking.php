@@ -23,13 +23,7 @@ class Booking extends Model
         'extra_days', // <-- new column added
     ];
 
-    /**
-     * A booking belongs to one vehicle.
-     */
-    public function vehicle()
-    {
-        return $this->belongsTo(Vehicles::class);
-    }
+    
 
     /**
      * A booking belongs to one customer.

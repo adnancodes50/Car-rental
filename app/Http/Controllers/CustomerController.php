@@ -17,7 +17,7 @@ class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::with('bookings')->get();
+        $customers = Customer::all();
         return view('admin.customer.index', compact('customers'));
     }
 
