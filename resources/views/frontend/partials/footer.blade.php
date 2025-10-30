@@ -4,9 +4,9 @@
         <!-- Heading -->
         <div class="mb-5">
             <div class="d-flex align-items-center justify-content-center mb-3">
-                <i class="bi bi-headset display-5" style="color: #CF9B4D;"></i>
+<i class="bi bi-headset display-4 f text-primary-green" style = "color: #679767; font-size: 80px"></i>
             </div>
-            <h2 class="fw-bold display-6  mb-3" style="color: #679767;">Get in Touch</h2>
+            <h2 class="fw-bold display-6  mb-3" style="color: black;">Get in Touch</h2>
             <p class="fs-5 text-muted mx-auto" style="max-width: 600px;">
                 Ready to start your adventure? Contact Alex directly to discuss your Land Rover rental or purchase.
             </p>
@@ -31,7 +31,7 @@
         </div>
     </div>
 
-   <footer class="footer border-top bg-white py-3">
+   {{-- <footer class="footer border-top bg-white py-3">
     <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center text-center">
 
         <!-- Left: Copyright -->
@@ -46,7 +46,7 @@
             <a  class="text-muted text-decoration-none ms-3">Terms & Conditions</a>
         </div>
     </div>
-</footer>
+</footer> --}}
 </section>
 
 <!-- Styles -->
@@ -66,6 +66,8 @@
     transition: all 0.3s ease;
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
+
+
 
 .contact-icon-btn:hover {
     background-color: #679767;

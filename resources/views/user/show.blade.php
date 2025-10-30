@@ -14,7 +14,7 @@
         <div class="row g-4 g-lg-5">
             <!-- Image Section -->
             <div class="col-12 col-md-6">
-                <div class="card border-0 shadow-sm mb-3">
+                <div class="card shadow-lg mb-3" style="border: 3px solid #679767; border-radius: 10px;">
                     <img src="{{ asset('storage/' . $equipment->image) }}" class="card-img-top rounded img-fluid"
                         alt="{{ $equipment->name }}" style="object-fit: cover; max-height: 380px;">
                 </div>
@@ -23,8 +23,13 @@
             <!-- Equipment Details -->
             <div class="col-12 col-md-6">
                 <div class="card border-0 shadow-sm p-4 rounded-4">
-                    <h2 class="h4">{{ $equipment->name }}</h2>
-                    <p class="text-muted small mb-2">Category: {{ $equipment->category->name ?? 'N/A' }}</p>
+                    <!-- Equipment name on left | Category on right -->
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                        <h2 class="h4 fw-bold mb-0">{{ $equipment->name }}</h2>
+                        <h2 class="text-muted small mb-0">
+                            Category: <span class="fw-semibold text-dark">{{ $equipment->category->name ?? 'N/A' }}</span>
+                        </h2>
+                    </div>
 
                     <p class="text-muted small mb-3">{{ $equipment->description ?? 'No description available.' }}</p>
 
@@ -63,12 +68,9 @@
                         @endif
                     </div>
 
-
-
-
                     <!-- Action Buttons -->
                     <div class="d-flex flex-wrap gap-3 mt-3">
-                        <a href="#" class="btn  flex-grow-1 py-3 fw-semibold"
+                        <a href="#" class="btn flex-grow-1 py-3 fw-semibold"
                             style="background-color: #679767; color: black;">
                             <i class="bi bi-calendar-check me-2"></i> Book {{ $equipment->name }}
                         </a>
@@ -88,12 +90,10 @@
                         @endif
                     </div>
 
-
                     <!-- Stock Info -->
                     @if ($equipment->stocks && $equipment->stocks->count() > 0)
                         <div class="mt-4">
                             <h6 class="fw-bold mb-3">Stock Availability</h6>
-
                             <div class="row row-cols-1 row-cols-sm-2 g-2 text-muted small">
                                 @foreach ($equipment->stocks as $stock)
                                     <div class="col d-flex align-items-center">
@@ -105,10 +105,9 @@
                             </div>
                         </div>
                     @endif
-
-
                 </div>
             </div>
+
         </div>
     </div>
 
