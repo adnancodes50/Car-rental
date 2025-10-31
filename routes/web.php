@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\AddOnInventryController;
+// use App\Http\Controllers\AddOnInventryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CustomerController;
@@ -68,23 +68,7 @@ Route::post('/equipment-purchase/payfast/notify', [EquipmentPurchaseController::
 
 
 
-Route::group([
-    'middleware' => ['auth'],
-    'prefix' => 'inventry',
-    'as' => 'inventry.'
-], function () {
-    Route::get('/', [AddOnInventryController::class, 'index'])->name('index');
-    Route::get('/create', [AddOnInventryController::class, 'create'])->name('create');
-    Route::post('/', [AddOnInventryController::class, 'store'])->name('store');
-    Route::get('/{addon}/edit', [AddOnInventryController::class, 'edit'])->name('edit');
-    Route::put('/{addon}', [AddOnInventryController::class, 'update'])->name('update');
 
-
-    Route::get('/{addon}/reservations', [AddOnInventryController::class, 'view'])->name('view');
-
-    Route::delete('/{addon}', [AddOnInventryController::class, 'destroy'])->name('destroy')
-        ->whereNumber('addon');
-});
 
 Route::group([
     'middleware' => ['auth'],
