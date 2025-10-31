@@ -72,6 +72,7 @@ class BookingController extends Controller
             'rental_quantity'=> ['required', 'integer', 'min:1'],
             'rental_start_date' => ['required', 'date'],
             'extra_days'     => ['nullable', 'integer', 'min:0'],
+            'stock_quantity' => ['nullable', 'integer', 'min:1'],
 
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email:rfc,filter', 'max:255'],
@@ -110,6 +111,7 @@ class BookingController extends Controller
                 $unit = $validated['rental_unit']; // day, week, month
                 $qty  = (int) $validated['rental_quantity'];
                 $extraDays = (int) ($validated['extra_days'] ?? 0);
+                $reservedUnits = max(1, (int) ($validated['stock_quantity'] ?? 1));
                 $start = Carbon::parse($validated['rental_start_date'])->startOfDay();
 
                 switch ($unit) {
@@ -125,11 +127,15 @@ class BookingController extends Controller
                         $end = $start->copy()->addMonths($qty)->subDay()->addDays($extraDays);
                         $pricePerUnit = $category->monthly_price;
                         break;
+                    default:
+                        throw new \InvalidArgumentException("Unsupported rental unit [$unit]");
                 }
 
-                $basePrice = $pricePerUnit * $qty;
-                $extraDaysPrice = $extraDays > 0 ? ($pricePerUnit / ($unit === 'week' ? 7 : ($unit === 'month' ? 30 : 1))) * $extraDays : 0;
-                $totalPrice = round($basePrice + $extraDaysPrice, 2);
+                $perUnitBase = $pricePerUnit * $qty;
+                $extraDaysDivisor = $unit === 'week' ? 7 : ($unit === 'month' ? 30 : 1);
+                $extraDaysPrice = $extraDays > 0 ? ($pricePerUnit / $extraDaysDivisor) * $extraDays : 0;
+                $perUnitTotal = $perUnitBase + $extraDaysPrice;
+                $totalPrice = round($perUnitTotal * $reservedUnits, 2);
 
                 /* ---------- 3) Create booking ---------- */
                 $booking = Booking::create([
@@ -150,6 +156,7 @@ class BookingController extends Controller
                         'category_price' => $pricePerUnit,
                         'location' => $location->name,
                         'equipment' => $equipment?->name,
+                        'units_reserved' => $reservedUnits,
                     ]),
                 ]);
 

@@ -93,10 +93,11 @@
 
                     <!-- Action Buttons -->
                     <div class="d-flex flex-wrap gap-3 mt-1">
-                        <a href="#" class="btn flex-grow-1 py-3 fw-semibold"
-                            style="background-color: #679767; color: black;">
+                        <button type="button" class="btn flex-grow-1 py-3 fw-semibold"
+                            style="background-color: #679767; color: black;" data-bs-toggle="modal"
+                            data-bs-target="#bookingModal">
                             <i class="bi bi-calendar-check me-2"></i> Book {{ $equipment->name }}
-                        </a>
+                        </button>
 
                         @if ($equipment->category && $equipment->category->is_for_sale)
                             @php $isSoldBtn = ($equipment->status ?? null) === 'sold'; @endphp
@@ -182,5 +183,6 @@
         });
     </script>
 
+    @include('models.booking', ['equipment' => $equipment])
     @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])
 @endsection

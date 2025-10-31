@@ -1,4 +1,8 @@
-@php
+﻿@php
+    use App\Models\SystemSetting;
+    use App\Models\StripeSetting;
+    use Illuminate\Support\Facades\Cache;
+
     $item = $equipment ?? $vehicle ?? null;
     $category = $item?->category ?? null;
     $stocks = collect($item?->stocks ?? [])->filter(function ($stock) {
@@ -36,6 +40,24 @@
     $defaultUnit = array_key_first($unitOptions);
     $categoryId = $category?->id ?? $item?->category_id ?? null;
     $today = now()->toDateString();
+
+    if (app()->environment('local')) {
+        $settings = SystemSetting::first() ?: new SystemSetting([
+            'stripe_enabled' => false,
+            'payfast_enabled' => false,
+        ]);
+    } else {
+        $settings = Cache::remember('payments.settings', 60, function () {
+            return SystemSetting::first() ?: new SystemSetting([
+                'stripe_enabled' => false,
+                'payfast_enabled' => false,
+            ]);
+        });
+    }
+
+    $stripeConfig = StripeSetting::first();
+    $stripePublicKey = $stripeConfig->stripe_key ?? '';
+    $paymentMethodsEnabled = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
 @endphp
 
 @if ($item && $categoryId && count($unitOptions) > 0)
@@ -44,12 +66,14 @@
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
             <div class="modal-content rounded-4">
                 <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i>Book {{ $item->name }}</h5>
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-calendar-check me-2"></i>Book {{ $item->name }}
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body pt-0">
-                    {{-- <div class="booking-stepper mb-4">
+                    <div class="booking-stepper mb-4">
                         <div class="booking-step active" data-step-index="0">
                             <span class="booking-step-number">1</span>
                             <span class="booking-step-label">Options</span>
@@ -62,9 +86,9 @@
                             <span class="booking-step-number">3</span>
                             <span class="booking-step-label">Review</span>
                         </div>
-                    </div> --}}
+                    </div>
 
-                    <form id="bookingForm" action="{{ route('bookings.store') }}" method="POST" novalidate>
+                    <form id="bookingForm" method="POST" action="{{ route('bookings.store') }}" novalidate>
                         @csrf
                         <input type="hidden" name="category_id" value="{{ $categoryId }}">
                         <input type="hidden" name="equipment_id" value="{{ $item->id }}">
@@ -72,6 +96,7 @@
                             value="{{ $defaultUnit ?? '' }}">
                         <input type="hidden" name="total_price" id="bookingTotalInput" value="0">
                         <input type="hidden" name="equipment_stock_id" id="bookingStockIdInput" value="">
+                        <input type="hidden" name="booking_id" id="bookingId">
 
                         <div data-booking-step="0">
                             <div class="alert alert-danger d-none" id="bookingStep1Error"></div>
@@ -121,7 +146,14 @@
                             </div>
 
                             <div class="row g-3 mb-3">
-                                
+                                <div class="col-12 col-md-6" data-extra-days-wrap>
+                                    <label for="bookingExtraDays" class="form-label">Extra Days (optional)</label>
+                                    <select id="bookingExtraDays" name="extra_days" class="form-select">
+                                        <option value="0" selected>0</option>
+                                    </select>
+                                    <div class="form-text">Add extra days on top of the selected plan.</div>
+                                </div>
+
                                 <div class="col-12 col-md-6">
                                     <label for="bookingLocation" class="form-label">Select Location</label>
                                     <select id="bookingLocation" name="location_id" class="form-select" required
@@ -147,17 +179,16 @@
 
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
-                                    <label for="bookingStock" class="form-label">Stock to Book</label>
+                                    <label for="bookingStock" class="form-label">Units to Reserve</label>
                                     <select id="bookingStock" name="stock_quantity" class="form-select"
                                         {{ $stocks->isEmpty() ? 'disabled' : '' }}>
                                         <option value="1" selected>1 unit</option>
                                     </select>
-                                    <div class="form-text">Limits the number of units reserved at the selected
-                                        location.</div>
+                                    <div class="form-text">Controls how many units are reserved at the location.</div>
                                 </div>
                             </div>
 
-                            <div class="booking-summary-panel mt-4" id="bookingTotalsPanel">
+                            <div class="booking-summary-panel mt-4">
                                 <div class="booking-summary-row">
                                     <span class="text-muted small">Vehicle total</span>
                                     <strong id="bookingTotalDisplay">R0.00</strong>
@@ -284,15 +315,16 @@
                                 <span class="h5 mb-0" data-summary="total">R0.00</span>
                             </div>
 
-                            <div class="alert d-none" id="bookingSubmissionAlert" role="alert"></div>
+                            <div class="alert alert-danger d-none" id="bookingSummaryError" role="alert"></div>
 
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-outline-secondary flex-grow-1"
                                     id="bookingStep3Back">
                                     Back
                                 </button>
-                                <button type="submit" class="btn btn-dark flex-grow-1" id="bookingSubmitButton">
-                                    Confirm Booking
+                                <button type="button" class="btn btn-dark flex-grow-1" id="openPayment"
+                                    {{ $stocks->isEmpty() ? 'disabled' : '' }}>
+                                    Continue to Payment
                                 </button>
                             </div>
                         </div>
@@ -306,6 +338,175 @@
         </div>
     </div>
 
+    <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-credit-card-fill me-2"></i>Select Payment Method
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3 align-items-stretch justify-content-center">
+                        @if ($settings->stripe_enabled)
+                            <div class="col-12 {{ $paymentMethodsEnabled === 2 ? 'col-md-6' : 'col-md-12' }}">
+                                <input type="radio" name="booking_payment_method" id="bookingStripe"
+                                    value="stripe" class="btn-check" autocomplete="off">
+                                <label for="bookingStripe" class="card btn w-100 booking-pay-option p-3 flex-column">
+                                    <div class="text-center mb-2">
+                                        <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe"
+                                            style="width: 80px;">
+                                    </div>
+                                    <div class="booking-pay-text text-center">
+                                        <div class="fw-bold">Stripe (Card)</div>
+                                        <small class="text-muted">Visa � Mastercard � Amex</small>
+                                    </div>
+                                </label>
+                            </div>
+                        @endif
+
+                        @if ($settings->payfast_enabled)
+                            <div class="col-12 {{ $paymentMethodsEnabled === 2 ? 'col-md-6' : 'col-md-12' }}">
+                                <input type="radio" name="booking_payment_method" id="bookingPayfast"
+                                    value="payfast" class="btn-check" autocomplete="off">
+                                <label for="bookingPayfast" class="card btn w-100 booking-pay-option p-3 flex-column">
+                                    <div class="text-center mb-2">
+                                        <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
+                                            alt="PayFast" style="width: 80px;">
+                                    </div>
+                                    <div class="booking-pay-text text-center">
+                                        <div class="fw-bold">PayFast</div>
+                                        <small class="text-muted">South African payments</small>
+                                    </div>
+                                </label>
+                            </div>
+                        @endif
+
+                        @if ($paymentMethodsEnabled === 0)
+                            <div class="col-12">
+                                <div class="alert alert-warning text-center mb-0">
+                                    No payment methods are currently available.
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="paymentBackToSummary">
+                        Back
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
+        style="margin-top: 4rem; height:90vh;">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-credit-card-fill me-2"></i>Stripe Payment
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="booking-card-element" class="mt-3">
+                        <div id="booking-card-number" class="form-control mb-3"></div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div id="booking-card-expiry" class="form-control"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="booking-card-cvc" class="form-control"></div>
+                            </div>
+                        </div>
+                        <div id="booking-card-errors" class="text-danger mt-2"></div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary me-auto" id="stripeBackToPayment">
+                        Back
+                    </button>
+                    <button type="button" id="bookingStripePayButton" class="btn btn-dark">
+                        Pay with Stripe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bookingPaymentLoader" class="booking-payment-loader d-none" role="alert" aria-live="polite"
+        aria-hidden="true">
+        <div class="booking-payment-loader-backdrop"></div>
+        <div class="booking-payment-loader-content">
+            <div class="spinner-border text-light" role="status" aria-hidden="true"></div>
+            <span id="bookingPaymentLoaderText" class="mt-3 text-white fw-semibold">Processing payment...</span>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+            <div class="modal-content rounded-4 shadow border-0">
+                <div class="modal-body p-4 p-md-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10"
+                            style="width:56px;height:56px;">
+                            <i class="bi bi-check-lg text-success fs-3"></i>
+                        </div>
+                        <div>
+                            <h4 class="fw-bold mb-1">Payment Successful!</h4>
+                            <p class="text-muted mb-0">We've confirmed your booking. A receipt has been sent to your
+                                email.</p>
+                        </div>
+                    </div>
+
+                    <div class="booking-review mb-4">
+                        <h6 class="fw-semibold mb-2">Booking Summary</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Item</span>
+                                <span id="tyItemName">{{ $item->name }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Reference</span>
+                                <span id="tyReference">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Period</span>
+                                <span id="tyPeriod">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Payment method</span>
+                                <span id="tyMethod">-</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="booking-total-card mb-4">
+                        <span class="text-muted small">Total paid</span>
+                        <span class="h5 mb-0" id="tyAmount">R0.00</span>
+                    </div>
+
+                    <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
+                        <i class="bi bi-envelope-fill"></i>
+                        <div id="tyCustomerContact">We will email your confirmation shortly.</div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-md-row gap-2 mt-4">
+                        <button type="button" class="btn btn-success w-100" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <style>
         #bookingModal .booking-stepper {
             display: flex;
@@ -426,14 +627,70 @@
         #bookingModal .form-text {
             font-size: .75rem;
         }
-    </style>
 
+        #bookingPayment .booking-pay-option {
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: .75rem;
+            padding: 20px;
+            text-align: center;
+            transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+        }
+
+        #bookingPayment .booking-pay-option:hover {
+            border-color: #679767;
+            box-shadow: 0 12px 20px rgba(103, 151, 103, .15);
+            transform: translateY(-2px);
+        }
+
+        #bookingPayment .btn-check:checked+.booking-pay-option {
+            border-color: #679767;
+            background: rgba(103, 151, 103, .08);
+            box-shadow: 0 12px 24px rgba(103, 151, 103, .2);
+        }
+
+        .booking-payment-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 1080;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .booking-payment-loader.d-none {
+            display: none;
+        }
+
+        .booking-payment-loader-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(33, 37, 41, .6);
+        }
+
+        .booking-payment-loader-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            background: rgba(0, 0, 0, .3);
+            backdrop-filter: blur(4px);
+        }
+    </style>
     <script>
         (() => {
-            if (window.__bookingModalInitialized) {
+            if (window.__extraBookingModalInitialized) {
                 return;
             }
-            window.__bookingModalInitialized = true;
+            window.__extraBookingModalInitialized = true;
 
             const modalEl = document.getElementById('bookingModal');
             if (!modalEl) {
@@ -451,6 +708,7 @@
                 0: modalEl.querySelector('#bookingStep1Error'),
                 1: modalEl.querySelector('#bookingStep2Error'),
             };
+            const summaryErrorEl = modalEl.querySelector('#bookingSummaryError');
 
             const unitCards = Array.from(modalEl.querySelectorAll('[data-unit-card]'));
             const rentalUnitInput = form.querySelector('#bookingRentalUnit');
@@ -463,13 +721,34 @@
             const stockSelect = form.querySelector('#bookingStock');
             const stockIdInput = form.querySelector('#bookingStockIdInput');
             const totalInput = form.querySelector('#bookingTotalInput');
+            const bookingIdField = form.querySelector('#bookingId');
 
             const totalDisplay = modalEl.querySelector('#bookingTotalDisplay');
             const periodStartDisplay = modalEl.querySelector('#bookingPeriodStart');
             const periodEndDisplay = modalEl.querySelector('#bookingPeriodEnd');
 
-            const submissionAlert = modalEl.querySelector('#bookingSubmissionAlert');
-            const submitButton = modalEl.querySelector('#bookingSubmitButton');
+            const openPaymentBtn = modalEl.querySelector('#openPayment');
+
+            const paymentModalEl = document.getElementById('bookingPayment');
+            const paymentBackBtn = document.getElementById('paymentBackToSummary');
+            const paymentMethodInputs = paymentModalEl
+                ? Array.from(paymentModalEl.querySelectorAll('input[name="booking_payment_method"]'))
+                : [];
+
+            const stripeModalEl = document.getElementById('bookingStripeModal');
+            const stripeBackBtn = document.getElementById('stripeBackToPayment');
+            const stripePayBtn = document.getElementById('bookingStripePayButton');
+            const stripeCardErrorsEl = document.getElementById('booking-card-errors');
+
+            const paymentLoaderEl = document.getElementById('bookingPaymentLoader');
+            const paymentLoaderTextEl = document.getElementById('bookingPaymentLoaderText');
+
+            const thankYouModalEl = document.getElementById('bookingThankYou');
+            const thankYouReferenceEl = document.getElementById('tyReference');
+            const thankYouPeriodEl = document.getElementById('tyPeriod');
+            const thankYouMethodEl = document.getElementById('tyMethod');
+            const thankYouAmountEl = document.getElementById('tyAmount');
+            const thankYouContactEl = document.getElementById('tyCustomerContact');
 
             const summaryFields = {
                 unit: modalEl.querySelector('[data-summary="unit"]'),
@@ -498,14 +777,24 @@
                 day: 'numeric',
             });
 
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             let currentStep = 0;
+            let bookingCreationInFlight = false;
+            let currentBookingReference = null;
+
+            let stripeInstance = null;
+            let stripeElements = null;
+            let stripeCardNumber = null;
+            let stripeCardExpiry = null;
+            let stripeCardCvc = null;
+
+            const stripePublicKey = "{{ $stripePublicKey }}";
 
             function setStep(index) {
                 currentStep = index;
                 steps.forEach((stepEl, idx) => {
                     stepEl.classList.toggle('d-none', idx !== index);
                 });
-
                 stepIndicators.forEach((indicator, idx) => {
                     indicator.classList.toggle('active', idx === index);
                     indicator.classList.toggle('completed', idx < index);
@@ -526,20 +815,17 @@
                 target.classList.remove('d-none');
             }
 
-            function clearSubmissionAlert() {
-                if (!submissionAlert) {
+            function setSummaryError(message) {
+                if (!summaryErrorEl) {
                     return;
                 }
-                submissionAlert.className = 'alert d-none';
-                submissionAlert.textContent = '';
-            }
-
-            function showSubmissionAlert(type, message) {
-                if (!submissionAlert) {
+                if (!message) {
+                    summaryErrorEl.classList.add('d-none');
+                    summaryErrorEl.textContent = '';
                     return;
                 }
-                submissionAlert.className = `alert alert-${type}`;
-                submissionAlert.textContent = message;
+                summaryErrorEl.textContent = message;
+                summaryErrorEl.classList.remove('d-none');
             }
 
             function selectedUnitCard() {
@@ -547,7 +833,9 @@
             }
 
             function ensureSelectOptions(selectEl, count, formatter) {
-                if (!selectEl) return;
+                if (!selectEl) {
+                    return;
+                }
                 const currentValue = parseInt(selectEl.value || '1', 10) || 1;
                 selectEl.innerHTML = '';
                 for (let i = 1; i <= count; i += 1) {
@@ -679,7 +967,6 @@
                 } else {
                     totalPerUnit += pricePerUnit * extraDays;
                 }
-
                 const total = Math.round(totalPerUnit * unitsReserved * 100) / 100;
 
                 let endDate = null;
@@ -794,9 +1081,9 @@
                     summaryFields.phone.textContent = form.elements.phone?.value?.trim() || '-';
                 }
             }
-
             function validateStep1() {
                 showStepError(0, '');
+                setSummaryError('');
 
                 const unitCard = selectedUnitCard();
                 if (!unitCard) {
@@ -827,6 +1114,7 @@
 
             function validateStep2() {
                 showStepError(1, '');
+                setSummaryError('');
                 const requiredFields = ['name', 'email', 'phone'];
                 for (const fieldName of requiredFields) {
                     const field = form.elements[fieldName];
@@ -838,10 +1126,16 @@
                 return true;
             }
 
+            function resetPaymentChoices() {
+                paymentMethodInputs.forEach((input) => {
+                    input.checked = false;
+                });
+            }
+
             function resetFormState() {
-                clearSubmissionAlert();
                 showStepError(0, '');
                 showStepError(1, '');
+                setSummaryError('');
 
                 form.reset();
 
@@ -866,10 +1160,24 @@
                 updateStockSelect();
                 updateTotalsAndSummary();
                 setStep(0);
+                resetPaymentChoices();
 
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = 'Confirm Booking';
+                if (openPaymentBtn) {
+                    openPaymentBtn.disabled = !!(locationSelect && locationSelect.disabled);
+                    openPaymentBtn.textContent = 'Continue to Payment';
+                }
+
+                if (bookingIdField) {
+                    bookingIdField.value = '';
+                }
+
+                currentBookingReference = null;
+                bookingCreationInFlight = false;
+
+                if (stripePayBtn) {
+                    stripePayBtn.dataset.amount = '0';
+                    stripePayBtn.disabled = !stripeInstance;
+                    stripePayBtn.textContent = 'Pay with Stripe';
                 }
             }
 
@@ -904,7 +1212,7 @@
             }
 
             if (stockSelect) {
-                stockSelect.addEventListener('change', updateTotalsAndSummary);
+                stockSelect.addEventListener('change', updateSummary);
             }
 
             ['name', 'email', 'phone', 'country'].forEach((fieldName) => {
@@ -946,54 +1254,446 @@
                 step3Back.addEventListener('click', () => setStep(1));
             }
 
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                clearSubmissionAlert();
-
-                if (!validateStep1() || !validateStep2()) {
-                    setStep(!validateStep1() ? 0 : 1);
+            function setOpenPaymentLoading(isLoading) {
+                if (!openPaymentBtn) {
                     return;
                 }
+                if (isLoading) {
+                    openPaymentBtn.disabled = true;
+                    openPaymentBtn.textContent = 'Preparing booking...';
+                } else {
+                    openPaymentBtn.disabled = false;
+                    openPaymentBtn.textContent = 'Continue to Payment';
+                }
+            }
 
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            async function ensureBookingCreated() {
+                if (!bookingIdField) {
+                    return false;
+                }
+                if (bookingIdField.value) {
+                    return true;
                 }
 
-                try {
-                    const formData = new FormData(form);
-                    if (extraDaysWrap?.classList.contains('d-none')) {
-                        formData.set('extra_days', '0');
-                    }
-                    formData.set('rental_unit', rentalUnitInput.value || '');
+                if (bookingCreationInFlight) {
+                    return false;
+                }
 
+                bookingCreationInFlight = true;
+                setOpenPaymentLoading(true);
+
+                const formData = new FormData(form);
+                if (extraDaysWrap?.classList.contains('d-none')) {
+                    formData.set('extra_days', '0');
+                }
+                if (!stockSelect || stockSelect.disabled) {
+                    formData.delete('stock_quantity');
+                }
+                formData.delete('booking_id');
+
+                try {
                     const response = await fetch(form.action, {
                         method: 'POST',
-                        headers: {
-                            Accept: 'application/json',
-                        },
                         body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
                     });
 
-                    const data = await response.json();
+                    const text = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch {
+                        data = {
+                            success: false,
+                            message: text,
+                        };
+                    }
 
-                    if (!response.ok || !data.success) {
-                        const message = data?.message || 'We could not complete your booking. Please try again.';
-                        showSubmissionAlert('danger', message);
+                    if (!response.ok || !data?.success) {
+                        setSummaryError(data?.message || 'Failed to create booking. Please try again.');
+                        return false;
+                    }
+
+                    bookingIdField.value = data.booking_id || data.id || '';
+                    currentBookingReference = data.reference || null;
+
+                    if (stripePayBtn) {
+                        stripePayBtn.dataset.amount = totalInput?.value || '0';
+                    }
+
+                    return Boolean(bookingIdField.value);
+                } catch (error) {
+                    console.error(error);
+                    setSummaryError('Could not create the booking. Please try again.');
+                    return false;
+                } finally {
+                    bookingCreationInFlight = false;
+                    setOpenPaymentLoading(false);
+                }
+            }
+
+            function showPaymentLoader(message = 'Processing payment...') {
+                if (!paymentLoaderEl) {
+                    return;
+                }
+                if (paymentLoaderTextEl) {
+                    paymentLoaderTextEl.textContent = message;
+                }
+                paymentLoaderEl.classList.remove('d-none');
+                paymentLoaderEl.setAttribute('aria-hidden', 'false');
+            }
+
+            function hidePaymentLoader() {
+                if (!paymentLoaderEl) {
+                    return;
+                }
+                paymentLoaderEl.classList.add('d-none');
+                paymentLoaderEl.setAttribute('aria-hidden', 'true');
+            }
+
+            function populateThankYouModal(methodLabel) {
+                if (thankYouReferenceEl) {
+                    const reference = currentBookingReference
+                        || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
+                    thankYouReferenceEl.textContent = reference;
+                }
+
+                if (thankYouPeriodEl) {
+                    const start = summaryFields.start?.textContent || '-';
+                    const end = summaryFields.end?.textContent || '-';
+                    thankYouPeriodEl.textContent = `${start} ? ${end}`;
+                }
+
+                if (thankYouMethodEl) {
+                    thankYouMethodEl.textContent = methodLabel || '-';
+                }
+
+                if (thankYouAmountEl) {
+                    thankYouAmountEl.textContent = summaryFields.total?.textContent || fmtCurrency.format(0);
+                }
+
+                if (thankYouContactEl) {
+                    const contactParts = [];
+                    if (form.elements.email?.value) {
+                        contactParts.push(form.elements.email.value.trim());
+                    }
+                    if (form.elements.phone?.value) {
+                        contactParts.push(form.elements.phone.value.trim());
+                    }
+                    thankYouContactEl.textContent = contactParts.length
+                        ? `We will reach out at ${contactParts.join(' � ')}`
+                        : 'We will email your confirmation shortly.';
+                }
+            }
+
+            function showThankYou(methodLabel) {
+                populateThankYouModal(methodLabel);
+                if (thankYouModalEl) {
+                    bootstrap.Modal.getOrCreateInstance(thankYouModalEl).show();
+                }
+            }
+
+            if (openPaymentBtn) {
+                openPaymentBtn.addEventListener('click', async () => {
+                    setSummaryError('');
+                    if (!validateStep1()) {
+                        setStep(0);
+                        return;
+                    }
+                    if (!validateStep2()) {
+                        setStep(1);
                         return;
                     }
 
-                    showSubmissionAlert('success', 'Booking confirmed! We have sent a confirmation email.');
                     updateSummary();
-                } catch (error) {
-                    showSubmissionAlert('danger', 'Something went wrong. Please try again.');
-                } finally {
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = 'Confirm Booking';
+
+                    const created = await ensureBookingCreated();
+                    if (!created) {
+                        return;
                     }
+
+                    if (paymentModalEl) {
+                        resetPaymentChoices();
+                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
+                    }
+                });
+            }
+
+            if (paymentBackBtn) {
+                paymentBackBtn.addEventListener('click', () => {
+                    if (paymentModalEl) {
+                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).hide();
+                    }
+                });
+            }
+            async function startPayfastFlow() {
+                if (!bookingIdField?.value) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.',
+                    });
+                    if (paymentModalEl) {
+                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
+                    }
+                    return;
                 }
+
+                showPaymentLoader('Redirecting to PayFast...');
+                try {
+                    const res = await fetch(
+                        `/payfast/booking/init/${encodeURIComponent(bookingIdField.value)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify({
+                                booking_id: bookingIdField.value,
+                            }),
+                        });
+
+                    const data = await res.json();
+                    if (!res.ok || !data?.success) {
+                        throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
+                    }
+
+                    const formEl = document.createElement('form');
+                    formEl.method = 'POST';
+                    formEl.action = data.action;
+                    formEl.style.display = 'none';
+
+                    Object.entries(data.fields || {}).forEach(([key, value]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        formEl.appendChild(input);
+                    });
+
+                    document.body.appendChild(formEl);
+                    formEl.submit();
+                } catch (error) {
+                    console.error(error);
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'PayFast error',
+                        text: error.message || 'Could not redirect to PayFast.',
+                    });
+                    if (paymentModalEl) {
+                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
+                    }
+                } finally {
+                    hidePaymentLoader();
+                }
+            }
+
+            paymentMethodInputs.forEach((input) => {
+                input.addEventListener('change', async () => {
+                    if (!input.checked) {
+                        return;
+                    }
+
+                    if (paymentModalEl) {
+                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).hide();
+                    }
+
+                    if (input.value === 'stripe') {
+                        if (!stripeInstance) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Stripe unavailable',
+                                text: 'Card payments are not available at the moment.',
+                            });
+                            if (paymentModalEl) {
+                                bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
+                            }
+                            resetPaymentChoices();
+                            return;
+                        }
+
+                        if (stripePayBtn) {
+                            stripePayBtn.dataset.amount = totalInput?.value || '0';
+                            stripePayBtn.textContent = `Pay ${fmtCurrency.format(parseFloat(stripePayBtn.dataset.amount || '0'))}`;
+                        }
+
+                        bootstrap.Modal.getOrCreateInstance(stripeModalEl).show();
+                        return;
+                    }
+
+                    if (input.value === 'payfast') {
+                        await startPayfastFlow();
+                        resetPaymentChoices();
+                    }
+                });
             });
+
+            if (stripeBackBtn) {
+                stripeBackBtn.addEventListener('click', () => {
+                    if (stripeModalEl) {
+                        bootstrap.Modal.getOrCreateInstance(stripeModalEl).hide();
+                    }
+                    if (paymentModalEl) {
+                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
+                    }
+                    resetPaymentChoices();
+                });
+            }
+
+            if (typeof Stripe !== 'undefined' && stripePublicKey) {
+                stripeInstance = Stripe(stripePublicKey);
+                stripeElements = stripeInstance.elements();
+                const stripeStyle = {
+                    base: {
+                        color: '#212529',
+                        fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+                        fontSize: '16px',
+                        '::placeholder': { color: '#adb5bd' },
+                    },
+                    invalid: {
+                        color: '#dc3545',
+                    },
+                };
+
+                stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
+                stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
+                stripeCardCvc = stripeElements.create('cardCvc', { style: stripeStyle });
+
+                const cardNumberMount = document.getElementById('booking-card-number');
+                const cardExpiryMount = document.getElementById('booking-card-expiry');
+                const cardCvcMount = document.getElementById('booking-card-cvc');
+
+                if (cardNumberMount) stripeCardNumber.mount(cardNumberMount);
+                if (cardExpiryMount) stripeCardExpiry.mount(cardExpiryMount);
+                if (cardCvcMount) stripeCardCvc.mount(cardCvcMount);
+            } else if (stripePublicKey) {
+                console.warn('Stripe.js not loaded or publishable key missing.');
+            }
+
+            if (stripePayBtn && stripeInstance) {
+                stripePayBtn.addEventListener('click', async function() {
+                    if (!bookingIdField?.value) {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Booking missing',
+                            text: 'Please create the booking first.',
+                        });
+                        return;
+                    }
+
+                    if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Stripe unavailable',
+                            text: 'Payment form is not ready yet.',
+                        });
+                        return;
+                    }
+
+                    if (stripeCardErrorsEl) {
+                        stripeCardErrorsEl.textContent = '';
+                    }
+
+                    const originalText = this.textContent;
+                    this.disabled = true;
+                    this.textContent = 'Processing...';
+                    showPaymentLoader();
+
+                    try {
+                        const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
+                            type: 'card',
+                            card: stripeCardNumber,
+                            billing_details: {
+                                name: form?.name?.value || '',
+                                email: form?.email?.value || '',
+                            },
+                        });
+
+                        if (error) {
+                            if (stripeCardErrorsEl) {
+                                stripeCardErrorsEl.textContent = error.message || 'Payment method error.';
+                            }
+                            return;
+                        }
+
+                        const res = await fetch(
+                            `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken,
+                                },
+                                body: JSON.stringify({
+                                    payment_method_id: paymentMethod.id,
+                                    amount: parseFloat(this.dataset.amount || '0'),
+                                }),
+                            });
+
+                        const text = await res.text();
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch {
+                            data = {
+                                success: false,
+                                message: text,
+                            };
+                        }
+
+                        if (!res.ok || !data) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Payment failed',
+                                text: data?.message || 'Server error while processing payment.',
+                            });
+                            return;
+                        }
+
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(stripeModalEl)?.hide();
+                            showThankYou('Stripe');
+                            return;
+                        }
+
+                        if (data.requires_action && data.payment_intent_client_secret) {
+                            const result = await stripeInstance.confirmCardPayment(
+                                data.payment_intent_client_secret);
+                            if (result.error) {
+                                await Swal.fire({
+                                    icon: 'error',
+                                    title: 'Authentication failed',
+                                    text: result.error.message || 'Unable to confirm your card.',
+                                });
+                            } else {
+                                bootstrap.Modal.getInstance(stripeModalEl)?.hide();
+                                showThankYou('Stripe');
+                            }
+                        } else {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Payment failed',
+                                text: data.message || 'Unable to charge your card.',
+                            });
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment error',
+                            text: error.message || 'An unexpected error occurred.',
+                        });
+                    } finally {
+                        hidePaymentLoader();
+                        this.disabled = false;
+                        this.textContent = originalText;
+                    }
+                });
+            } else if (stripePayBtn) {
+                stripePayBtn.disabled = true;
+            }
 
             modalEl.addEventListener('shown.bs.modal', resetFormState);
             modalEl.addEventListener('hidden.bs.modal', resetFormState);
@@ -1005,3 +1705,6 @@
 @else
     {{-- Booking modal unavailable because pricing or category data is missing --}}
 @endif
+
+
+
