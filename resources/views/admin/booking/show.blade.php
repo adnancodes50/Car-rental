@@ -60,48 +60,6 @@
                     <p><strong>Extra Days:</strong> {{ $booking->extra_days ?? 0 }}</p>
                 </div>
             </div>
-
-            {{-- Add-Ons --}}
-            @if($booking->addOns->count() > 0)
-            <hr>
-            <h5 class="text-uppercase text-muted mb-3">Add-Ons</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped align-middle text-sm">
-                    <thead class="table-light text-uppercase text-muted">
-                        <tr>
-                            <th>#</th>
-                            <th>Add-On Name</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Total Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($booking->addOns as $index => $addOn)
-                        <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $addOn->name }}</td>
-                            <td>{{ $addOn->pivot->qty }}</td>
-                            <td>${{ number_format($addOn->pivot->price_total / $addOn->pivot->qty, 2) }}</td>
-                            <td>${{ number_format($addOn->pivot->price_total, 2) }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <p class="text-end fw-bold">
-                Total Add-Ons: ${{ number_format($booking->addOns->sum(fn($a) => $a->pivot->price_total), 2) }}
-            </p>
-            @endif
-
-            {{-- Notes
-            @if($booking->notes)
-            <hr>
-            <h5 class="text-uppercase text-muted mb-2">Notes</h5>
-            <div class="p-3 bg-light rounded">
-                {{ $booking->notes }}
-            </div>
-            @endif --}}
         </div>
     </div>
 </div>

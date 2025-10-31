@@ -31,22 +31,6 @@
         </div>
     </div>
 
-   {{-- <footer class="footer border-top bg-white py-3">
-    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center text-center">
-
-        <!-- Left: Copyright -->
-        <div class="text-muted small mb-2 mb-md-0 d-flex align-items-center justify-content-center">
-           Designed and Hosted by AppCity
-        </div>
-
-        <!-- Right: Links -->
-        <div class="footer-links d-flex align-items-center justify-content-center">
-            <a  class="text-muted text-decoration-none me-3">Privacy Policy</a>
-            <span class="text-muted">|</span>
-            <a  class="text-muted text-decoration-none ms-3">Terms & Conditions</a>
-        </div>
-    </div>
-</footer> --}}
 </section>
 
 <!-- Styles -->

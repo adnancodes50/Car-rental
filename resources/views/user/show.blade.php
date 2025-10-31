@@ -183,6 +183,6 @@
         });
     </script>
 
-    @include('models.booking', ['equipment' => $equipment])
+    @include('models.extrabooking', ['equipment' => $equipment])
     @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])
 @endsection
