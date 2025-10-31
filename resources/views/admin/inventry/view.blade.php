@@ -7,47 +7,47 @@
 @stop
 
 @section('content')
-<div class="container-fluid">
+    <div class="container-fluid">
 
-    <!-- Card -->
-    <div class="card shadow-sm border-0 rounded-4">
+        <!-- Card -->
+        <div class="card shadow-sm border-0 rounded-4">
 
 
-        <div class="card-body">
-            @if($reservations->isNotEmpty())
-                <div class="table-responsive">
-                    <table id="addonBookingsTable" class="table table-striped table-hover align-middle text-sm w-100">
-                        <thead class="table-light text-uppercase text-muted">
-                            <tr>
-                                <th>Customer</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Qty</th>
-                                <th>Total Price</th>
-                                <th>Dates</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($reservations as $res)
-    <tr>
-        <td class="fw-semibold">{{ $res->booking->customer->name ?? 'Unknown' }}</td>
-        <td>{{ $res->booking->customer->email ?? '-' }}</td>
-        <td>{{ $res->booking->customer->phone ?? '-' }}</td>
-        <td>{{ $res->qty }}</td>
-        <td>R{{ number_format($res->price_total, 2) }}</td>
-        <td>{{ $res->booking->start_date }} → {{ $res->booking->end_date }}</td>
-    </tr>
-@endforeach
+            <div class="card-body">
+                @if ($reservations->isNotEmpty())
+                    <div class="table-responsive">
+                        <table id="addonBookingsTable" class="table table-striped table-hover align-middle text-sm w-100">
+                            <thead class="table-light text-uppercase text-muted">
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Qty</th>
+                                    <th>Total Price</th>
+                                    <th>Dates</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($reservations as $res)
+                                    <tr>
+                                        <td class="fw-semibold">{{ $res->booking->customer->name ?? 'Unknown' }}</td>
+                                        <td>{{ $res->booking->customer->email ?? '-' }}</td>
+                                        <td>{{ $res->booking->customer->phone ?? '-' }}</td>
+                                        <td>{{ $res->qty }}</td>
+                                        <td>R{{ number_format($res->price_total, 2) }}</td>
+                                        <td>{{ $res->booking->start_date }} → {{ $res->booking->end_date }}</td>
+                                    </tr>
+                                @endforeach
 
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <p class="text-muted">No reservations yet for this add-on.</p>
-            @endif
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-muted">No reservations yet for this add-on.</p>
+                @endif
+            </div>
         </div>
     </div>
-</div>
 @stop
 
 @section('css')
@@ -70,7 +70,9 @@
                 responsive: true,
                 autoWidth: false,
                 pageLength: 10,
-                order: [[0, 'asc']],
+                order: [
+                    [0, 'asc']
+                ],
                 language: {
                     emptyTable: "No reservations found."
                 }

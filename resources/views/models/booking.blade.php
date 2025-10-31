@@ -121,7 +121,6 @@
                             </div>
 
                             <div class="row g-3 mb-3">
-                                
                                 <div class="col-12 col-md-6">
                                     <label for="bookingLocation" class="form-label">Select Location</label>
                                     <select id="bookingLocation" name="location_id" class="form-select" required
@@ -143,16 +142,13 @@
                                         <div class="form-text text-danger">No stock available for this item.</div>
                                     @endif
                                 </div>
-                            </div>
-
-                            <div class="row g-3">
                                 <div class="col-12 col-md-6">
-                                    <label for="bookingStock" class="form-label">Stock to Book</label>
+                                    <label for="bookingStock" class="form-label">Units to Reserve</label>
                                     <select id="bookingStock" name="stock_quantity" class="form-select"
                                         {{ $stocks->isEmpty() ? 'disabled' : '' }}>
                                         <option value="1" selected>1 unit</option>
                                     </select>
-                                    <div class="form-text">Limits the number of units reserved at the selected
+                                    <div class="form-text">Controls how many units are reserved at the selected
                                         location.</div>
                                 </div>
                             </div>
@@ -174,8 +170,8 @@
                                 </div>
                             </div>
 
-                            <div class="mt-4">
-                                <button type="button" class="btn btn-dark w-100" id="bookingStep1Next"
+                            <div class="booking-step-actions mt-4 pt-3 border-top d-flex justify-content-end">
+                                <button type="button" class="btn btn-dark" id="bookingStep1Next"
                                     {{ $stocks->isEmpty() ? 'disabled' : '' }}>
                                     Continue
                                 </button>
@@ -209,12 +205,12 @@
                                 </div>
                             </div>
 
-                            <div class="mt-4 d-flex gap-2">
-                                <button type="button" class="btn btn-outline-secondary flex-grow-1"
+                            <div class="booking-step-actions mt-4 pt-3 border-top d-flex gap-2 justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary"
                                     id="bookingStep2Back">
                                     Back
                                 </button>
-                                <button type="button" class="btn btn-dark flex-grow-1" id="bookingStep2Next">
+                                <button type="button" class="btn btn-dark" id="bookingStep2Next">
                                     Review Booking
                                 </button>
                             </div>
@@ -237,10 +233,6 @@
                                     <li class="list-group-item d-flex justify-content-between">
                                         <span>Quantity</span>
                                         <span data-summary="quantity">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Extra days</span>
-                                        <span data-summary="extra_days">-</span>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <span>Start</span>
@@ -286,12 +278,12 @@
 
                             <div class="alert d-none" id="bookingSubmissionAlert" role="alert"></div>
 
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-secondary flex-grow-1"
+                            <div class="booking-step-actions mt-4 pt-3 border-top d-flex gap-2 justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary"
                                     id="bookingStep3Back">
                                     Back
                                 </button>
-                                <button type="submit" class="btn btn-dark flex-grow-1" id="bookingSubmitButton">
+                                <button type="submit" class="btn btn-dark" id="bookingSubmitButton">
                                     Confirm Booking
                                 </button>
                             </div>
@@ -299,9 +291,7 @@
                     </form>
                 </div>
 
-                <div class="modal-footer border-0">
-                    <small class="text-muted">Need help? Contact us and we will assist with your booking.</small>
-                </div>
+
             </div>
         </div>
     </div>
@@ -456,8 +446,6 @@
             const rentalUnitInput = form.querySelector('#bookingRentalUnit');
             const quantitySelect = form.querySelector('#bookingQuantity');
             const quantityLabel = modalEl.querySelector('[data-quantity-label]');
-            const extraDaysWrap = modalEl.querySelector('[data-extra-days-wrap]');
-            const extraDaysSelect = form.querySelector('#bookingExtraDays');
             const startDateInput = form.querySelector('#bookingStartDate');
             const locationSelect = form.querySelector('#bookingLocation');
             const stockSelect = form.querySelector('#bookingStock');
@@ -475,7 +463,6 @@
                 unit: modalEl.querySelector('[data-summary="unit"]'),
                 rate: modalEl.querySelector('[data-summary="rate"]'),
                 quantity: modalEl.querySelector('[data-summary="quantity"]'),
-                extraDays: modalEl.querySelector('[data-summary="extra_days"]'),
                 start: modalEl.querySelector('[data-summary="start"]'),
                 end: modalEl.querySelector('[data-summary="end"]'),
                 location: modalEl.querySelector('[data-summary="location"]'),
@@ -583,41 +570,6 @@
                 ensureSelectOptions(quantitySelect, max, (i) => `${i}`);
             }
 
-            function updateExtraDays(unit) {
-                if (!extraDaysSelect || !extraDaysWrap) {
-                    return;
-                }
-
-                if (unit === 'week') {
-                    extraDaysWrap.classList.remove('d-none');
-                    extraDaysSelect.innerHTML = '';
-                    for (let i = 0; i <= 6; i += 1) {
-                        const option = document.createElement('option');
-                        option.value = String(i);
-                        option.textContent = `${i} day${i === 1 ? '' : 's'}`;
-                        if (i === 0) option.selected = true;
-                        extraDaysSelect.appendChild(option);
-                    }
-                    return;
-                }
-
-                if (unit === 'month') {
-                    extraDaysWrap.classList.remove('d-none');
-                    extraDaysSelect.innerHTML = '';
-                    for (let i = 0; i <= 30; i += 1) {
-                        const option = document.createElement('option');
-                        option.value = String(i);
-                        option.textContent = `${i} day${i === 1 ? '' : 's'}`;
-                        if (i === 0) option.selected = true;
-                        extraDaysSelect.appendChild(option);
-                    }
-                    return;
-                }
-
-                extraDaysWrap.classList.add('d-none');
-                extraDaysSelect.innerHTML = '<option value="0" selected>0</option>';
-            }
-
             function updateStockSelect() {
                 if (!locationSelect || !stockSelect || !stockIdInput) {
                     return;
@@ -661,40 +613,24 @@
                 const unit = rentalUnitInput?.value || unitCard?.dataset.unit || '';
                 const pricePerUnit = parseFloat(unitCard?.dataset.price || '0') || 0;
                 const quantity = parseInt(quantitySelect?.value || '0', 10) || 0;
-                let extraDays = parseInt(extraDaysSelect?.value || '0', 10) || 0;
                 const unitsReserved = parseInt(stockSelect?.value || '1', 10) || 1;
-
-                if (unit === 'day') {
-                    extraDays = 0;
-                }
 
                 const startValue = startDateInput?.value ? `${startDateInput.value}T00:00:00` : '';
                 const startDate = startValue ? new Date(startValue) : null;
 
-                let totalPerUnit = pricePerUnit * quantity;
-                if (unit === 'week') {
-                    totalPerUnit += (pricePerUnit / 7) * extraDays;
-                } else if (unit === 'month') {
-                    totalPerUnit += (pricePerUnit / 30) * extraDays;
-                } else {
-                    totalPerUnit += pricePerUnit * extraDays;
-                }
-
-                const total = Math.round(totalPerUnit * unitsReserved * 100) / 100;
+                const total = Math.round(pricePerUnit * quantity * unitsReserved * 100) / 100;
 
                 let endDate = null;
 
                 if (startDate) {
-                    if (unit === 'day') {
-                        endDate = new Date(startDate);
-                        endDate.setDate(endDate.getDate() + quantity + extraDays - 1);
-                    } else if (unit === 'week') {
-                        endDate = new Date(startDate);
-                        endDate.setDate(endDate.getDate() + (quantity * 7) + extraDays - 1);
+                    endDate = new Date(startDate);
+                    if (unit === 'week') {
+                        endDate.setDate(endDate.getDate() + (quantity * 7) - 1);
                     } else if (unit === 'month') {
-                        endDate = new Date(startDate);
                         endDate.setMonth(endDate.getMonth() + quantity);
-                        endDate.setDate(endDate.getDate() - 1 + extraDays);
+                        endDate.setDate(endDate.getDate() - 1);
+                    } else {
+                        endDate.setDate(endDate.getDate() + quantity - 1);
                     }
                 }
 
@@ -703,8 +639,8 @@
                     endDate,
                     unit,
                     quantity,
-                    extraDays,
                     unitsReserved,
+                    pricePerUnit,
                 };
             }
 
@@ -735,12 +671,12 @@
                     periodEndDisplay.textContent = niceDate(endYmd);
                 }
 
-                updateSummary();
+                updateSummary(totals);
             }
 
-            function updateSummary() {
+            function updateSummary(totalsOverride) {
                 const unitCard = selectedUnitCard();
-                const totals = computeTotals();
+                const totals = totalsOverride || computeTotals();
 
                 if (summaryFields.unit) {
                     summaryFields.unit.textContent = unitCard
@@ -748,8 +684,9 @@
                         : '-';
                 }
                 if (summaryFields.rate) {
-                    summaryFields.rate.textContent = unitCard
-                        ? `${fmtCurrency.format(parseFloat(unitCard.dataset.price || '0'))}${unitCard.dataset.suffix || ''}`
+                    const suffix = unitCard?.dataset.suffix || '';
+                    summaryFields.rate.textContent = totals.pricePerUnit
+                        ? `${fmtCurrency.format(totals.pricePerUnit)}${suffix}`
                         : '-';
                 }
                 if (summaryFields.quantity) {
@@ -758,10 +695,6 @@
                     summaryFields.quantity.textContent = qty
                         ? `${qty} ${unit}${qty === 1 ? '' : 's'}`
                         : '-';
-                }
-                if (summaryFields.extraDays) {
-                    const extra = totals.extraDays || 0;
-                    summaryFields.extraDays.textContent = `${extra} day${extra === 1 ? '' : 's'}`;
                 }
                 if (summaryFields.start) {
                     summaryFields.start.textContent = niceDate(startDateInput?.value || '');
@@ -853,7 +786,6 @@
                 }
 
                 updateQuantityOptions(rentalUnitInput.value || firstCard?.dataset.unit || 'day');
-                updateExtraDays(rentalUnitInput.value || firstCard?.dataset.unit || 'day');
 
                 if (startDateInput && startDateInput.getAttribute('min')) {
                     startDateInput.value = startDateInput.getAttribute('min');
@@ -879,17 +811,12 @@
                     card.classList.add('active');
                     rentalUnitInput.value = card.dataset.unit || '';
                     updateQuantityOptions(card.dataset.unit || 'day');
-                    updateExtraDays(card.dataset.unit || 'day');
                     updateTotalsAndSummary();
                 });
             });
 
             if (quantitySelect) {
                 quantitySelect.addEventListener('change', updateTotalsAndSummary);
-            }
-
-            if (extraDaysSelect) {
-                extraDaysSelect.addEventListener('change', updateTotalsAndSummary);
             }
 
             if (startDateInput) {
@@ -962,10 +889,9 @@
 
                 try {
                     const formData = new FormData(form);
-                    if (extraDaysWrap?.classList.contains('d-none')) {
-                        formData.set('extra_days', '0');
-                    }
+                    formData.set('extra_days', '0');
                     formData.set('rental_unit', rentalUnitInput.value || '');
+                    formData.set('stock_quantity', stockSelect?.value || '1');
 
                     const response = await fetch(form.action, {
                         method: 'POST',
