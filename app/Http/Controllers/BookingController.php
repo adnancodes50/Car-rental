@@ -4,748 +4,294 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Customer;
-use Illuminate\Support\Facades\Cache;
-
-use App\Models\Vehicles;
-use App\Models\AddOn;
-use App\Models\AddOnReservation;
+use App\Models\Category;
+use App\Models\Location;
+use App\Models\Equipment;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Log;
-use Stripe\Exception\ApiErrorException;
-use Stripe\Stripe;
-use Stripe\PaymentIntent;
-use Stripe\StripeClient;
-use App\Models\SystemSetting;
-use Validator;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\BookingReceipt;
 use App\Mail\BookingStatusUpdate;
 use App\Mail\OwnerBookingAlert;
-
+use Stripe\StripeClient;
 
 class BookingController extends Controller
 {
-  // app/Http/Controllers/BookingController.php
+    /* -------------------------------------------------
+     |  List all bookings
+     |--------------------------------------------------*/
+    public function index()
+    {
+        $driver = \DB::connection()->getDriverName();
 
-public function index()
-{
-    $driver = \DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            $yearExpr  = "CAST(STRFTIME('%Y', start_date) AS INTEGER)";
+            $monthExpr = "CAST(STRFTIME('%m', start_date) AS INTEGER)";
+        } elseif ($driver === 'pgsql') {
+            $yearExpr  = "EXTRACT(YEAR FROM start_date)";
+            $monthExpr = "EXTRACT(MONTH FROM start_date)";
+        } else {
+            $yearExpr  = "YEAR(start_date)";
+            $monthExpr = "MONTH(start_date)";
+        }
 
-    // Year & month expressions per driver
-    if ($driver === 'sqlite') {
-        $yearExpr  = "CAST(STRFTIME('%Y', start_date) AS INTEGER)";
-        $monthExpr = "CAST(STRFTIME('%m', start_date) AS INTEGER)";
-    } elseif ($driver === 'pgsql') {
-        $yearExpr  = "EXTRACT(YEAR FROM start_date)";
-        $monthExpr = "EXTRACT(MONTH FROM start_date)";
-    } else { // mysql/mariadb (default)
-        $yearExpr  = "YEAR(start_date)";
-        $monthExpr = "MONTH(start_date)";
+        $bookings = Booking::with(['customer', 'location', 'category', 'equipment'])
+            ->orderByRaw("$yearExpr ASC")
+            ->orderByRaw("$monthExpr ASC")
+            ->orderBy('start_date', 'ASC')
+            ->get();
+
+        return view('admin.booking.index', compact('bookings'));
     }
 
-    $bookings = Booking::with(['customer','vehicle'])
-        ->orderByRaw("$yearExpr ASC")
-        ->orderByRaw("$monthExpr ASC")
-        ->orderBy('start_date', 'ASC')
-        ->get();
-
-    return view('admin.booking.index', compact('bookings'));
-}
-
-
+    /* -------------------------------------------------
+     |  Show booking details
+     |--------------------------------------------------*/
     public function show(Booking $booking)
     {
-        $booking->load(['customer', 'vehicle', 'addOns']); // eager load relations
+        $booking->load(['customer', 'location', 'category', 'equipment']);
         return view('admin.booking.show', compact('booking'));
     }
 
-    /**
-     * Store a new booking (customer + booking + add_on_reservations).
-     */
+    /* -------------------------------------------------
+     |  Store a new booking
+     |--------------------------------------------------*/
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'location_id'    => ['required', 'exists:locations,id'],
+            'category_id'    => ['required', 'exists:categories,id'],
+            'equipment_id'   => ['nullable', 'exists:equipment,id'],
+            'rental_unit'    => ['required', 'in:day,week,month'],
+            'rental_quantity'=> ['required', 'integer', 'min:1'],
+            'rental_start_date' => ['required', 'date'],
+            'extra_days'     => ['nullable', 'integer', 'min:0'],
 
- public function store(Request $request)
-{
-    // Normalize empty booking_id to null
-    if ($request->has('booking_id') && $request->input('booking_id') === '') {
-        $request->merge(['booking_id' => null]);
-    }
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email:rfc,filter', 'max:255'],
+            'phone'    => ['required', 'regex:/^\\+?[0-9]{1,4}(?:[\\s-]?[0-9]{2,4}){2,4}$/'],
+            'country'  => ['nullable', 'string', 'max:100'],
+        ]);
 
-    $validated = $request->validate([
-        'vehicle_id'         => ['required','exists:vehicles,id'],
-        'rental_unit'        => ['required','in:day,week,month'],
-        'rental_quantity'    => ['required','integer','min:1'],
-        'rental_start_date'  => ['required','date'],
-        'extra_days'         => ['nullable','integer','min:0'],
-        'booking_id'         => ['nullable','integer','exists:bookings,id'],
+        $lockKey = sprintf(
+            'lock:booking:%s:%s:%s',
+            $request->input('equipment_id') ?? 'cat' . $request->input('category_id'),
+            strtolower(trim($request->input('email'))),
+            Carbon::parse($request->input('rental_start_date'))->toDateString()
+        );
 
-        'name'               => ['required','string','max:255'],
-        'email'              => ['required','email:rfc,filter','max:255'],
-        'phone'              => ['required','regex:/^\\+?[0-9]{1,4}(?:[\\s-]?[0-9]{2,4}){2,4}$/'],
-        'country'            => ['nullable','string','max:100'],
+        return Cache::lock($lockKey, 10)->block(5, function () use ($validated, $request) {
+            DB::beginTransaction();
 
-        // nested add-ons
-        'add_ons'               => ['nullable','array'],
-        'add_ons.*.type'        => ['nullable','in:day,week,month'],
-        'add_ons.*.quantity'    => ['nullable','integer','min:1'],
-        'add_ons.*.start_date'  => ['nullable','date'],
-        'add_ons.*.end_date'    => ['nullable','date'],
-        'add_ons.*.extra_days'  => ['nullable','integer','min:0'],
-        'add_ons.*.total'       => ['nullable','numeric','min:0'], // ignored; computed server-side
-    ]);
-
-    // Build a short-lived lock key from natural inputs (no DB change)
-    $lockKey = sprintf(
-        'lock:booking:%s:%s:%s:%s',
-        $request->input('vehicle_id'),
-        strtolower(trim($request->input('email') ?? 'guest')),
-        \Carbon\Carbon::parse($request->input('rental_start_date'))->toDateString(),
-        $request->input('rental_unit') . 'x' . (int) $request->input('rental_quantity')
-    );
-
-    // Use fully-qualified Cache facade so you don't have to add a "use" line
-    return \Illuminate\Support\Facades\Cache::lock($lockKey, 10)->block(5, function () use ($validated, $request) {
-
-        DB::beginTransaction();
-        try {
-            /* ---------- 1) Customer ---------- */
-            if (!empty($validated['email'])) {
+            try {
+                /* ---------- 1) Customer ---------- */
                 $customer = Customer::firstOrCreate(
                     ['email' => $validated['email']],
-                    ['name' => $validated['name'], 'phone' => $validated['phone'] ?? null, 'country' => $validated['country'] ?? null]
+                    [
+                        'name' => $validated['name'],
+                        'phone' => $validated['phone'],
+                        'country' => $validated['country'] ?? null,
+                    ]
                 );
-            } elseif (!empty($validated['phone'])) {
-                $customer = Customer::firstOrCreate(
-                    ['phone' => $validated['phone']],
-                    ['name' => $validated['name'], 'email' => $validated['email'] ?? null, 'country' => $validated['country'] ?? null]
-                );
-            } else {
-                $customer = Customer::create([
-                    'name' => $validated['name'],
-                    'email' => $validated['email'] ?? null,
-                    'phone' => $validated['phone'] ?? null,
-                    'country' => $validated['country'] ?? null,
+
+                /* ---------- 2) Category & Pricing ---------- */
+                $category = Category::findOrFail($validated['category_id']);
+                $location = Location::findOrFail($validated['location_id']);
+                $equipment = !empty($validated['equipment_id'])
+                    ? Equipment::find($validated['equipment_id'])
+                    : null;
+
+                $unit = $validated['rental_unit']; // day, week, month
+                $qty  = (int) $validated['rental_quantity'];
+                $extraDays = (int) ($validated['extra_days'] ?? 0);
+                $start = Carbon::parse($validated['rental_start_date'])->startOfDay();
+
+                switch ($unit) {
+                    case 'day':
+                        $end = $start->copy()->addDays($qty - 1 + $extraDays);
+                        $pricePerUnit = $category->daily_price;
+                        break;
+                    case 'week':
+                        $end = $start->copy()->addDays(($qty * 7) - 1 + $extraDays);
+                        $pricePerUnit = $category->weekly_price;
+                        break;
+                    case 'month':
+                        $end = $start->copy()->addMonths($qty)->subDay()->addDays($extraDays);
+                        $pricePerUnit = $category->monthly_price;
+                        break;
+                }
+
+                $basePrice = $pricePerUnit * $qty;
+                $extraDaysPrice = $extraDays > 0 ? ($pricePerUnit / ($unit === 'week' ? 7 : ($unit === 'month' ? 30 : 1))) * $extraDays : 0;
+                $totalPrice = round($basePrice + $extraDaysPrice, 2);
+
+                /* ---------- 3) Create booking ---------- */
+                $booking = Booking::create([
+                    'location_id'  => $location->id,
+                    'category_id'  => $category->id,
+                    'equipment_id' => $equipment?->id,
+                    'customer_id'  => $customer->id,
+                    'start_date'   => $start->toDateString(),
+                    'end_date'     => $end->toDateString(),
+                    'type'         => 'rental',
+                    'status'       => 'pending',
+                    'reference'    => 'BK-' . strtoupper(Str::random(8)),
+                    'total_price'  => $totalPrice,
+                    'extra_days'   => $extraDays,
+                    'notes'        => json_encode([
+                        'rental_unit' => $unit,
+                        'rental_quantity' => $qty,
+                        'category_price' => $pricePerUnit,
+                        'location' => $location->name,
+                        'equipment' => $equipment?->name,
+                    ]),
                 ]);
-            }
 
-            /* ---------- 2) Existing booking path (edit-in-progress) ---------- */
-            $existingBooking = null;
-            $createdNewBooking = false;
-            if (!empty($validated['booking_id'])) {
-                $existingBooking = Booking::lockForUpdate()->find($validated['booking_id']);
-                if ($existingBooking && !in_array($existingBooking->status, ['pending', 'draft', 'initiated'], true)) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'This booking can no longer be modified. Please refresh and start again.',
-                    ], 409);
-                }
-            }
+                DB::commit();
 
-            /* ---------- 3) Vehicle, dates, pricing ---------- */
-            $vehicle    = Vehicles::findOrFail($validated['vehicle_id']);
-            $unit       = $validated['rental_unit'];             // day|week|month
-            $qty        = (int) $validated['rental_quantity'];
-            $extraDays  = (int) ($validated['extra_days'] ?? 0);
-            $start      = \Carbon\Carbon::parse($validated['rental_start_date'])->startOfDay();
-
-            switch ($unit) {
-                case 'day':
-                    $end = $start->copy()->addDays($qty - 1 + $extraDays);
-                    break;
-                case 'week':
-                    $end = $start->copy()->addDays(($qty * 7) - 1 + $extraDays);
-                    break;
-                case 'month':
-                    $end = $start->copy()->addMonths($qty)->subDay()->addDays($extraDays);
-                    break;
-            }
-
-            $priceField        = 'rental_price_' . $unit;
-            $vehicleUnitPrice  = (float) ($vehicle->{$priceField} ?? 0.0);
-
-            $basePrice = $vehicleUnitPrice * $qty;
-            $extraDaysPrice = 0.0;
-            if ($extraDays > 0) {
-                if     ($unit === 'day')   $extraDaysPrice = $vehicleUnitPrice * $extraDays;
-                elseif ($unit === 'week')  $extraDaysPrice = ($vehicleUnitPrice / 7)  * $extraDays;
-                elseif ($unit === 'month') $extraDaysPrice = ($vehicleUnitPrice / 30) * $extraDays;
-            }
-
-            /* ---------- 4) Natural-key duplicate guard (no schema change) ---------- */
-            if (!$existingBooking) {
-                $dupe = Booking::where('vehicle_id', $vehicle->id)
-                    ->where('customer_id', $customer->id)
-                    ->whereDate('start_date', $start->toDateString())
-                    ->whereDate('end_date', $end->toDateString())
-                    ->whereIn('status', ['pending', 'draft', 'initiated'])
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($dupe) {
-                    DB::commit();
-                    return response()->json([
-                        'success'     => true,
-                        'booking_id'  => $dupe->id,
-                        'total_price' => (int) ($dupe->total_price ?? 0),
-                        'message'     => 'Booking already created.',
-                    ]);
-                }
-            }
-
-            /* ---------- 5) Add-ons (force same dates as vehicle) ---------- */
-            $addonsTotal        = 0.0;
-            $addOnReservations  = [];
-
-            $rawAddOns = $request->input('add_ons', []);
-
-            $unitsBetween = function(\Carbon\Carbon $s, \Carbon\Carbon $e, string $u): int {
-                $days = $s->diffInDays($e) + 1; // inclusive
-                if ($u === 'day')   return $days;
-                if ($u === 'week')  return (int) ceil($days / 7);
-                if ($u === 'month') return (int) ceil($days / 30);
-                return 0;
-            };
-
-            foreach ($rawAddOns as $addOnId => $payload) {
-                $aType = is_array($payload) ? ($payload['type'] ?? null) : $unit;   // fallback to booking unit
-                $aQty  = (int) (is_array($payload) ? ($payload['quantity'] ?? 0) : (int) $payload);
-                if ($aQty <= 0) continue;
-
-                /** @var AddOn|null $addOn */
-                $addOn = AddOn::lockForUpdate()->find($addOnId);
-                if (!$addOn) {
-                    DB::rollBack();
-                    return response()->json(['success' => false, 'message' => "Add-on not found: {$addOnId}"], 422);
-                }
-                if ($addOn->qty_total < $aQty) {
-                    DB::rollBack();
-                    return response()->json(['success' => false, 'message' => "Not enough stock for add-on ID {$addOnId}."], 422);
-                }
-
-                // Force add-on rental period to match booking period
-                $aStart = $start->copy();
-                $aEnd   = $end->copy();
-                if (!$aType) $aType = $unit;
-
-                $aPriceField = 'price_' . $aType; // price_day|price_week|price_month
-                $unitPrice   = (float) ($addOn->{$aPriceField} ?? 0.0);
-
-                $units = $unitsBetween($aStart, $aEnd, $aType);
-                $priceTotal = $units * $unitPrice * $aQty;
-
-                $addonsTotal += $priceTotal;
-
-                $addOnReservations[] = [
-                    'add_on_id'   => (int) $addOn->id,
-                    'qty'         => (int) $aQty,
-                    'price_total' => (int) round($priceTotal),
-                    'start_date'  => $aStart->toDateString(),
-                    'end_date'    => $aEnd->toDateString(),
-                    'extra_days'  => 0,
-                ];
-            }
-
-            /* ---------- 6) Totals & Persist booking ---------- */
-            $totalPrice = (int) round($basePrice + $extraDaysPrice + $addonsTotal);
-
-            $notesPayload = [
-                'rental_unit'        => $unit,
-                'rental_quantity'    => $qty,
-                'extra_days'         => $extraDays,
-                'vehicle_unit_price' => $vehicleUnitPrice,
-                'addons_summary'     => $addOnReservations,
-            ];
-
-            $bookingData = [
-                'vehicle_id'   => $vehicle->id,
-                'customer_id'  => $customer->id,
-                'start_date'   => $start->toDateString(),
-                'end_date'     => $end->toDateString(),
-                'notes'        => json_encode($notesPayload),
-                'total_price'  => $totalPrice,
-                'extra_days'   => $extraDays,
-            ];
-
-            if ($existingBooking) {
-                $existingBooking->fill($bookingData);
-                $existingBooking->type   = 'rental';
-                $existingBooking->status = 'pending';
-                if (empty($existingBooking->reference)) {
-                    $existingBooking->reference = 'BK-' . strtoupper(Str::random(8));
-                }
-                $existingBooking->save();
-
-                AddOnReservation::where('booking_id', $existingBooking->id)->delete();
-                $booking = $existingBooking;
-            } else {
-                $booking = Booking::create($bookingData + [
-                    'type'      => 'rental',
-                    'status'    => 'pending',
-                    'reference' => 'BK-' . strtoupper(Str::random(8)),
-                ]);
-                $createdNewBooking = true;
-            }
-
-            foreach ($addOnReservations as $r) {
-                AddOnReservation::create([
-                    'add_on_id'   => $r['add_on_id'],
-                    'booking_id'  => $booking->id,
-                    'qty'         => $r['qty'],
-                    'price_total' => $r['price_total'],
-                    'start_date'  => $r['start_date'],
-                    'end_date'    => $r['end_date'],
-                    'extra_days'  => $r['extra_days'] ?? 0,
-                ]);
-            }
-
-            DB::commit();
-
-            if ($createdNewBooking) {
                 $this->sendBookingCreationEmails($booking);
-            }
 
-            return response()->json([
-                'success'     => true,
-                'booking_id'  => $booking->id,
-                'total_price' => $totalPrice,
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
-            return response()->json(['success' => false, 'message' => 'Failed to create booking.'], 500);
-        }
-    });
-}
-
-
-
-
-/**
- * Program the mailer from DB settings at runtime.
- */
-private function configureMailerFromSettings(?SystemSetting $settings = null): bool
-{
-    $settings = $settings ?: SystemSetting::first();
-    if (!$settings || !$settings->mail_enabled) return false;
-
-    if (!$settings->mail_host || !$settings->mail_port || !$settings->mail_username || !$settings->mail_password) {
-        return false;
-    }
-
-    Config::set('mail.default', 'smtp');
-    Config::set('mail.from.address', $settings->mail_from_address ?: config('mail.from.address'));
-    Config::set('mail.from.name', $settings->mail_from_name ?: config('mail.from.name'));
-    Config::set('mail.mailers.smtp', [
-        'transport'  => 'smtp',
-        'host'       => $settings->mail_host,
-        'port'       => (int) $settings->mail_port,
-        'encryption' => $settings->mail_encryption ?: null, // 'tls'|'ssl'|null
-        'username'   => $settings->mail_username,
-        'password'   => $settings->mail_password,
-        'timeout'    => null,
-        'auth_mode'  => null,
-    ]);
-
-    return true;
-}
-
-/**
- * Decide where the owner copy goes.
- */
-private function resolveOwnerEmail(?SystemSetting $settings = null): ?string
-{
-    $settings = $settings ?: SystemSetting::first();
-
-    if (!empty($settings?->mail_owner_address)) {
-        return $settings->mail_owner_address;
-    }
-
-    return $settings?->mail_from_address
-        ?: (config('mail.from.address') ?: env('OWNER_EMAIL'));
-}
-
-/**
- * Send booking emails (customer + owner).
- */
-private function sendBookingEmails(\App\Models\Booking $booking, float $paidNow): void
-{
-    try {
-        $settings = SystemSetting::first();
-        $this->configureMailerFromSettings($settings);
-        $ownerEmail = $this->resolveOwnerEmail($settings);
-
-        // customer
-        if ($booking->customer?->email) {
-            Mail::to($booking->customer->email)
-                ->send(new BookingReceipt($booking->loadMissing('vehicle','customer'), $paidNow));
-        }
-
-        // owner
-        if ($ownerEmail) {
-            Mail::to($ownerEmail)
-                ->send(new OwnerBookingAlert($booking->loadMissing('vehicle','customer'), $paidNow));
-        }
-    } catch (\Throwable $e) {
-        Log::warning('Booking emails failed', [
-            'booking_id' => $booking->id ?? null,
-            'error'      => $e->getMessage(),
-        ]);
-    }
-}
-
-/**
- * Notify customer and owner immediately after a booking is created.
- */
-private function sendBookingCreationEmails(Booking $booking): void
-{
-    try {
-        $settings = SystemSetting::first();
-        $this->configureMailerFromSettings($settings);
-        $ownerEmail = $this->resolveOwnerEmail($settings);
-
-        $booking->loadMissing('vehicle', 'customer');
-
-        if ($booking->customer?->email) {
-            Mail::to($booking->customer->email)
-                ->send(new BookingStatusUpdate($booking, $booking->status ?? 'pending'));
-        }
-
-        if ($ownerEmail) {
-            Mail::to($ownerEmail)
-                ->send(new OwnerBookingAlert($booking, 0.0));
-        }
-    } catch (\Throwable $e) {
-        Log::warning('Booking creation emails failed', [
-            'booking_id' => $booking->id ?? null,
-            'error'      => $e->getMessage(),
-        ]);
-    }
-}
-
-
-
-
-
-
-
-
-
-
-public function payWithStripe(Request $request, Booking $booking)
-{
-    $request->validate(['payment_method_id' => 'required|string']);
-    $booking->loadMissing('customer');
-
-    $settings = \App\Models\SystemSetting::first();
-    if (!$settings || !$settings->stripe_enabled) {
-        return response()->json(['success' => false, 'message' => 'Stripe is not configured or disabled.'], 500);
-    }
-
-    $secret   = $settings->stripe_secret;
-    $currency = strtolower($booking->currency ?: 'zar');
-    $amount   = (int) round($booking->total_price * 100);
-    $receipt  = optional($booking->customer)->email;
-
-    if ($amount < 50) {
-        return response()->json(['success' => false, 'message' => 'Amount too low to charge (minimum R0.50).'], 422);
-    }
-
-    $stripe = new \Stripe\StripeClient($secret);
-
-    try {
-        if (!$booking->stripe_payment_intent_id) {
-            // Create PI
-            $pi = $stripe->paymentIntents->create([
-                'amount'               => $amount,
-                'currency'             => $currency,
-                'payment_method'       => $request->input('payment_method_id'),
-                'confirmation_method'  => 'manual',
-                'confirm'              => true,
-                'payment_method_types' => ['card'],
-                'receipt_email'        => $receipt,
-                'description'          => "Payment for Booking #{$booking->id}",
-                'metadata'             => [
-                    'booking_id' => (string) $booking->id,
-                    'vehicle_id' => (string) $booking->vehicle_id,
-                    'type'       => 'booking',
-                ],
-                'expand'               => ['payment_method', 'charges.data.balance_transaction'],
-            ]);
-            $booking->update(['stripe_payment_intent_id' => $pi->id]);
-
-            // ❌ Do NOT send emails here — payment may require 3DS or may fail.
-        } else {
-            // Confirm existing PI if needed
-            $pi = $stripe->paymentIntents->retrieve(
-                $booking->stripe_payment_intent_id,
-                ['expand' => ['payment_method', 'charges.data.balance_transaction']]
-            );
-
-            if ($pi->status !== 'succeeded') {
-                $pi = $stripe->paymentIntents->confirm($pi->id, [
-                    'payment_method' => $request->input('payment_method_id'),
+                return response()->json([
+                    'success' => true,
+                    'booking_id' => $booking->id,
+                    'total_price' => $totalPrice,
                 ]);
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                report($e);
+                return response()->json(['success' => false, 'message' => 'Booking failed: ' . $e->getMessage()], 500);
             }
+        });
+    }
+
+    /* -------------------------------------------------
+     |  Email Helpers
+     |--------------------------------------------------*/
+    private function configureMailerFromSettings(?SystemSetting $settings = null): bool
+    {
+        $settings = $settings ?: SystemSetting::first();
+        if (!$settings || !$settings->mail_enabled) return false;
+
+        Config::set('mail.default', 'smtp');
+        Config::set('mail.from.address', $settings->mail_from_address ?: config('mail.from.address'));
+        Config::set('mail.from.name', $settings->mail_from_name ?: config('mail.from.name'));
+        Config::set('mail.mailers.smtp', [
+            'transport'  => 'smtp',
+            'host'       => $settings->mail_host,
+            'port'       => (int) $settings->mail_port,
+            'encryption' => $settings->mail_encryption ?: null,
+            'username'   => $settings->mail_username,
+            'password'   => $settings->mail_password,
+        ]);
+
+        return true;
+    }
+
+    private function resolveOwnerEmail(?SystemSetting $settings = null): ?string
+    {
+        $settings = $settings ?: SystemSetting::first();
+        return $settings?->mail_owner_address
+            ?? $settings?->mail_from_address
+            ?? config('mail.from.address')
+            ?? env('OWNER_EMAIL');
+    }
+
+    private function sendBookingCreationEmails(Booking $booking): void
+    {
+        try {
+            $settings = SystemSetting::first();
+            $this->configureMailerFromSettings($settings);
+            $ownerEmail = $this->resolveOwnerEmail($settings);
+            $booking->loadMissing('customer', 'location', 'category', 'equipment');
+
+            if ($booking->customer?->email) {
+                Mail::to($booking->customer->email)
+                    ->send(new BookingStatusUpdate($booking, $booking->status ?? 'pending'));
+            }
+
+            if ($ownerEmail) {
+                Mail::to($ownerEmail)
+                    ->send(new OwnerBookingAlert($booking, 0.0));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Booking email failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function sendBookingEmails(Booking $booking, float $paidNow): void
+    {
+        try {
+            $settings = SystemSetting::first();
+            $this->configureMailerFromSettings($settings);
+            $ownerEmail = $this->resolveOwnerEmail($settings);
+
+            if ($booking->customer?->email) {
+                Mail::to($booking->customer->email)
+                    ->send(new BookingReceipt($booking->loadMissing('customer', 'category', 'location'), $paidNow));
+            }
+
+            if ($ownerEmail) {
+                Mail::to($ownerEmail)
+                    ->send(new OwnerBookingAlert($booking->loadMissing('customer', 'category', 'location'), $paidNow));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Booking emails failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /* -------------------------------------------------
+     |  Stripe payment (updated to new model)
+     |--------------------------------------------------*/
+    public function payWithStripe(Request $request, Booking $booking)
+    {
+        $request->validate(['payment_method_id' => 'required|string']);
+        $booking->loadMissing('customer');
+
+        $settings = SystemSetting::first();
+        if (!$settings || !$settings->stripe_enabled) {
+            return response()->json(['success' => false, 'message' => 'Stripe not configured.'], 500);
         }
 
-        if ($pi->status === 'requires_action' && ($pi->next_action->type ?? null) === 'use_stripe_sdk') {
-            $booking->update(['status' => 'processing']);
-            return response()->json([
-                'success'                      => false,
-                'requires_action'              => true,
-                'payment_intent_client_secret' => $pi->client_secret,
+        $stripe = new StripeClient($settings->stripe_secret);
+        $currency = strtolower($booking->currency ?? 'zar');
+        $amount = (int) round($booking->total_price * 100);
+
+        try {
+            $pi = $stripe->paymentIntents->create([
+                'amount' => $amount,
+                'currency' => $currency,
+                'payment_method' => $request->input('payment_method_id'),
+                'confirmation_method' => 'manual',
+                'confirm' => true,
+                'payment_method_types' => ['card'],
+                'description' => "Booking #{$booking->id}",
+                'metadata' => [
+                    'booking_id' => $booking->id,
+                    'customer_email' => $booking->customer?->email,
+                ],
             ]);
-        }
 
-        if ($pi->status === 'succeeded') {
-            $pm     = $pi->payment_method ?? null;
-            $card   = $pm->card ?? null;
-            $charge = $pi->charges->data[0] ?? null;
+            if ($pi->status === 'succeeded') {
+                $booking->update([
+                    'status' => 'confirmed',
+                    'payment_status' => 'succeeded',
+                    'paid_at' => now(),
+                    'payment_method' => 'stripe',
+                ]);
+                $this->sendBookingEmails($booking, (float) $booking->total_price);
+                return response()->json(['success' => true, 'message' => 'Payment successful.']);
+            }
 
-            $booking->update([
-                'status'                   => 'confirmed',
-                'payment_method'           => 'stripe',     // ✅ ensure saved
-                'payment_status'           => 'succeeded',
-                'currency'                 => $pi->currency,
-                'paid_at'                  => now(),
-                'stripe_payment_intent_id' => $pi->id,
-                'stripe_payment_method_id' => $pm?->id,
-                'stripe_charge_id'         => $charge?->id,
-                'card_brand'               => $card?->brand,
-                'card_last4'               => $card?->last4,
-                'card_exp_month'           => $card?->exp_month,
-                'card_exp_year'            => $card?->exp_year,
-                'receipt_url'              => $charge?->receipt_url,
-            ]);
-
-            // ✅ Send emails ONLY after success
-            $this->sendBookingEmails($booking, (float) $booking->total_price);
-
-            return response()->json([
-                'success'    => true,
-                'message'    => 'Payment successful.',
-                'booking_id' => $booking->id,
-            ]);
-        }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Payment could not be completed. Status: ' . $pi->status,
-        ], 422);
-
-    } catch (\Stripe\Exception\ApiErrorException $e) {
-        \Log::error('Stripe error on booking payment', [
-            'booking_id' => $booking->id,
-            'code'       => $e->getError()?->code,
-            'param'      => $e->getError()?->param,
-            'message'    => $e->getMessage(),
-        ]);
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-    } catch (\Throwable $e) {
-        \Log::error('Booking payWithStripe crashed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-    }
-}
-
-
-
-public function initPayfastBooking(Request $request, $bookingId)
-{
-    if (! $request->expectsJson()) {
-        $request->headers->set('Accept', 'application/json');
-    }
-
-    // load booking
-    $booking = Booking::with(['vehicle', 'customer'])->find($bookingId);
-    if (! $booking) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Booking not found.',
-        ], 404);
-    }
-
-    // ---- Load PayFast settings from DB ----
-    $pf = SystemSetting::where('payfast_enabled', true)->first();
-    if (! $pf) {
-        return response()->json([
-            'success' => false,
-            'message' => 'PayFast is not configured.',
-        ], 500);
-    }
-
-    // ---- Determine action URL (sandbox vs live) ----
-    $isTest = (bool) ($pf->payfast_test_mode ?? true);
-    $action = $isTest
-        ? 'https://sandbox.payfast.co.za/eng/process'
-        : ($pf->payfast_live_url ?? 'https://www.payfast.co.za/eng/process');
-
-    // ---- Calculate booking amount ----
-    $notes = json_decode($booking->notes, true) ?? [];
-    $unit = $notes['rental_unit'] ?? 'day';
-    $qty = (int) ($notes['rental_quantity'] ?? 1);
-    $extraDays = (int) ($notes['extra_days'] ?? 0);
-    $vehicleUnitPrice = (float) ($notes['vehicle_unit_price'] ?? 0);
-
-    $basePrice = $vehicleUnitPrice * $qty;
-    $extraDaysPrice = 0;
-
-    if ($extraDays > 0) {
-        if ($unit === 'day') {
-            $extraDaysPrice = $vehicleUnitPrice * $extraDays;
-        } elseif ($unit === 'week') {
-            $extraDaysPrice = ($vehicleUnitPrice / 7) * $extraDays;
-        } elseif ($unit === 'month') {
-            $extraDaysPrice = ($vehicleUnitPrice / 30) * $extraDays;
+            return response()->json(['success' => false, 'message' => 'Payment requires action.'], 422);
+        } catch (\Throwable $e) {
+            Log::error('Stripe payment error', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-
-    $addonsSummary = $notes['addons_summary'] ?? [];
-    $addonsTotal = collect($addonsSummary)->sum('price_total');
-
-    $totalAmount = $basePrice + $extraDaysPrice + $addonsTotal;
-    $amount = number_format($totalAmount, 2, '.', ''); // Always 2 decimals
-
-    // ---- Payment identifiers & URLs (make sure returnUrl exists before using) ----
-    $m_payment_id = 'book-' . $booking->id . '-' . Str::random(6);
-
-    // safe fallback if vehicle missing
-    if ($booking->vehicle && isset($booking->vehicle->id)) {
-        $returnUrl = route('fleet.view', ['vehicle' => $booking->vehicle->id]);
-    } else {
-        $returnUrl = url('/'); // fallback
-    }
-
-    $cancelUrl = url('/payment/cancel');
-    $notifyUrl = route('payfast.booking.notify', [], true); // ✅ absolute URL
-
-    // ---- Build fields using the correct DB column names ----
-    $fields = [
-        'merchant_id'   => $pf->payfast_merchant_id,
-        'merchant_key'  => $pf->payfast_merchant_key,
-        'return_url'    => $returnUrl,
-        'cancel_url'    => $cancelUrl,
-        'notify_url'    => $notifyUrl,                      // ✅
-        'm_payment_id'  => $m_payment_id,
-        'amount'        => $amount,
-        'item_name'     => substr('Deposit for booking ' . ($booking->reference ?? $booking->id), 0, 100),
-        'name_first'    => $request->input('name', $booking->customer->name ?? 'Guest'),
-        'email_address' => $request->input('email', $booking->customer->email ?? 'test@example.com'),
-        'custom_str1'   => (string) $booking->id,
-    ];
-
-    // ---- Generate signature (include passphrase only for signature if present) ----
-    $sigData = $fields;
-    if (! empty($pf->payfast_passphrase)) {
-        $sigData['passphrase'] = $pf->payfast_passphrase;
-    }
-
-    ksort($sigData);
-    $pairs = [];
-    foreach ($sigData as $key => $val) {
-        if ($val === '' || $val === null) {
-            continue;
-        }
-        $pairs[] = $key . '=' . urlencode(trim($val));
-    }
-    $fields['signature'] = md5(implode('&', $pairs));
-
-    // ---- Update booking ----
-
-    $booking->update([
-        'payment_method'     => 'payfast',   // method user chose; final success set in ITN
-        'payfast_payment_id' => $m_payment_id,
-        'deposit_expected'   => $totalAmount,
-    ]);
-
-    return response()->json(['success' => true, 'action' => $action, 'fields' => $fields]);
-}
-
-
-
-public function payfastBookingReturn(Request $request)
-{
-    $bookingId = $request->input('custom_str1');
-    $booking = Booking::with(['vehicle', 'customer'])->find($bookingId);
-
-    if (! $booking) {
-        return redirect('/')
-            ->with('payfast_error', 'We could not locate your booking after payment. Please contact support with your PayFast receipt.');
-    }
-
-    $vehicleName = optional($booking->vehicle)->name ?? 'your vehicle';
-    $amount = number_format((float) ($booking->deposit_expected ?? 0), 2);
-    $reference = $booking->reference ?? $booking->id;
-
-    return redirect('/')
-        ->with('payfast_success', [
-            'title' => 'Payment Successful',
-            'message' => "Your booking deposit for {$vehicleName} has been received.",
-            'reference' => $reference,
-            'amount' => 'R' . $amount,
-        ]);
-}
-
-
-// public function payfastBookingCancel(Request $request)
-// {
-//     return view('payments.cancel'); // same view as purchases
-// }
-
-public function payfastBookingNotify(Request $request)
-{
-    // Make sure this route is CSRF-exempt
-    Log::info('💡 PayFast Booking ITN received', $request->all());
-
-    $bookingId = $request->input('custom_str1');
-    $booking   = \App\Models\Booking::with(['vehicle','customer'])->find($bookingId);
-
-    if (!$booking) {
-        Log::error('PayFast Booking Notify: Booking not found', ['booking_id' => $bookingId]);
-        return response('Booking not found', 404);
-    }
-
-    // TODO: Verify signature, amount, and source IP per PayFast docs
-    $paymentStatus = strtolower($request->input('payment_status', ''));
-    $amountPaid    = (float) $request->input('amount_gross', 0);
-    $pfPaymentId   = $request->input('pf_payment_id');
-    $mPaymentId    = $request->input('m_payment_id');
-
-    if ($paymentStatus === 'complete' && $amountPaid > 0) {
-        $booking->update([
-            'status'             => 'completed',
-            'payment_method'     => 'payfast',   // ✅ ensure saved
-            'payment_status'     => 'succeeded',
-            'paid_at'            => now(),
-            'payfast_payment_id' => $mPaymentId ?: $booking->payfast_payment_id,
-            // optionally store $pfPaymentId in a generic gateway ref column
-        ]);
-
-        Log::info('✅ PayFast Booking ITN: marked completed', [
-            'booking_id' => $booking->id,
-            'amount'     => $amountPaid,
-        ]);
-
-        // ✅ Send emails after success
-        $this->sendBookingEmails($booking, (float) $amountPaid);
-
-    } else {
-        Log::warning('⚠️ PayFast Booking ITN: not complete', [
-            'booking_id'    => $booking->id,
-            'paymentStatus' => $paymentStatus,
-            'amount_gross'  => $request->input('amount_gross'),
-        ]);
-    }
-
-    return response('OK');
-}
-
-
-
-
-
 }

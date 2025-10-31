@@ -24,7 +24,9 @@
                         <tr>
                             <th>ID</th>
                             <th>Customer</th>
-                            <th>Vehicle</th>
+                            <th>Category</th>
+                            <th>Equipment</th>
+                            <th>Location</th>
                             <th>Reference</th>
                             <th>Start Date</th>
                             <th>End Date</th>
@@ -37,9 +39,14 @@
                         @foreach($bookings as $booking)
                         <tr>
                             <td>{{ $booking->id }}</td>
-                            <td>{{ $booking->customer->name ?? '-' }} ({{ $booking->customer->email ?? '-' }})</td>
-                            <td>{{ $booking->vehicle->name ?? '-' }}</td>
-                            <td>{{ $booking->reference }}</td>
+                            <td>
+                                {{ $booking->customer->name ?? '-' }}<br>
+                                <small class="text-muted">{{ $booking->customer->email ?? '-' }}</small>
+                            </td>
+                            <td>{{ $booking->category->name ?? '-' }}</td>
+                            <td>{{ $booking->equipment->name ?? '-' }}</td>
+                            <td>{{ $booking->location->name ?? '-' }}</td>
+                            <td>{{ $booking->reference ?? '-' }}</td>
                             <td data-order="{{ \Carbon\Carbon::parse($booking->start_date)->format('Ymd') }}">
                                 {{ \Carbon\Carbon::parse($booking->start_date)->format('d M Y') }}
                             </td>
@@ -53,7 +60,7 @@
                                         'pending' => ['label' => 'Pending', 'class' => 'badge bg-warning py-1 text-dark'],
                                         'canceled' => ['label' => 'Canceled', 'class' => 'badge bg-danger py-1'],
                                         'completed' => ['label' => 'Completed', 'class' => 'badge bg-success py-1'],
-                                        'ongoing' => ['label' => 'Ongoing', 'class' => 'badge bg-info py-1 text-dark'],
+                                        'ongoing' => ['label' => 'Ongoing', 'class' => 'badge bg-primary py-1 text-white'],
                                     ];
                                     $statusData = $statusMap[$booking->status] ?? ['label' => ucfirst($booking->status), 'class' => 'badge bg-secondary py-1'];
                                 @endphp
@@ -61,7 +68,7 @@
                             </td>
                             <td>${{ number_format($booking->total_price, 2) }}</td>
                             <td class="text-center">
-                                <a href="{{ route('bookings.show', $booking->id) }}" class="btn btn-outline-info btn-sm">
+                                <a href="{{ route('bookings.show', $booking->id) }}" class="btn btn-outline-info btn-sm action-btn" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
@@ -118,10 +125,10 @@ $(document).ready(function() {
         responsive: true,
         autoWidth: false,
         pageLength: 10,
-        order: [[4, 'asc']],
+        order: [[6, 'asc']], // order by start_date
         columnDefs: [
-            { orderable: false, targets: [8] },
-            { searchable: false, targets: [8] }
+            { orderable: false, targets: [10] },
+            { searchable: false, targets: [10] }
         ],
         dom: 'Bfrtip',
         buttons: [
@@ -131,7 +138,7 @@ $(document).ready(function() {
                 text: '<i class="fas fa-file-excel me-2 text-success"></i> Export to Excel',
                 filename: 'bookings_export',
                 exportOptions: {
-                    columns: [0,1,2,3,4,5,6,7]
+                    columns: [0,1,2,3,4,5,6,7,8,9]
                 }
             }
         ],

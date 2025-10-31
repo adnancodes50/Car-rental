@@ -10,7 +10,9 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'vehicle_id',
+        'location_id',
+        'category_id',
+        'equipment_id', // optional if you want to book specific equipment
         'customer_id',
         'start_date',
         'end_date',
@@ -20,27 +22,35 @@ class Booking extends Model
         'admin_note',
         'notes',
         'total_price',
-        'extra_days', // <-- new column added
+        'extra_days',
     ];
 
-    
+    /* ------------------ Relationships ------------------ */
 
-    /**
-     * A booking belongs to one customer.
-     */
     public function customer()
     {
         return $this->belongsTo(Customer::class);
     }
 
-    /**
-     * A booking can have many add-ons.
-     */
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function equipment()
+    {
+        return $this->belongsTo(Equipment::class);
+    }
+
     public function addOns()
     {
         return $this->belongsToMany(AddOn::class, 'add_on_reservations')
                     ->withPivot('qty', 'price_total')
                     ->withTimestamps();
     }
-
 }

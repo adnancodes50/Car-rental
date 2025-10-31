@@ -89,4 +89,10 @@ class Equipment extends Model
     {
         return (bool) ($this->category?->is_for_sale ?? false);
     }
+
+    public function bookings()
+{
+    return $this->hasMany(Booking::class, 'equipment_id');
+}
+
 }

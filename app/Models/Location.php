@@ -102,12 +102,9 @@ class Location extends Model
         );
     }
 
-    /**
-     * (Optional) Vehicles physically located here.
-     * Uncomment if you want a direct relation to vehicles.
-     */
-    // public function vehicles()
-    // {
-    //     return $this->hasMany(Vehicles::class, 'location_id');
-    // }
+    public function bookings()
+{
+    return $this->hasMany(Booking::class, 'location_id');
+}
+
 }

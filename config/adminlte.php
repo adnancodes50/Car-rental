@@ -380,11 +380,11 @@ return [
         'route' => 'admin.landing-settings.index',
         'icon' => 'fas fa-image fa-lg text-success', // Large image icon in green
     ],
-    [
-        'text' => 'Add-On Inventory',
-        'route' => 'inventry.index',
-        'icon' => 'fas fa-box-open fa-lg text-warning', // Open box icon in yellow
-    ],
+    // [
+    //     'text' => 'Add-On Inventory',
+    //     'route' => 'inventry.index',
+    //     'icon' => 'fas fa-box-open fa-lg text-warning', // Open box icon in yellow
+    // ],
     [
         'text' => 'Customers',
         'route' => 'customers.index',

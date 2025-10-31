@@ -42,15 +42,10 @@ class Category extends Model
         return $this->hasMany(Equipment::class, 'category_id');
     }
 
-    // If your vehicles table has category_id
-    public function vehicles()
-    {
-        return $this->hasMany(Vehicles::class, 'category_id');
-    }
+    public function bookings()
+{
+    return $this->hasMany(Booking::class, 'category_id');
+}
 
-    // If you keep add-ons per category
-    public function addOns()
-    {
-        return $this->hasMany(AddOn::class, 'category_id');
-    }
+
 }
