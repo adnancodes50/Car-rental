@@ -1,16 +1,15 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
+<nav class="navbar navbar-expand-lg navbar-white bg-white shadow-sm fixed-top">
     <div class="container">
         @php
-            $brandImg = config('adminlte.logo_img'); // e.g. 'storage/logo/img1234.png'
-            $brandAlt = config('adminlte.title', 'Rental'); // your project_name
+            $brandImg = config('adminlte.logo_img');
+            $brandAlt = config('adminlte.title', 'Rental');
         @endphp
 
         <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-            <img src="{{ asset($brandImg) }}" alt="{{ $brandAlt }}" class="me-2 img-fluid brand-image-custom"
+            <img src="{{ asset($brandImg) }}" alt="{{ $brandAlt }}"
+                class="img-fluid brand-image-custom"
                 style="height:40px; width:auto; object-fit:contain;">
-            <span class="fw-bold text-dark">{{ $brandAlt }}</span>
         </a>
-
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive"
             aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,28 +33,29 @@
 </nav>
 
 <style>
-    /* Inactive links */
-    .navbar-dark .navbar-nav .nav-link {
-        color: #679767;
-        /* yellow */
-        position: relative;
+    /* Base navbar link styles */
+    .navbar .navbar-nav .nav-link {
+        color: #679767; /* Light green for inactive links */
         font-weight: 500;
-        transition: color 0.3s, transform 0.3s;
+        transition: color 0.3s ease;
     }
 
-
-
-
-    .navbar-dark .navbar-nav .nav-link:hover::after {
-        width: 100%;
+    /* Hover effect */
+    .navbar .navbar-nav .nav-link:hover {
+        color: #000; /* Black on hover */
     }
 
-    /* Active link */
-    .navbar-dark .navbar-nav .nav-link.active {
-        color: #fff !important;
+    /* Active link color (black) */
+    .navbar .navbar-nav .nav-link.active {
+        color: #000 !important; /* Black for active link */
+        font-weight: 600;
+    }
+
+    /* Remove underline/border animations */
+    .navbar .navbar-nav .nav-link::after {
+        content: none !important;
     }
 </style>
-
 
 <!-- JS to highlight navbar links on scroll -->
 <script>
@@ -64,7 +64,7 @@
         const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
 
         function setActiveLink() {
-            let current = sections[0].id; // default to first section
+            let current = sections[0].id;
             const scrollMiddle = window.scrollY + window.innerHeight / 2;
 
             sections.forEach(section => {
@@ -77,7 +77,7 @@
 
             navLinks.forEach(link => {
                 link.classList.remove('active');
-                const linkHash = new URL(link.href).hash; // FIX: get only the #hash
+                const linkHash = new URL(link.href).hash;
                 if (linkHash === '#' + current) {
                     link.classList.add('active');
                 }
@@ -86,16 +86,15 @@
 
         window.addEventListener('scroll', setActiveLink);
         window.addEventListener('resize', setActiveLink);
-        setActiveLink(); // initial call
+        setActiveLink();
     });
 
+    // Smooth scroll to section if URL has a hash
     document.addEventListener("DOMContentLoaded", function() {
         if (window.location.hash) {
             const section = document.querySelector(window.location.hash);
             if (section) {
-                section.scrollIntoView({
-                    behavior: "smooth"
-                });
+                section.scrollIntoView({ behavior: "smooth" });
             }
         }
     });

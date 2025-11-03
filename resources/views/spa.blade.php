@@ -10,60 +10,66 @@
         @endphp
 
         <section class="hero d-flex align-items-center text-center text-white position-relative" id="home-section"
-            style="min-height: 100vh; overflow: hidden;">
+    style="min-height: 100vh; overflow: hidden;">
 
-            <div class="position-absolute top-0 start-0 w-100 h-100"
-                style="background: url('{{ $heroBg }}') center center/cover no-repeat;
-                    filter: blur(0px);
-                    transform: scale(1.1);
-                    z-index: 0;">
-            </div>
+    <!-- Background Image -->
+    <div class="position-absolute top-0 start-0 w-100 h-100"
+        style="background: url('{{ $heroBg }}') center center/cover no-repeat;
+               filter: blur(0px);
+               transform: scale(1.1);
+               z-index: 0;">
+    </div>
 
-            <div class="position-absolute top-0 start-0 w-100 h-100"
-                style="background-color: rgba(0,0,0,0.5); z-index: 1;"></div>
+    <!-- Overlay -->
+    <div class="position-absolute top-0 start-0 w-100 h-100"
+        style="background-color: rgba(0,0,0,0.5); z-index: 1;">
+    </div>
 
-            <div class="container mt-5 position-relative" style="z-index: 2;">
-                <h1 class="display-3 fw-bold mb-4"
-                    style="text-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 2px 6px rgba(0,0,0,0.8);">
-                    Rent 2 Recover <br>
-                </h1>
+    <!-- Content -->
+    <div class="container position-relative text-center hero-content" style="z-index: 2;">
+        <h1 class="display-3 fw-bold mb-4 hero-title">
+            Rent 2 Recover <br>
+        </h1>
 
-                <p class="lead fw-normal text-light mb-5 mx-auto" style="max-width: 700px;">
-                    We specialise in a wide range of mobility equipment including electric wheelchairs, electric scooters, hospital beds, knee scooters, bath lifts, oxygen concentrator machines and many more. We also have a wide range of medical equipment available for purchase. The purchase option offers a guaranteed buyback. (T’s and C’s apply).
-                </p>
+        <p class="lead fw-normal text-light mb-5 mx-auto" style="max-width: 700px;">
+            We specialise in a wide range of mobility equipment including electric wheelchairs, electric scooters, hospital beds, knee scooters, bath lifts, oxygen concentrator machines and many more. We also have a wide range of medical equipment available for purchase. The purchase option offers a guaranteed buyback. (T’s and C’s apply).
+        </p>
 
-                <div class="d-flex justify-content-center mb-5">
-                    <a href="#category-section" class="btn btn-lg fw-bold px-4 py-3"
-                        style="background-color: #679767">
-                        RENT YOUR RECOVERY EQUIPMENT NOW  <i class="bi bi-arrow-right ms-2"></i>
-                    </a>
-                </div>
+        <div class="d-flex justify-content-center mb-5">
+            <a href="#category-section" class="btn btn-lg fw-bold px-4 py-3"
+                style="background-color: #679767; text:black;">
+                RENT YOUR RECOVERY EQUIPMENT NOW  <i class="bi bi-arrow-right ms-2"></i>
+            </a>
+        </div>
 
-                <div class="row justify-content-center g-4 px-3 px-lg-5">
-                    <div class="col-12 col-md-4">
-                        <div class="d-flex flex-column align-items-center text-center">
-                            <i class="bi bi-shield-lock display-4 mb-3" style="color:#679767;"></i>
-                            <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
-                            <p class="text-light">Every Land Rover restored to original specifications with modern reliability.</p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="d-flex flex-column align-items-center text-center">
-                            <i class="bi bi-compass display-4 mb-3" style="color:#679767;"></i>
-                            <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
-                            <p class="text-light">Equipped for multi-day expeditions with premium overland accessories.</p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="d-flex flex-column align-items-center text-center">
-                            <i class="bi bi-arrow-right-circle display-4 mb-3" style="color:#679767;"></i>
-                            <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
-                            <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase.</p>
-                        </div>
-                    </div>
+        <div class="row justify-content-center g-4 px-3 px-lg-5">
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column align-items-center text-center">
+                    <i class="bi bi-shield-lock display-4 mb-3" style="color:#679767;"></i>
+                    <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
+                    <p class="text-light">Every Land Rover restored to original specifications with modern reliability.</p>
                 </div>
             </div>
-        </section>
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column align-items-center text-center">
+                    <i class="bi bi-compass display-4 mb-3" style="color:#679767;"></i>
+                    <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
+                    <p class="text-light">Equipped for multi-day expeditions with premium overland accessories.</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column align-items-center text-center">
+                    <i class="bi bi-arrow-right-circle display-4 mb-3" style="color:#679767;"></i>
+                    <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
+                    <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
     </div>
 
 
@@ -213,6 +219,39 @@
 
     .row.g-4 {
         align-items: stretch;
+    }
+</style>
+
+<!-- Responsive styling -->
+<style>
+    /* Base hero padding */
+    .hero-content {
+        margin-top: 6rem; /* Default for desktops */
+    }
+
+    /* For tablets and small screens */
+    @media (max-width: 992px) {
+        .hero-content {
+            margin-top: 8rem;
+        }
+        .hero-title {
+            font-size: 2.5rem;
+        }
+    }
+
+    /* For small mobile screens */
+    @media (max-width: 576px) {
+        .hero-content {
+            margin-top: 7rem; /* Extra space for mobile */
+            padding: 0 1rem;
+        }
+        .hero-title {
+            font-size: 2rem;
+            line-height: 1.2;
+        }
+        .hero p {
+            font-size: 1rem;
+        }
     }
 </style>
 

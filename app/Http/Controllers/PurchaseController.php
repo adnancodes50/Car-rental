@@ -33,7 +33,7 @@ public function store(Request $request)
         'vehicle_id'     => ['required','exists:vehicles,id'],
         'name'           => ['required','string','max:255'],
         'email'          => ['required','email:rfc,filter','max:255'],
-        'phone'          => ['required','regex:/^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/'],
+         'phone' => ['required', 'regex:/^[0-9 ]+$/'],
         'country'        => ['required','string','max:100'],
 
         // client can send these, but we won't trust the price field

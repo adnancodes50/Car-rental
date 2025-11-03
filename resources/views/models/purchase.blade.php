@@ -213,7 +213,13 @@
         // Build a map for JS (location_id, name, stock)
         $locationStock = $item->stocks
             ? $item->stocks
-                ->map(fn($s) => ['id' => $s->location->id, 'name' => $s->location->name, 'stock' => (int) $s->stock])
+                ->map(
+                    fn($s) => [
+                        'id' => $s->location->id,
+                        'name' => $s->location->name,
+                        'stock' => (int) $s->stock,
+                    ],
+                )
                 ->values()
                 ->all()
             : [];
@@ -235,7 +241,7 @@
     <style>
         .purchase-trigger {
             pointer-events: none;
-            opacity: .55
+            opacity: .55;
         }
     </style>
 @endif
@@ -247,7 +253,8 @@
     @else
         <input type="hidden" name="vehicle_id" value="{{ $item->id }}">
     @endif
-    {{-- client-sent total is ignored server-side, but we can keep it for display --}}
+
+    {{-- client-sent total is ignored server-side, but we keep it for display --}}
     <input type="hidden" name="total_price" value="{{ $price }}">
 
     {{-- Step 1: Info --}}
@@ -265,26 +272,15 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-
-                    <hr class="mt-3 mb-0 opacity-10">
+                <hr class="mt-3 mb-0 opacity-10">
 
                 {{-- Body --}}
                 <div class="modal-body p-4 pt-3">
-
-                    {{-- Sold Alert --}}
-                    {{-- @if ($isSold)
-                        <div class="alert alert-danger mb-3 rounded-3">
-                            This {{ $type }} is sold and cannot be purchased.
-                        </div>
-                    @endif --}}
-
-                    {{-- Title --}}
                     <div class="text-center mb-4">
                         <h5 class="fw-normal mb-0">Choose Quantity &amp; Location</h5>
-                        {{-- <hr class="mt-2 mb-0 opacity-10"> --}}
                     </div>
 
-                    {{-- Equipment Section --}}
+                    {{-- Equipment-only --}}
                     @if ($type === 'equipment')
                         <div class="row g-3 align-items-end mb-4">
                             {{-- Location --}}
@@ -322,7 +318,7 @@
                         </div>
                     @endif
 
-                    {{-- Summary Card --}}
+                    {{-- Summary --}}
                     <div class="bg-light rounded-4 p-3 border border-light shadow-sm mb-4">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="fw-medium text-secondary">{{ ucfirst($type) }}:</span>
@@ -365,13 +361,13 @@
 
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fw-medium text-secondary">Deposit Due Now:</span>
-                            <span class="fw-bold " id="totalDepositDisplay" style="color: #679767;">
+                            <span class="fw-bold" id="totalDepositDisplay" style="color: #679767;">
                                 R{{ number_format($deposit, 2) }} ZAR
                             </span>
                         </div>
                     </div>
 
-                    {{-- Continue Button --}}
+                    {{-- Continue --}}
                     <button type="button" id="purchaseStep1Next" class="btn btn-dark w-100 py-2 fw-semibold rounded-3"
                         {{ $isSold ? 'disabled' : '' }}>
                         Continue
@@ -382,10 +378,7 @@
         </div>
     </div>
 
-
-
-
-    {{-- Step 2: Customer (+ Location & Quantity for equipment) --}}
+    {{-- Step 2: Customer --}}
     <div class="modal fade" id="purchaseCustomer" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
         data-bs-keyboard="false">
         <div class="modal-dialog modal-md modal-dialog-centered">
@@ -396,7 +389,8 @@
                 </div>
                 <div class="modal-body px-4">
                     @if ($isSold)
-                        <div class="alert alert-danger mb-3">This {{ $type }} is sold and cannot be purchased.
+                        <div class="alert alert-danger mb-3">
+                            This {{ $type }} is sold and cannot be purchased.
                         </div>
                     @endif
                     <div class="row g-3">
@@ -405,6 +399,7 @@
                             <input type="text" name="name" class="form-control rounded-3"
                                 placeholder="John Doe" required {{ $isSold ? 'disabled' : '' }}>
                         </div>
+
                         <div class="col-12">
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control rounded-3"
@@ -413,30 +408,34 @@
                                 title="Enter a valid email address, e.g. you@example.com"
                                 {{ $isSold ? 'disabled' : '' }}>
                         </div>
+
                         <div class="col-12">
                             <label class="form-label">Phone</label>
                             <input type="tel" name="phone" class="form-control rounded-3"
-                                placeholder="+27 123 456 7890" inputmode="tel" autocomplete="tel" required
-                                pattern="^\+?[0-9]{1,4}(?:[ -]?[0-9]{2,4}){2,4}$"
-                                title="Use digits with optional spaces or dashes, e.g. +27 123 456 7890"
+                                placeholder="012 345 6789" inputmode="tel" autocomplete="tel" required
+                                pattern="^[0-9 ]+$" title="Digits and spaces only, e.g. 012 345 6789"
                                 {{ $isSold ? 'disabled' : '' }}>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Country</label>
-                            <select name="country" class="form-select rounded-3" required
-                                {{ $isSold ? 'disabled' : '' }}>
-                                <option value="" disabled selected>Select your country</option>
-                                @foreach ($countries as $country)
-                                    <option value="{{ $country }}">{{ $country }}</option>
-                                @endforeach
-                            </select>
+
                         </div>
 
+                        <div class="col-12">
+                            <label class="form-label">Customer Location</label>
+
+                            {{-- Visible input the user types in --}}
+                            <input type="text" id="purchaseCountryInput" class="form-control rounded-3"
+                                placeholder="Start typing your country..." autocomplete="off"
+                                {{ $isSold ? 'disabled' : '' }}>
+
+                            {{-- Real value posted to Laravel --}}
+                            <input type="hidden" name="country" id="purchaseCountryHidden" required>
+                        </div>
                     </div>
                 </div>
+
                 <div class="modal-footer border-0 d-flex justify-content-between">
                     <button type="button" id="purchaseBackToStep1"
                         class="btn btn-outline-secondary rounded-3">Back</button>
+
                     <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4"
                         {{ $isSold ? 'disabled' : '' }}>
                         Continue to Payment
@@ -459,21 +458,26 @@
                     fn() => \App\Models\SystemSetting::first() ?:
                     new \App\Models\SystemSetting(['stripe_enabled' => false, 'payfast_enabled' => false]),
                 ));
+
         $enabledCount = ((bool) $settings->stripe_enabled ? 1 : 0) + ((bool) $settings->payfast_enabled ? 1 : 0);
     @endphp
 
-    {{-- Step 3a: Payment method --}}
+    {{-- Step 3a: Choose payment --}}
     <div class="modal fade" id="purchasePayment" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
         data-bs-keyboard="false">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-credit-card me-2"></i> Select Payment Method</h5>
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-credit-card me-2"></i> Select Payment Method
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
                 <div class="modal-body">
                     @if ($isSold)
-                        <div class="alert alert-danger mb-3">This {{ $type }} is sold and cannot be purchased.
+                        <div class="alert alert-danger mb-3">
+                            This {{ $type }} is sold and cannot be purchased.
                         </div>
                     @endif
 
@@ -516,12 +520,14 @@
 
                         @if ($enabledCount === 0)
                             <div class="col-12">
-                                <div class="alert alert-warning text-center">No payment methods are currently
-                                    available.</div>
+                                <div class="alert alert-warning text-center">
+                                    No payment methods are currently available.
+                                </div>
                             </div>
                         @endif
                     </div>
                 </div>
+
                 <div class="modal-footer justify-content-between">
                     <button type="button" id="backToCustomer" class="btn btn-outline-secondary">Back</button>
                 </div>
@@ -529,19 +535,23 @@
         </div>
     </div>
 
-    {{-- Step 3b: Stripe --}}
+    {{-- Step 3b: Stripe checkout --}}
     <div class="modal fade mt-2" id="stripePaymentModal" tabindex="-1" aria-hidden="true"
         data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-credit-card-fill me-2"></i> Stripe Payment and
-                        {{ ucfirst($type) }} Summary</h5>
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-credit-card-fill me-2"></i>
+                        Stripe Payment and {{ ucfirst($type) }} Summary
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
                 <div class="modal-body">
                     @if ($isSold)
-                        <div class="alert alert-danger mb-3">This {{ $type }} is sold and cannot be purchased.
+                        <div class="alert alert-danger mb-3">
+                            This {{ $type }} is sold and cannot be purchased.
                         </div>
                     @endif
 
@@ -556,14 +566,16 @@
                                         <div>
                                             <h5 class="mb-1">{{ $item->name }}</h5>
                                             @if (isset($item->year) || isset($item->model))
-                                                <small
-                                                    class="text-muted">{{ trim(($item->year ?? '') . ' ' . ($item->model ?? '')) }}</small>
+                                                <small class="text-muted">
+                                                    {{ trim(($item->year ?? '') . ' ' . ($item->model ?? '')) }}
+                                                </small>
                                             @endif
                                         </div>
                                         <div class="text-end">
                                             <div class="small text-muted">Price</div>
                                             <div class="fw-semibold" id="stripeUnitPriceDisplay">
-                                                R{{ number_format($price, 2) }}</div>
+                                                R{{ number_format($price, 2) }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -576,27 +588,33 @@
                                 <div class="bg-light rounded-3 p-2 px-3">
                                     <div class="d-flex justify-content-between small">
                                         <span>Total Price</span>
-                                        <span id="stripeTotalPriceDisplay">R{{ number_format($price, 2) }}</span>
+                                        <span id="stripeTotalPriceDisplay">
+                                            R{{ number_format($price, 2) }}
+                                        </span>
                                     </div>
                                     <div class="d-flex justify-content-between small">
                                         <span>Deposit (Due Now)</span>
-                                        <span id="stripeDepositDisplay">R{{ number_format($deposit, 2) }}</span>
+                                        <span id="stripeDepositDisplay">
+                                            R{{ number_format($deposit, 2) }}
+                                        </span>
                                     </div>
                                     <div class="border-top mt-2 pt-2 d-flex justify-content-between">
                                         <span class="fw-semibold">Total Due Now</span>
-                                        <span class="fw-bold text-success"
-                                            id="stripeTotalDueNowDisplay">R{{ number_format($deposit, 2) }}</span>
+                                        <span class="fw-bold text-success" id="stripeTotalDueNowDisplay">
+                                            R{{ number_format($deposit, 2) }}
+                                        </span>
                                     </div>
                                     <div class="d-flex justify-content-between mt-1">
                                         <span class="fw-semibold text-muted">Total Payable Later</span>
-                                        <span class="fw-bold text-muted"
-                                            id="stripeRemainingDisplay">R{{ number_format($remaining, 2) }}</span>
+                                        <span class="fw-bold text-muted" id="stripeRemainingDisplay">
+                                            R{{ number_format($remaining, 2) }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- Elements --}}
+                        {{-- Stripe Elements --}}
                         <div class="row g-2">
                             <div class="col-12">
                                 <div id="card-number" class="form-control stripe-input mb-2"></div>
@@ -617,8 +635,11 @@
                 <div class="modal-footer container">
                     <button type="button" id="purchaseStripeBackToPayment"
                         class="btn btn-outline-secondary me-auto">Back</button>
+
                     <button type="button" id="purchaseStripePayButton" class="btn btn-dark"
-                        {{ $isSold ? 'disabled' : '' }}>Purchase Now</button>
+                        {{ $isSold ? 'disabled' : '' }}>
+                        Purchase Now
+                    </button>
                 </div>
             </div>
         </div>
@@ -634,10 +655,16 @@
                         style="width:84px;height:84px;">
                         <i class="bi bi-check2-circle fs-1"></i>
                     </div>
+
                     <h4 class="fw-bold mb-2">Thank you!</h4>
-                    <p class="text-secondary mb-4">Your purchase has been successfully completed.</p>
+                    <p class="text-secondary mb-4">
+                        Your purchase has been successfully completed.
+                    </p>
+
                     <button type="button" class="btn btn-success fw-semibold px-4 rounded-pill"
-                        data-bs-dismiss="modal">Close</button>
+                        data-bs-dismiss="modal">
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -665,7 +692,10 @@
         border-radius: .75rem;
         padding: 20px;
         text-align: left;
-        transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+        transition:
+            box-shadow .15s ease,
+            transform .15s ease,
+            border-color .15s ease;
     }
 
     #purchasePayment .purchase-pay-option:hover {
@@ -698,12 +728,72 @@
             width: 100%;
         }
     }
+
+    .pac-container {
+        z-index: 999999 !important;
+    }
 </style>
+
+{{-- Google Maps JS (Places Autocomplete) --}}
+<script
+    src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps.key') }}&libraries=places&callback=initPurchaseCountryAutocomplete"
+    defer></script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous">
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://js.stripe.com/v3/"></script>
+
+<script>
+    /**
+     * Country autocomplete (global scope so Google callback can access it)
+     */
+    window.initPurchaseCountryAutocomplete = function() {
+        const visibleInput = document.getElementById('purchaseCountryInput');
+        const hiddenField = document.getElementById('purchaseCountryHidden');
+
+        // Guard if DOM missing or Google not ready
+        if (!visibleInput || !hiddenField || typeof google === 'undefined' || !google.maps?.places) {
+            return;
+        }
+
+        // Bias to regions / countries instead of addresses
+       const autocomplete = new google.maps.places.Autocomplete(visibleInput, {
+    // no types restriction => full address search (street, building, etc.)
+    // if you want to bias to real addresses only:
+    types: ['geocode'],
+});
+
+autocomplete.addListener('place_changed', () => {
+    const place = autocomplete.getPlace();
+
+    // Try to get full nicely formatted address from Google
+    const fullAddress =
+        place.formatted_address
+        || visibleInput.value.trim(); // fallback if Google didn't give formatted_address
+
+    // Save full address into hidden field
+    hiddenField.value = fullAddress;
+
+    // Also snap the visible text field to the clean formatted version
+    visibleInput.value = fullAddress;
+});
+
+// Safety: if they just typed manually and didn't click a suggestion
+visibleInput.addEventListener('blur', () => {
+    if (!hiddenField.value || hiddenField.value.trim() === '') {
+        hiddenField.value = visibleInput.value.trim();
+    }
+});
+
+        // If they just typed and tabbed out, still sync it
+        visibleInput.addEventListener('blur', () => {
+            if (!hiddenField.value || hiddenField.value.trim() === '') {
+                hiddenField.value = visibleInput.value.trim();
+            }
+        });
+    };
+</script>
 
 <script>
     (() => {
@@ -712,7 +802,7 @@
         const ITEM_STATUS = @json($item->status ?? null);
         const IS_SOLD = ITEM_STATUS === 'sold';
 
-        // Use server-rendered numbers (equipment uses Category via PHP above)
+        // server-rendered numbers
         const ITEM_PRICE = {{ (float) $price }};
         const ITEM_DEPOSIT = {{ (float) $deposit }};
         const LOCATION_STOCK = @json($locationStock); // [{id,name,stock}] (equipment only)
@@ -721,9 +811,11 @@
             style: 'currency',
             currency: 'ZAR'
         });
+
         const WHATSAPP_LINK = "https://wa.link/8bgpe5";
+
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-        const phonePattern = /^\+?[0-9]{1,4}(?:[ -]?[0-9]{2,4}){2,4}$/;
+        const phonePattern = /^[0-9 ]+$/;
 
         // Build URLs inline
         const STORE_URL = @json(
@@ -745,6 +837,7 @@
         let selectedQuantity = 1;
 
         const formatCurrency = (value) => ZAR.format(Number(value) || 0);
+
         const findLocationRecord = (locId) =>
             LOCATION_STOCK.find(x => String(x.id) === String(locId));
 
@@ -752,12 +845,14 @@
             const select = document.getElementById('qtySelect');
             if (!select) return;
             select.innerHTML = '';
+
             const opt = document.createElement('option');
             opt.value = '';
             opt.textContent = placeholder;
             opt.disabled = true;
             opt.selected = true;
             select.appendChild(opt);
+
             select.disabled = true;
             selectedQuantity = 0;
         }
@@ -773,7 +868,8 @@
                 return;
             }
 
-            const currentValue = preserveCurrent ?
+            const currentValue =
+                preserveCurrent ?
                 parseInt(select.value || '1', 10) :
                 1;
 
@@ -801,10 +897,11 @@
             text = ''
         }) {
             window.__deb ||= new Map();
-            const now = Date.now(),
-                last = window.__deb.get(key) || 0;
+            const now = Date.now();
+            const last = window.__deb.get(key) || 0;
             if (now - last < 600) return;
             window.__deb.set(key, now);
+
             if (window.Swal?.fire) {
                 Swal.fire({
                     icon,
@@ -828,8 +925,9 @@
             const fromEl = document.getElementById(fromId);
             const toEl = document.getElementById(toId);
             if (!fromEl || !toEl) return;
-            const from = modalInst(fromEl),
-                to = modalInst(toEl);
+            const from = modalInst(fromEl);
+            const to = modalInst(toEl);
+
             fromEl.addEventListener(
                 'hidden.bs.modal',
                 function onHidden() {
@@ -848,7 +946,7 @@
             let locRecord = null;
 
             if (TYPE === 'equipment') {
-                // --- LOCATION + QTY handling ---
+                // LOCATION + QTY
                 selectedLocationId = formRef.location_id?.value || '';
                 locRecord = findLocationRecord(selectedLocationId);
                 selectedLocationName = locRecord?.name || '';
@@ -864,7 +962,6 @@
                     if (qty === 0 && quantityField && !quantityField.disabled) {
                         qty = 1;
                     }
-
                     if (qty > locRecord.stock) {
                         qty = locRecord.stock > 0 ? locRecord.stock : 0;
                         if (quantityField && !quantityField.disabled) {
@@ -874,34 +971,27 @@
                 }
                 selectedQuantity = qty;
 
-                // Update hints near labels
+                // hints
                 const stockHint = document.getElementById('stockHint');
                 const qtyHint = document.getElementById('qtyHint');
 
                 if (stockHint) {
-                    if (locRecord) {
-                        stockHint.textContent = ``;
-                    } else {
-                        stockHint.textContent = '';
-                    }
+                    stockHint.textContent = locRecord ? `` : '';
                 }
-
                 if (qtyHint) {
-                    if (selectedLocationId && selectedQuantity > 0) {
-                        qtyHint.textContent = ``;
-                    } else {
-                        qtyHint.textContent = '';
-                    }
+                    qtyHint.textContent =
+                        (selectedLocationId && selectedQuantity > 0) ?
+                        `` :
+                        '';
                 }
-
             } else {
-                // --- VEHICLE flow (no per-location stock) ---
+                // VEHICLE flow: fixed qty/location
                 selectedLocationId = '';
                 selectedLocationName = '';
                 selectedQuantity = 1;
             }
 
-            // --- totals ---
+            // totals
             const quantityForTotals =
                 TYPE === 'equipment' ?
                 (selectedLocationId && selectedQuantity > 0 ? selectedQuantity : 0) :
@@ -911,12 +1001,14 @@
             const totalDeposit = ITEM_DEPOSIT * quantityForTotals;
             const remaining = Math.max(totalPrice - totalDeposit, 0);
 
-            // --- Step 1 summary card ---
+            // Step 1 summary card
             const quantityDisplay = document.getElementById('quantityDisplay');
             if (quantityDisplay) {
                 if (selectedLocationId && selectedQuantity > 0) {
                     quantityDisplay.textContent =
-                        selectedQuantity === 1 ? '1 unit' : `${selectedQuantity} units`;
+                        selectedQuantity === 1 ?
+                        '1 unit' :
+                        `${selectedQuantity} units`;
                 } else {
                     quantityDisplay.textContent = '—';
                 }
@@ -934,32 +1026,38 @@
             }
 
             const unitPriceDisplay = document.getElementById('unitPriceDisplay');
-            if (unitPriceDisplay)
-                unitPriceDisplay.textContent = `${formatCurrency(ITEM_PRICE)} ZAR`;
+            if (unitPriceDisplay) {
+                unitPriceDisplay.textContent = `${ZAR.format(ITEM_PRICE)} ZAR`;
+            }
 
             const unitDepositDisplay = document.getElementById('unitDepositDisplay');
-            if (unitDepositDisplay)
-                unitDepositDisplay.textContent = `${formatCurrency(ITEM_DEPOSIT)} ZAR`;
+            if (unitDepositDisplay) {
+                unitDepositDisplay.textContent = `${ZAR.format(ITEM_DEPOSIT)} ZAR`;
+            }
 
             const totalPriceDisplay = document.getElementById('totalPriceDisplay');
-            if (totalPriceDisplay)
-                totalPriceDisplay.textContent = `${formatCurrency(totalPrice)} ZAR`;
+            if (totalPriceDisplay) {
+                totalPriceDisplay.textContent = `${ZAR.format(totalPrice)} ZAR`;
+            }
 
             const totalDepositDisplay = document.getElementById('totalDepositDisplay');
-            if (totalDepositDisplay)
-                totalDepositDisplay.textContent = `${formatCurrency(totalDeposit)} ZAR`;
+            if (totalDepositDisplay) {
+                totalDepositDisplay.textContent = `${ZAR.format(totalDeposit)} ZAR`;
+            }
 
-            // --- Stripe modal summary ---
+            // Stripe modal summary mirrors
             const summaryItemName = document.getElementById('summaryItemName');
             if (summaryItemName) summaryItemName.textContent = ITEM_NAME;
 
             const summaryUnitPrice = document.getElementById('summaryUnitPrice');
-            if (summaryUnitPrice)
-                summaryUnitPrice.textContent = `${formatCurrency(ITEM_PRICE)} ZAR`;
+            if (summaryUnitPrice) {
+                summaryUnitPrice.textContent = `${ZAR.format(ITEM_PRICE)} ZAR`;
+            }
 
             const summaryUnitDeposit = document.getElementById('summaryUnitDeposit');
-            if (summaryUnitDeposit)
-                summaryUnitDeposit.textContent = `${formatCurrency(ITEM_DEPOSIT)} ZAR`;
+            if (summaryUnitDeposit) {
+                summaryUnitDeposit.textContent = `${ZAR.format(ITEM_DEPOSIT)} ZAR`;
+            }
 
             const summaryLocation = document.getElementById('summaryLocation');
             if (summaryLocation) {
@@ -975,49 +1073,47 @@
             const summaryQuantity = document.getElementById('summaryQuantity');
             if (summaryQuantity) {
                 summaryQuantity.textContent =
-                    selectedLocationId && selectedQuantity > 0 ?
+                    (selectedLocationId && selectedQuantity > 0) ?
                     String(selectedQuantity) :
                     '—';
             }
 
             const summaryTotalPrice = document.getElementById('summaryTotalPrice');
-            if (summaryTotalPrice)
-                summaryTotalPrice.textContent = `${formatCurrency(totalPrice)} ZAR`;
+            if (summaryTotalPrice) {
+                summaryTotalPrice.textContent = `${ZAR.format(totalPrice)} ZAR`;
+            }
 
             const summaryDeposit = document.getElementById('summaryDeposit');
-            if (summaryDeposit)
-                summaryDeposit.textContent = `${formatCurrency(totalDeposit)} ZAR`;
+            if (summaryDeposit) {
+                summaryDeposit.textContent = `${ZAR.format(totalDeposit)} ZAR`;
+            }
 
             const stripeUnitPriceDisplay = document.getElementById('stripeUnitPriceDisplay');
-            if (stripeUnitPriceDisplay)
-                stripeUnitPriceDisplay.textContent =
-                `${formatCurrency(ITEM_PRICE)} ZAR`;
+            if (stripeUnitPriceDisplay) {
+                stripeUnitPriceDisplay.textContent = `R${ITEM_PRICE.toFixed(2)}`;
+            }
 
             const stripeTotalPriceDisplay = document.getElementById('stripeTotalPriceDisplay');
-            if (stripeTotalPriceDisplay)
-                stripeTotalPriceDisplay.textContent =
-                `${formatCurrency(totalPrice)} ZAR`;
+            if (stripeTotalPriceDisplay) {
+                stripeTotalPriceDisplay.textContent = `R${totalPrice.toFixed(2)}`;
+            }
 
             const stripeDepositDisplay = document.getElementById('stripeDepositDisplay');
-            if (stripeDepositDisplay)
-                stripeDepositDisplay.textContent =
-                `${formatCurrency(totalDeposit)} ZAR`;
+            if (stripeDepositDisplay) {
+                stripeDepositDisplay.textContent = `R${totalDeposit.toFixed(2)}`;
+            }
 
-            const stripeTotalDueNowDisplay = document.getElementById(
-                'stripeTotalDueNowDisplay'
-            );
-            if (stripeTotalDueNowDisplay)
-                stripeTotalDueNowDisplay.textContent =
-                `${formatCurrency(totalDeposit)} ZAR`;
+            const stripeTotalDueNowDisplay = document.getElementById('stripeTotalDueNowDisplay');
+            if (stripeTotalDueNowDisplay) {
+                stripeTotalDueNowDisplay.textContent = `R${totalDeposit.toFixed(2)}`;
+            }
 
-            const stripeRemainingDisplay = document.getElementById(
-                'stripeRemainingDisplay'
-            );
-            if (stripeRemainingDisplay)
-                stripeRemainingDisplay.textContent =
-                `${formatCurrency(remaining)} ZAR`;
+            const stripeRemainingDisplay = document.getElementById('stripeRemainingDisplay');
+            if (stripeRemainingDisplay) {
+                stripeRemainingDisplay.textContent = `R${remaining.toFixed(2)}`;
+            }
 
-            // Keep hidden input in sync for server
+            // keep hidden in sync for server
             if (formRef.total_price) {
                 formRef.total_price.value = totalPrice.toFixed(2);
             }
@@ -1038,11 +1134,12 @@
             const qty = parseInt(formRef.quantity?.value || '1', 10);
 
             if (!locId) {
-                if (showAlerts)
+                if (showAlerts) {
                     notify('loc', {
                         title: 'Location required',
                         text: 'Please select a location.',
                     });
+                }
                 return {
                     ok: false
                 };
@@ -1050,11 +1147,12 @@
 
             const record = findLocationRecord(locId);
             if (!record) {
-                if (showAlerts)
+                if (showAlerts) {
                     notify('loc2', {
                         title: 'Invalid location',
                         text: 'Selected location is not valid for this item.',
                     });
+                }
                 return {
                     ok: false
                 };
@@ -1062,11 +1160,12 @@
 
             if (!Number.isInteger(qty) || qty < 1) {
                 if (record && record.stock < 1) {
-                    if (showAlerts)
+                    if (showAlerts) {
                         notify('qty0', {
                             title: 'Out of stock',
                             text: `${record.name} currently has no stock available.`,
                         });
+                    }
                 } else if (showAlerts) {
                     notify('qty', {
                         title: 'Invalid quantity',
@@ -1079,11 +1178,12 @@
             }
 
             if (qty > record.stock) {
-                if (showAlerts)
+                if (showAlerts) {
                     notify('qty2', {
                         title: 'Insufficient stock',
                         text: `Only ${record.stock} available at ${record.name}.`,
                     });
+                }
                 return {
                     ok: false
                 };
@@ -1097,11 +1197,15 @@
             };
         }
 
-        // block clicks when sold
+        // Prevent clicks if sold
         document.addEventListener('click', (e) => {
             if (!IS_SOLD) return;
+
             const opener = e.target.closest(
-                '[data-bs-target="#purchaseModal"], [data-bs-target="#purchaseCustomer"], [data-bs-target="#purchasePayment"], [data-bs-target="#stripePaymentModal"]'
+                '[data-bs-target="#purchaseModal"], ' +
+                '[data-bs-target="#purchaseCustomer"], ' +
+                '[data-bs-target="#purchasePayment"], ' +
+                '[data-bs-target="#stripePaymentModal"]'
             );
             const ids = [
                 'purchaseStep1Next',
@@ -1118,16 +1222,19 @@
             }
         });
 
-        // modal stacking
-        const Z_BASE = 1055,
-            Z_STEP = 20;
+        // Handle layered modals so they stack nicely
+        const Z_BASE = 1055;
+        const Z_STEP = 20;
+
         const visibleModals = () =>
             Array.from(document.querySelectorAll('.modal.show'));
+
         const restack = () => {
             const open = visibleModals();
-            open.forEach(
-                (m, i) => (m.style.zIndex = String(Z_BASE + i * Z_STEP))
-            );
+            open.forEach((m, i) => {
+                m.style.zIndex = String(Z_BASE + i * Z_STEP);
+            });
+
             if (open.length) {
                 document.body.classList.add('modal-open');
             } else {
@@ -1135,17 +1242,17 @@
                 document.body.style.removeProperty('padding-right');
             }
         };
-        ['show.bs.modal', 'shown.bs.modal', 'hidden.bs.modal'].forEach((evt) =>
-            document.addEventListener(evt, () => setTimeout(restack, 0))
-        );
+
+        ['show.bs.modal', 'shown.bs.modal', 'hidden.bs.modal'].forEach((evt) => {
+            document.addEventListener(evt, () => setTimeout(restack, 0));
+        });
 
         function openWhatsAppNewTab() {
             const a = document.createElement('a');
             a.href = WHATSAPP_LINK;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
-            a.style.cssText =
-                'position:fixed;top:0;left:0;width:1px;height:1px;opacity:.01;';
+            a.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:.01;';
             document.body.appendChild(a);
             a.click();
             setTimeout(() => a.remove(), 100);
@@ -1163,16 +1270,19 @@
         }
 
         document.addEventListener('change', (e) => {
-            if (e.target?.id === 'locationSelect')
+            if (e.target?.id === 'locationSelect') {
                 clampQtyByLocation(e.target.value);
+            }
         });
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.modal').forEach((m) => modalInst(m));
+
             const $ = (id) => document.getElementById(id);
             formRef = $('purchaseForm');
             const form = formRef;
 
+            // Initial stock handling
             if (TYPE === 'equipment') {
                 resetQuantitySelect();
                 const initialLocation = form?.location_id?.value;
@@ -1187,39 +1297,53 @@
                 clampQtyByLocation(event.target.value);
             });
 
-            form?.quantity?.addEventListener('change', () =>
-                updatePricingSummary()
-            );
+            form?.quantity?.addEventListener('change', () => {
+                updatePricingSummary();
+            });
 
             $('purchaseStep1Next')?.addEventListener('click', () => {
-                if (IS_SOLD)
+                if (IS_SOLD) {
                     return notify('sold1', {
                         title: 'Sold',
                         text: `This ${TYPE} is sold.`,
                     });
+                }
+
                 const selection = getEquipmentSelection(true);
                 if (!selection.ok) return;
+
                 updatePricingSummary();
                 swapModal('purchaseModal', 'purchaseCustomer');
             });
 
-            $('purchaseBackToStep1')?.addEventListener('click', () =>
-                swapModal('purchaseCustomer', 'purchaseModal')
-            );
+            $('purchaseBackToStep1')?.addEventListener('click', () => {
+                swapModal('purchaseCustomer', 'purchaseModal');
+            });
 
             $('purchaseStep2Next')?.addEventListener('click', async () => {
-                if (IS_SOLD)
+                if (IS_SOLD) {
                     return notify('sold2', {
                         title: 'Sold',
                         text: `This ${TYPE} is sold.`,
                     });
+                }
 
                 updatePricingSummary();
+
+                // Make sure hidden country mirrors whatever is typed,
+                // in case user didn't click suggestion
+                const visibleCountry = document.getElementById('purchaseCountryInput');
+                const hiddenCountry = document.getElementById('purchaseCountryHidden');
+                if (visibleCountry && hiddenCountry) {
+                    if (!hiddenCountry.value || hiddenCountry.value.trim() === '') {
+                        hiddenCountry.value = (visibleCountry.value || '').trim();
+                    }
+                }
 
                 const name = (form.name?.value || '').trim();
                 const email = (form.email?.value || '').trim();
                 const phone = (form.phone?.value || '').trim();
-                const country = (form.country?.value || '').trim();
+                const country = (form.country?.value || '').trim(); // hidden field
 
                 if (!name || !email || !phone || !country) {
                     notify('missing', {
@@ -1239,7 +1363,7 @@
                 if (!phonePattern.test(phone)) {
                     notify('phone', {
                         title: 'Invalid Phone Number',
-                        text: 'Use digits with optional spaces or dashes.',
+                        text: 'Use digits and spaces only.',
                     });
                     form.phone?.focus();
                     return;
@@ -1252,8 +1376,8 @@
                     country,
                     total_price: form.total_price.value,
                 };
-                const idName =
-                    TYPE === 'equipment' ? 'equipment_id' : 'vehicle_id';
+
+                const idName = TYPE === 'equipment' ? 'equipment_id' : 'vehicle_id';
                 payload[idName] = form[idName].value;
 
                 // Extra validation for equipment
@@ -1279,15 +1403,14 @@
                         },
                         body: JSON.stringify(payload),
                     });
-                    const data = await res.json();
-                    if (!res.ok || !data?.success)
-                        throw new Error(
-                            data?.message || 'Unable to save details.'
-                        );
 
-                    let hid = form.querySelector(
-                        'input[name="purchase_id"]'
-                    );
+                    const data = await res.json();
+                    if (!res.ok || !data?.success) {
+                        throw new Error(data?.message || 'Unable to save details.');
+                    }
+
+                    // save purchase_id on form for payment steps
+                    let hid = form.querySelector('input[name="purchase_id"]');
                     if (!hid) {
                         hid = document.createElement('input');
                         hid.type = 'hidden';
@@ -1307,27 +1430,23 @@
                 }
             });
 
-            $('backToCustomer')?.addEventListener('click', () =>
-                swapModal('purchasePayment', 'purchaseCustomer')
-            );
+            $('backToCustomer')?.addEventListener('click', () => {
+                swapModal('purchasePayment', 'purchaseCustomer');
+            });
 
             $('purchasePayment')?.addEventListener('show.bs.modal', () => {
                 updatePricingSummary();
                 document
-                    .querySelectorAll(
-                        '#purchasePayment input[name="payment_method"]'
-                    )
+                    .querySelectorAll('#purchasePayment input[name="payment_method"]')
                     .forEach((r) => (r.checked = false));
             });
 
-            // Stripe
-            let stripe,
-                elements,
-                cardNumber,
-                cardExpiry,
-                cardCvc;
+            // Stripe bits
+            let stripe, elements, cardNumber, cardExpiry, cardCvc;
+
             async function ensureStripeMounted() {
                 if (stripe) return true;
+
                 const publishableKey = @json($settings->stripe_key ?? (config('services.stripe.key') ?? ''));
                 if (!publishableKey) {
                     Swal.fire({
@@ -1337,9 +1456,11 @@
                     });
                     return false;
                 }
+
                 try {
                     stripe = Stripe(publishableKey);
                     elements = stripe.elements();
+
                     const style = {
                         base: {
                             fontSize: '16px',
@@ -1349,6 +1470,7 @@
                             },
                         },
                     };
+
                     cardNumber = elements.create('cardNumber', {
                         style
                     });
@@ -1358,9 +1480,11 @@
                     cardCvc = elements.create('cardCvc', {
                         style
                     });
+
                     cardNumber.mount('#card-number');
                     cardExpiry.mount('#card-expiry');
                     cardCvc.mount('#card-cvc');
+
                     return true;
                 } catch (e) {
                     Swal.fire({
@@ -1377,6 +1501,7 @@
                 .forEach((radio) => {
                     radio.addEventListener('change', async function() {
                         const choice = this.value;
+
                         if (IS_SOLD) {
                             this.checked = false;
                             return notify('sold3', {
@@ -1385,9 +1510,7 @@
                             });
                         }
 
-                        const pid = form.querySelector(
-                            'input[name="purchase_id"]'
-                        )?.value;
+                        const pid = form.querySelector('input[name="purchase_id"]')?.value;
                         if (!pid) {
                             Swal.fire({
                                 icon: 'error',
@@ -1423,6 +1546,7 @@
                                 cancelButton: 'btn btn-outline-secondary me-3',
                             },
                         });
+
                         if (!confirmed.isConfirmed) {
                             this.checked = false;
                             return;
@@ -1433,6 +1557,7 @@
                                 '{id}',
                                 encodeURIComponent(pid)
                             );
+
                             const res = await fetch(initUrl, {
                                 method: 'POST',
                                 headers: {
@@ -1444,206 +1569,196 @@
                                     email: form.email?.value || '',
                                 }),
                             });
-                            const data = await res.json();
-                            if (!res.ok || !data?.success)
-                                throw new Error(
-                                    data?.message ||
-                                    'Failed to initialize PayFast.'
-                                );
 
-                            const pfForm =
-                                document.createElement('form');
+                            const data = await res.json();
+                            if (!res.ok || !data?.success) {
+                                throw new Error(
+                                    data?.message || 'Failed to initialize PayFast.'
+                                );
+                            }
+
+                            const pfForm = document.createElement('form');
                             pfForm.method = 'POST';
                             pfForm.action = data.action;
                             pfForm.style.display = 'none';
-                            Object.entries(data.fields || {}).forEach(
-                                ([k, v]) => {
-                                    const inp =
-                                        document.createElement('input');
-                                    inp.type = 'hidden';
-                                    inp.name = k;
-                                    inp.value = v;
-                                    pfForm.appendChild(inp);
-                                }
-                            );
+
+                            Object.entries(data.fields || {}).forEach(([k, v]) => {
+                                const inp = document.createElement('input');
+                                inp.type = 'hidden';
+                                inp.name = k;
+                                inp.value = v;
+                                pfForm.appendChild(inp);
+                            });
+
                             document.body.appendChild(pfForm);
                             pfForm.submit();
                         } catch (e) {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'PayFast error',
-                                text: e.message ||
-                                    'Could not redirect to PayFast.',
+                                text: e.message || 'Could not redirect to PayFast.',
                             });
                             this.checked = false;
                         }
                     });
                 });
 
-            $('purchaseStripeBackToPayment')?.addEventListener('click', () =>
-                swapModal('stripePaymentModal', 'purchasePayment')
-            );
+            $('purchaseStripeBackToPayment')?.addEventListener('click', () => {
+                swapModal('stripePaymentModal', 'purchasePayment');
+            });
 
-            $('purchaseStripePayButton')?.addEventListener(
-                'click',
-                async () => {
-                    if (IS_SOLD)
-                        return notify('sold4', {
-                            title: 'Sold',
-                            text: `This ${TYPE} is sold.`,
-                        });
+            $('purchaseStripePayButton')?.addEventListener('click', async () => {
+                if (IS_SOLD) {
+                    return notify('sold4', {
+                        title: 'Sold',
+                        text: `This ${TYPE} is sold.`,
+                    });
+                }
 
-                    const pid = form.querySelector(
-                        'input[name="purchase_id"]'
-                    )?.value;
-                    if (!pid) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Missing purchase',
-                            text: 'Purchase ID is missing. Please save your details again.',
-                        });
-                        return;
-                    }
-
-                    if (!stripe || !cardNumber) {
-                        const ok = await ensureStripeMounted();
-                        if (!ok) return;
-                    }
-
+                const pid = form.querySelector('input[name="purchase_id"]')?.value;
+                if (!pid) {
                     Swal.fire({
-                        title: 'Processing payment',
-                        html: 'Please do not close this window.',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
+                        icon: 'error',
+                        title: 'Missing purchase',
+                        text: 'Purchase ID is missing. Please save your details again.',
+                    });
+                    return;
+                }
+
+                if (!stripe || !cardNumber) {
+                    const ok = await ensureStripeMounted();
+                    if (!ok) return;
+                }
+
+                Swal.fire({
+                    title: 'Processing payment',
+                    html: 'Please do not close this window.',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
+                });
+
+                const {
+                    paymentMethod,
+                    error
+                } = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardNumber,
+                    billing_details: {
+                        name: form.name?.value || '',
+                        email: form.email?.value || '',
+                    },
+                });
+
+                if (error) {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Card error',
+                        text: error.message,
+                    });
+                    return;
+                }
+
+                try {
+                    const stripeUrl = STRIPE_URL_TPL.replace(
+                        '{id}',
+                        encodeURIComponent(pid)
+                    );
+
+                    const res = await fetch(stripeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                        },
+                        body: JSON.stringify({
+                            payment_method_id: paymentMethod.id,
+                        }),
                     });
 
-                    const {
-                        paymentMethod,
-                        error
-                    } =
-                    await stripe.createPaymentMethod({
-                        type: 'card',
-                        card: cardNumber,
-                        billing_details: {
-                            name: form.name?.value || '',
-                            email: form.email?.value || '',
-                        },
-                    });
-                    if (error) {
-                        Swal.close();
+                    const data = await res.json();
+                    Swal.close();
+
+                    if (data?.success) {
+                        const go = data.redirect_to || '/?purchase=success';
+
                         Swal.fire({
-                            icon: 'error',
-                            title: 'Card error',
-                            text: error.message,
+                            icon: 'success',
+                            title: 'Payment Successful!',
+                            html: `<div class="text-start">
+                            <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
+                            <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(data.paid ?? ITEM_DEPOSIT)}</p>
+                            <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id}</p>
+                            ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
+                        </div>
+                        <hr class="my-2">
+                        <p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>`,
+                            showConfirmButton: true,
+                            confirmButtonText: 'Continue to WhatsApp',
+                            allowOutsideClick: false,
+                        }).then(() => {
+                            openWhatsAppNewTab();
+                            window.location.href = go;
                         });
                         return;
                     }
 
-                    try {
-                        const stripeUrl = STRIPE_URL_TPL.replace(
-                            '{id}',
-                            encodeURIComponent(pid)
+                    if (data?.requires_action && data.payment_intent_client_secret) {
+                        const result = await stripe.confirmCardPayment(
+                            data.payment_intent_client_secret
                         );
-                        const res = await fetch(stripeUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                            },
-                            body: JSON.stringify({
-                                payment_method_id: paymentMethod.id,
-                            }),
-                        });
-                        const data = await res.json();
-                        Swal.close();
 
-                        if (data?.success) {
-                            const go =
-                                data.redirect_to ||
-                                '/?purchase=success';
+                        if (result.error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Authentication failed',
+                                text: result.error.message,
+                            });
+                        } else if (result.paymentIntent?.status === 'succeeded') {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Payment Successful!',
                                 html: `<div class="text-start">
-                    <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
-                    <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(data.paid ?? ITEM_DEPOSIT)}</p>
-                    <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id}</p>
-                    ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
-                  </div><hr class="my-2"><p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>`,
+                                <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
+                                <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(ITEM_DEPOSIT)}</p>
+                            </div>
+                            <hr class="my-2">
+                            <p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>`,
                                 showConfirmButton: true,
                                 confirmButtonText: 'Continue to WhatsApp',
                                 allowOutsideClick: false,
                             }).then(() => {
                                 openWhatsAppNewTab();
-                                window.location.href = go;
+                                window.location.href = '/?purchase=success';
                             });
-                            return;
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Payment status unknown',
+                                text: 'Please check your email for a receipt.',
+                            });
                         }
-
-                        if (
-                            data?.requires_action &&
-                            data.payment_intent_client_secret
-                        ) {
-                            const result =
-                                await stripe.confirmCardPayment(
-                                    data.payment_intent_client_secret
-                                );
-                            if (result.error) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Authentication failed',
-                                    text: result.error.message,
-                                });
-                            } else if (
-                                result.paymentIntent?.status ===
-                                'succeeded'
-                            ) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Payment Successful!',
-                                    html: `<div class="text-start">
-                      <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
-                      <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(ITEM_DEPOSIT)}</p>
-                    </div><hr class="my-2"><p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>`,
-                                    showConfirmButton: true,
-                                    confirmButtonText: 'Continue to WhatsApp',
-                                    allowOutsideClick: false,
-                                }).then(() => {
-                                    openWhatsAppNewTab();
-                                    window.location.href =
-                                        '/?purchase=success';
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Payment status unknown',
-                                    text: 'Please check your email for a receipt.',
-                                });
-                            }
-                            return;
-                        }
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Payment failed',
-                            text: data?.message ||
-                                'There was a problem processing your payment.',
-                        });
-                    } catch (e) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Network error',
-                            text: 'Unable to complete payment. Please try again.',
-                        });
+                        return;
                     }
-                }
-            );
 
-            // Post-success WhatsApp popup (redirect from Stripe / PayFast)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Payment failed',
+                        text: data?.message ||
+                            'There was a problem processing your payment.',
+                    });
+                } catch (e) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network error',
+                        text: 'Unable to complete payment. Please try again.',
+                    });
+                }
+            });
+
+            // After redirect back from Stripe/PayFast
             try {
-                const params = new URLSearchParams(
-                    window.location.search
-                );
+                const params = new URLSearchParams(window.location.search);
                 if (
                     params.get('purchase') === 'success' ||
                     params.get('payfast_success')
@@ -1651,7 +1766,8 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Payment Successful!',
-                        html: `<p>Your deposit payment was successful!</p><p><strong>Click below to open WhatsApp chat</strong></p>`,
+                        html: `<p>Your deposit payment was successful!</p>
+                           <p><strong>Click below to open WhatsApp chat</strong></p>`,
                         showConfirmButton: true,
                         confirmButtonText: 'Open WhatsApp Chat',
                         allowOutsideClick: false,
@@ -1660,22 +1776,24 @@
                         window.location.href = '/';
                     });
 
+                    // Clean URL so refresh doesn't retrigger
                     params.delete('purchase');
                     params.delete('payfast_success');
                     const newUrl = `${location.pathname}${
-                    params.toString()
-                        ? '?' + params.toString()
-                        : ''
+                    params.toString() ? '?' + params.toString() : ''
                 }${location.hash}`;
                     window.history.replaceState({}, '', newUrl);
                 }
-            } catch {}
+            } catch (e) {
+                // silent
+            }
 
             @if (session('payfast_success'))
                 Swal.fire({
                     icon: 'success',
                     title: 'Payment Successful!',
-                    html: `<p>{{ session('payfast_success') }}</p><p><strong>Click below to open WhatsApp chat</strong></p>`,
+                    html: `<p>{{ session('payfast_success') }}</p>
+                       <p><strong>Click below to open WhatsApp chat</strong></p>`,
                     showConfirmButton: true,
                     confirmButtonText: 'Open WhatsApp Chat',
                     allowOutsideClick: false,

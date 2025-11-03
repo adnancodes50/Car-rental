@@ -364,13 +364,13 @@ return [
 
 
    [
-    'text' => 'Caregorys',
+    'text' => 'Categories',
     'url'  => '/categories', // Use named route
     'icon' => 'fas fa-circle-notch fa-2x text-success', // Big blue car icon
 ],
 
         [
-        'text' => 'Equipments',
+        'text' => 'Equipment',
         'url'  => '/equipment',
         'icon' => 'fas fa-tools fa-lg text-primary', // Big car icon in blue
     ],
