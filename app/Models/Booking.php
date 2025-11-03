@@ -23,7 +23,7 @@ class Booking extends Model
         'notes',
         'total_price',
         'extra_days',
-        'booked_stock', 
+        'booked_stock',
     ];
 
     /* ------------------ Relationships ------------------ */
@@ -48,10 +48,5 @@ class Booking extends Model
         return $this->belongsTo(Equipment::class);
     }
 
-    public function addOns()
-    {
-        return $this->belongsToMany(AddOn::class, 'add_on_reservations')
-                    ->withPivot('qty', 'price_total')
-                    ->withTimestamps();
-    }
+  
 }

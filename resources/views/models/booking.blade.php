@@ -2877,6 +2877,12 @@
 
             const periodBox = document.getElementById('rentalPeriod');
 
+            const extraDaysSection = document.getElementById('extraDaysSection');
+
+            const extraDaysInput = document.getElementById('extraDaysInput');
+
+            const extraDaysHelp = document.getElementById('extraDaysHelp');
+
 
 
             // Hidden inputs used by your existing flow:
@@ -2890,6 +2896,46 @@
             const hidExtra = document.getElementById('inputExtraDays'); // optional
 
             const hidTotal = document.getElementById('inputTotalPrice');
+
+            const hidStockQty = document.getElementById('inputStockQuantity');
+
+            let currentUnitMax = 30;
+
+            const applyQuantityLimit = (limit) => {
+
+                if (!qtySelect) return;
+
+                const fallback = currentUnitMax;
+
+                let parsedLimit = typeof limit === 'number' ? Math.floor(limit) : null;
+
+                if (parsedLimit !== null && parsedLimit < 1) parsedLimit = 1;
+
+                const targetMax = parsedLimit !== null && parsedLimit > 0
+                    ? Math.min(fallback, parsedLimit)
+                    : fallback;
+
+                const previousValue = parseInt(qtySelect.value || '1', 10) || 1;
+
+                fillSelect(qtySelect, 1, targetMax, 1);
+
+                const nextValue = Math.min(previousValue, targetMax);
+
+                qtySelect.value = String(nextValue);
+
+                if (hidQty) {
+
+                    hidQty.value = qtySelect.value;
+
+                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
+
+                }
+
+            };
+
+            window.updateQuantityLimit = (limit) => applyQuantityLimit(
+                typeof limit === 'number' ? limit : null
+            );
 
 
 
