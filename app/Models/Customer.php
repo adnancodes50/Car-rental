@@ -10,7 +10,7 @@ class Customer extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name','email','phone','country',
+        'name','email','phone','country', 'notes',
     ];
 
     public function equipmentPurchases()
@@ -19,10 +19,11 @@ class Customer extends Model
     }
 
     // If you also have a purchases table for vehicles:
-    public function purchases()
-    {
-        return $this->hasMany(Purchase::class, 'customer_id');
-    }
+   public function purchases()
+{
+    return $this->hasMany(\App\Models\Purchase::class);
+}
+
 
 
     public function bookings()

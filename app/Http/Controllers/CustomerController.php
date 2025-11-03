@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Purchase;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use App\Models\SystemSetting;
@@ -33,20 +34,24 @@ public function getCustomerDetails($id)
     $bookings  = $customer->bookings()->latest()->get();
     $purchases = $customer->purchases()->latest()->get();
 
-    // ✅ Load this customer's email logs
+    // Load this customer's email logs
     $emailLogs = EmailLog::where('customer_id', $customer->id)
         ->orderByDesc('sent_at')
         ->get();
 
+    // Sum confirmed booking totals
     $customer->total_booking_price = $customer->bookings()
         ->where('status', 'confirmed')
         ->sum('total_price');
 
+    // Grand total
     $customer->grand_total_spent =
         ($customer->total_booking_price ?? 0) + ($customer->total_purchase_price ?? 0);
 
+    // NOTE: compact must pass 'purchases' (plural), not 'purchase'
     return view('admin.customer.customerDetails', compact('customer', 'bookings', 'purchases', 'emailLogs'));
 }
+
 
 
 public function update(Request $request, $id)

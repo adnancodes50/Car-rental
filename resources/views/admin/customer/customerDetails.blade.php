@@ -60,9 +60,11 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label for="customer_country" class="form-label"><strong>Country:</strong></label>
+                                        <label class="form-label"><strong>Customer Address:</strong></label>
                                         <input type="text" id="customer_country" name="country" class="form-control"
-                                            value="{{ old('country', $customer->country) }}">
+                                            placeholder="Start typing address..."
+                                            value="{{ old('country', $customer->country) }}" autocomplete="off">
+                                        <small class="text-muted">Select an address from suggestions</small>
                                     </div>
 
                                     <div class="col-md-12 mt-3">
@@ -126,19 +128,22 @@
                 <div class="row g-4">
                     @forelse($bookings as $booking)
                         @php
-                            // Collect booked date ranges for same vehicle (except this booking)
-                            $bookedRanges = $booking->vehicle->bookings
+                            // Other bookings for the same equipment (excluding this booking)
+                            $bookedRanges = \App\Models\Booking::where('equipment_id', $booking->equipment_id)
                                 ->where('id', '!=', $booking->id)
+                                ->get()
                                 ->map(fn($b) => ['from' => $b->start_date, 'to' => $b->end_date])
                                 ->values();
                         @endphp
+
 
                         <div class="col-md-12">
                             <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
                                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                                     <h6 class="text-bold text-black mb-0">
-                                        {{ $booking->vehicle->name ?? 'N/A' }}
+                                        {{ optional($booking->equipment)->name ?? 'N/A' }}
                                     </h6>
+
 
                                     {{-- Status dropdown --}}
                                     <div class="d-flex align-items-center gap-2">
@@ -173,14 +178,16 @@
                                 <form class="booking-dates-form" data-booking-id="{{ $booking->id }}"
                                     data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
                                     data-disabled-dates='@json($bookedRanges)'
-                                    data-daily-rate="{{ $booking->vehicle->rental_price_day }}">
+                                    data-daily-rate="{{ optional($booking->equipment)->daily_price ?? 0 }}">
+
                                     @csrf
                                     @method('PATCH')
 
                                     <div class="row g-2 align-items-center">
                                         <div class="col-md-6">
                                             <label class="form-label mb-1"><strong>Start Date:</strong></label>
-                                            <input type="text" name="start_date" value="{{ $booking->start_date }}"
+                                            <inPurchase Historyput type="text" name="start_date"
+                                                value="{{ $booking->start_date }}"
                                                 class="form-control form-control-sm booking-start-date"
                                                 placeholder="Select start date">
                                         </div>
@@ -239,7 +246,7 @@
                             <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="text-bold text-black mb-0">
-                                        {{ $purchase->vehicle->name ?? 'N/A' }}
+                                        {{ optional($booking->equipment)->name ?? 'N/A' }}
                                     </h6>
                                     <span class="badge bg-primary">Purchase</span>
                                 </div>
@@ -391,6 +398,9 @@
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps.key') }}&libraries=places&callback=initCustomerAutocomplete"
+        defer></script>
 
     <script>
         (function() {
@@ -521,7 +531,7 @@
 
                     const resData = await res.json();
                     if (!res.ok || !resData.success) throw new Error(resData.message ||
-                    'Update failed');
+                        'Update failed');
 
                     Swal.fire({
                         icon: 'success',
@@ -675,5 +685,23 @@
                 });
             });
         });
+
+
+        window.initCustomerAutocomplete = function() {
+            const input = document.getElementById("customer_country");
+            if (!input) return;
+            const autocomplete = new google.maps.places.Autocomplete(input, {
+                fields: ["formatted_address"],
+                componentRestrictions: {
+                    country: "ZA"
+                } // 🇿🇦 change/remove as needed
+            });
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                if (place.formatted_address) {
+                    input.value = place.formatted_address;
+                }
+            });
+        };
     </script>
 @stop

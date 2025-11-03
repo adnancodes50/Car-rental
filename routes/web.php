@@ -76,7 +76,7 @@ Route::group([
     'as' => 'customers.'
 ], function () {
     Route::get('/', [CustomerController::class, 'index'])->name('index');
-    Route::get('/{id}', [CustomerController::class, 'getCustomerDetails'])->name('details');
+Route::get('/{id}', [CustomerController::class, 'getCustomerDetails'])->name('details');
     Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
     Route::patch('/{id}', [CustomerController::class, 'update'])->name('update');
 
@@ -151,18 +151,6 @@ Route::group([
     Route::post('/store-equipment', [CategoryController::class, 'storeEquipmentFromModal'])
         ->name('storeEquipmentFromModal');
 });
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 Route::group([

@@ -9,7 +9,9 @@ class Purchase extends Model
 {
     use HasFactory;
 
-    // Fillable fields for mass assignment
+    // IMPORTANT: your table name is non-standard
+    protected $table = 'equipment_purchase';
+
     protected $fillable = [
         'customer_id',
         'vehicle_id',
@@ -20,17 +22,13 @@ class Purchase extends Model
 
     protected $casts = [
         'deposit_paid' => 'float',
+        'total_price'  => 'float',
     ];
 
-    /**
-     * Get the vehicle associated with the purchase
-     */
-
-
-
-
+    // Relationships
     public function customer()
     {
         return $this->belongsTo(Customer::class);
     }
+
 }
