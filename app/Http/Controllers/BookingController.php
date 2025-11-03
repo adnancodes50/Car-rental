@@ -105,13 +105,13 @@ class BookingController extends Controller
                 $category = Category::findOrFail($validated['category_id']);
                 $location = Location::findOrFail($validated['location_id']);
                 $equipment = !empty($validated['equipment_id'])
-                    ? Equipment::find($validated['equipment_id'])
+                    ? Equipment::findOrFail($validated['equipment_id'])
                     : null;
 
                 $unit = $validated['rental_unit']; // day, week, month
                 $qty  = (int) $validated['rental_quantity'];
                 $extraDays = (int) ($validated['extra_days'] ?? 0);
-                $reservedUnits = max(1, (int) ($validated['stock_quantity'] ?? 1));
+                $reservedUnits = max(1, (int) ($validated['stock_quantity'] ?? $qty));
                 $start = Carbon::parse($validated['rental_start_date'])->startOfDay();
 
                 switch ($unit) {
@@ -129,6 +129,52 @@ class BookingController extends Controller
                         break;
                     default:
                         throw new \InvalidArgumentException("Unsupported rental unit [$unit]");
+                }
+
+                if ($equipment) {
+                    $baseStock = $equipment->stocks()
+                        ->where('location_id', $location->id)
+                        ->value('stock');
+
+                    if ($baseStock === null) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Selected location does not have stock for this item.',
+                        ], 422);
+                    }
+
+                    $overlapBookings = Booking::where('equipment_id', $equipment->id)
+                        ->where('location_id', $location->id)
+                        ->whereNotIn('status', ['cancelled'])
+                        ->where(function ($query) use ($start, $end) {
+                            $startDate = $start->toDateString();
+                            $endDate = $end->toDateString();
+
+                            $query->whereBetween('start_date', [$startDate, $endDate])
+                                ->orWhereBetween('end_date', [$startDate, $endDate])
+                                ->orWhere(function ($inner) use ($startDate, $endDate) {
+                                    $inner->where('start_date', '<=', $startDate)
+                                        ->where('end_date', '>=', $endDate);
+                                });
+                        })
+                        ->lockForUpdate()
+                        ->get();
+
+                    $alreadyReserved = $overlapBookings->sum(function ($booking) {
+                        return (int) ($booking->booked_stock ?? 1);
+                    });
+
+                    $availableUnits = max(0, $baseStock - $alreadyReserved);
+
+                    if ($availableUnits < $reservedUnits) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Only {$availableUnits} unit(s) are available for the selected dates at this location.",
+                            'available_units' => $availableUnits,
+                        ], 422);
+                    }
                 }
 
                 $perUnitBase = $pricePerUnit * $qty;
@@ -150,6 +196,7 @@ class BookingController extends Controller
                     'reference'    => 'BK-' . strtoupper(Str::random(8)),
                     'total_price'  => $totalPrice,
                     'extra_days'   => $extraDays,
+                    'booked_stock' => $reservedUnits,
                     'notes'        => json_encode([
                         'rental_unit' => $unit,
                         'rental_quantity' => $qty,

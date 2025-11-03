@@ -579,6 +579,11 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <div class="mt-2">
+                                    <label class="form-label small text-muted mb-1">Available stock</label>
+                                    <input type="text" class="form-control" id="locationStockDisplay"
+                                        value="{{ $initialHint }}" readonly>
+                                </div>
                                 <div class="form-text" id="locationAvailabilityHint">{{ $initialHint }}</div>
                             </div>
                         @endif
@@ -2900,6 +2905,8 @@
             const hidStockQty = document.getElementById('inputStockQuantity');
 
             let currentUnitMax = 30;
+            let suppressRentalEvent = false;
+            let isUpdatingStep1 = false;
 
             const applyQuantityLimit = (limit) => {
 
@@ -2924,11 +2931,14 @@
                 qtySelect.value = String(nextValue);
 
                 if (hidQty) {
+                    hidQty.value = String(nextValue);
+                }
 
-                    hidQty.value = qtySelect.value;
-
-                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
-
+                suppressRentalEvent = true;
+                try {
+                    updateStep1Paint();
+                } finally {
+                    suppressRentalEvent = false;
                 }
 
             };
@@ -2969,11 +2979,15 @@
 
                 let label = 'How many day(s)?';
 
+                currentUnitMax = max;
+
                 if (u === 'week') {
 
                     max = 12;
 
                     label = 'How many week(s)?';
+
+                    currentUnitMax = max;
 
                 }
 
@@ -2983,11 +2997,15 @@
 
                     label = 'How many month(s)?';
 
+                    currentUnitMax = max;
+
                 }
 
                 qtyLabel.textContent = label;
 
                 fillSelect(qtySelect, 1, max, 1);
+
+                 applyQuantityLimit(window.latestLocationAvailability ?? null);
 
             }
 
@@ -2996,6 +3014,12 @@
             // Compute + paint Step-1 price & period
 
             function updateStep1Paint() {
+
+                if (isUpdatingStep1) return;
+
+                isUpdatingStep1 = true;
+
+                try {
 
                 const unit = (hidUnit?.value || activeUnit() || '').toLowerCase();
 
@@ -3048,6 +3072,21 @@
                 const pricePer = priceForActiveUnit();
 
                 const vehicleTotal = Number((pricePer * qty).toFixed(2)); // price is per unit (day/week/month)
+
+
+                if (hidStockQty) {
+
+                    const availability = typeof window.latestLocationAvailability === 'number'
+                        ? Math.max(0, Math.floor(window.latestLocationAvailability))
+                        : null;
+
+                    const stockValue = availability !== null && availability > 0
+                        ? Math.min(qty, availability)
+                        : qty;
+
+                    hidStockQty.value = String(Math.max(1, stockValue));
+
+                }
 
 
 
@@ -3125,7 +3164,17 @@
 
                 // Inform add-ons & summary listeners
 
-                document.dispatchEvent(new CustomEvent('rental:updated'));
+                if (!suppressRentalEvent) {
+
+                    document.dispatchEvent(new CustomEvent('rental:updated'));
+
+                }
+
+                } finally {
+
+                    isUpdatingStep1 = false;
+
+                }
 
             }
 
@@ -5849,6 +5898,7 @@ const showCard = () => {
         document.addEventListener('DOMContentLoaded', () => {
             const locationSelect = document.getElementById('bookingLocationSelect');
             const locationHint = document.getElementById('locationAvailabilityHint');
+            const locationStockDisplay = document.getElementById('locationStockDisplay');
             const hiddenLocationId = document.getElementById('inputLocationId');
             const extraDaysSection = document.getElementById('extraDaysSection');
             const extraDaysInput = document.getElementById('extraDaysInput');
@@ -5859,6 +5909,7 @@ const showCard = () => {
             const locationInventory = @json($locationInventory);
             const locationBookingMap = @json($locationBookingMap);
             let latestLocationAvailability = null;
+            window.latestLocationAvailability = null;
 
             const parseIntSafe = (value, fallback = 0) => {
                 const parsed = parseInt(value ?? '', 10);
@@ -5967,44 +6018,66 @@ const showCard = () => {
                 summaryLocationEl.textContent = label || 'N/A';
             };
 
+            const setLocationDisplay = (message, danger = false) => {
+                if (locationHint) {
+                    locationHint.textContent = message;
+                    locationHint.classList.toggle('text-danger', !!danger);
+                }
+                if (locationStockDisplay) {
+                    locationStockDisplay.value = message;
+                }
+            };
+
             const updateLocationAvailability = () => {
                 if (!locationSelect || !locationHint) return;
                 ensureHiddenLocation();
                 const locationId = locationSelect.value;
                 if (!locationId) {
-                    locationHint.textContent = 'Select a location to view availability.';
-                    locationHint.classList.remove('text-danger');
+                    setLocationDisplay('Select a location to view availability.', false);
                     latestLocationAvailability = null;
+                    window.latestLocationAvailability = null;
+                    if (typeof window.updateQuantityLimit === 'function') {
+                        window.updateQuantityLimit(null);
+                    }
                     updateSummaryLocation();
                     return;
                 }
                 const context = computeRentalContext();
                 const base = baseStockForLocation(locationId);
                 if (base === null || base === undefined) {
-                    locationHint.textContent = 'Availability varies for this location.';
-                    locationHint.classList.remove('text-danger');
+                    setLocationDisplay('Availability varies for this location.', false);
                     latestLocationAvailability = null;
+                    window.latestLocationAvailability = null;
+                    if (typeof window.updateQuantityLimit === 'function') {
+                        window.updateQuantityLimit(null);
+                    }
                     updateSummaryLocation();
                     return;
                 }
                 if (!context) {
-                    locationHint.textContent = `${base} in stock`;
-                    locationHint.classList.toggle('text-danger', base <= 0);
+                    const message = `${base} in stock`;
+                    setLocationDisplay(message, base <= 0);
                     latestLocationAvailability = base;
+                    window.latestLocationAvailability = base;
+                    if (typeof window.updateQuantityLimit === 'function') {
+                        window.updateQuantityLimit(base);
+                    }
                     updateSummaryLocation();
                     return;
                 }
                 const available = availableUnitsForLocation(locationId, context);
                 latestLocationAvailability = available;
+                window.latestLocationAvailability = available;
+                if (typeof window.updateQuantityLimit === 'function') {
+                    window.updateQuantityLimit(available);
+                }
                 if (available === null || available === undefined) {
-                    locationHint.textContent = `${base} in stock`;
-                    locationHint.classList.remove('text-danger');
+                    const message = `${base} in stock`;
+                    setLocationDisplay(message, base <= 0);
                 } else if (available <= 0) {
-                    locationHint.textContent = 'Not available for the selected dates.';
-                    locationHint.classList.add('text-danger');
+                    setLocationDisplay('Not available for the selected dates.', true);
                 } else {
-                    locationHint.textContent = `${available} of ${base} available for the selected dates.`;
-                    locationHint.classList.remove('text-danger');
+                    setLocationDisplay(`${available} of ${base} available for the selected dates.`, false);
                 }
                 updateSummaryLocation();
             };

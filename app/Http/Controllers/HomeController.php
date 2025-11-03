@@ -39,7 +39,8 @@ public function show($id)
             'category',
             'stocks.location',
             'bookings' => function ($query) {
-                $query->select('id', 'equipment_id', 'location_id', 'start_date', 'end_date', 'notes')
+                $query->select('id', 'equipment_id', 'location_id', 'start_date', 'end_date', 'notes', 'booked_stock', 'status')
+                    ->whereNotIn('status', ['cancelled'])
                     ->orderBy('start_date');
             },
         ]);
@@ -74,7 +75,10 @@ public function show($id)
                     return [
                         'from' => Carbon::parse($booking->start_date)->toDateString(),
                         'to' => Carbon::parse($booking->end_date)->toDateString(),
-                        'units' => (int) ($notes['units_reserved'] ?? 1),
+                        'units' => (int) (
+                            $booking->booked_stock
+                            ?? ($notes['units_reserved'] ?? 1)
+                        ),
                     ];
                 })->values();
             })->filter(fn ($collection, $key) => !is_null($key))->toArray();

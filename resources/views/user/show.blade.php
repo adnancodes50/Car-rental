@@ -203,11 +203,12 @@
 </script>
 
 @include('models.booking', [
-    'equipment' => $equipment,
+    'equipment' => $equipment ?? null,
     'bookedRanges' => $bookedRanges ?? [],
-   
+    'addOns' => $addOns ?? [],
     'locationOptions' => $locationOptions ?? [],
     'locationBookings' => $locationBookings ?? [],
 ])
+
 @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])
 @endsection

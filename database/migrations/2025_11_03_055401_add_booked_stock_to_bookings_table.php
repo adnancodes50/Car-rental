@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('bookings', function (Blueprint $table) {
             // Add a column to track how many stock items are booked in this booking
-            $table->integer('booked_stock')->default(0)->after('extra_days');
+            $table->integer('booked_stock')->default(1)->after('extra_days');
         });
     }
 

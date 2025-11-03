@@ -26,6 +26,10 @@ class Booking extends Model
         'booked_stock',
     ];
 
+    protected $casts = [
+        'booked_stock' => 'integer',
+    ];
+
     /* ------------------ Relationships ------------------ */
 
     public function customer()
