@@ -206,7 +206,7 @@ class BookingController extends Controller
         return $settings?->mail_owner_address
             ?? $settings?->mail_from_address
             ?? config('mail.from.address')
-            ?? env('OWNER_EMAIL');
+            ?? null;
     }
 
     private function sendBookingCreationEmails(Booking $booking): void
