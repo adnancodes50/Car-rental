@@ -93,7 +93,7 @@
                 <div class="d-flex flex-wrap gap-3 mt-1">
                     <button type="button" class="btn flex-grow-1 py-3 fw-semibold"
                         style="background-color: #679767; color: black;"
-                        data-bs-toggle="modal" data-bs-target="#bookingModal">
+                        data-bs-toggle="modal" data-bs-target="#multiStepBookingModal">
                         <i class="bi bi-calendar-check me-2"></i> Book {{ $equipment->name }}
                     </button>
 
@@ -202,6 +202,6 @@
     });
 </script>
 
-@include('models.booking', ['equipment' => $equipment])
+@include('models.booking', ['equipment' => $equipment, 'bookedRanges' => $bookedRanges ?? [], 'addOns' => []])
 @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])
 @endsection

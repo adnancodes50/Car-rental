@@ -402,6 +402,32 @@
 
         array_unshift($countries, 'South Africa');
 
+        $isEquipmentBooking = isset($equipment);
+        $bookable = $isEquipmentBooking ? $equipment : ($vehicle ?? null);
+        $bookableLabel = $isEquipmentBooking ? 'Equipment' : 'Vehicle';
+        $bookableName = $bookable->name ?? '';
+        $bookableDescription = $bookable->description ?? '';
+        $bookableModel = $isEquipmentBooking ? ($equipment->category->name ?? '') : ($vehicle->model ?? '');
+        $pricingDay = $isEquipmentBooking ? ($equipment->daily_price ?: null) : ($vehicle->rental_price_day ?? null);
+        $pricingWeek = $isEquipmentBooking ? ($equipment->weekly_price ?: null) : ($vehicle->rental_price_week ?? null);
+        $pricingMonth = $isEquipmentBooking ? ($equipment->monthly_price ?: null) : ($vehicle->rental_price_month ?? null);
+        $bookingLeadDays = $isEquipmentBooking
+            ? (int) ($equipment->category->booking_lead_days ?? 0)
+            : (int) ($vehicle->booking_lead_days ?? 0);
+        $bookableImage = $isEquipmentBooking
+            ? asset('storage/' . ($equipment->image ?? ''))
+            : ($vehicle->mainImage() ?? null);
+        $categoryId = $isEquipmentBooking ? $equipment->category_id : ($vehicle->category_id ?? null);
+        $locationId = $isEquipmentBooking
+            ? optional($equipment->stocks->first())->location_id
+            : ($vehicle->location_id ?? null);
+        $addOns = $addOns ?? [];
+        $addonFullyBooked = $addonFullyBooked ?? [];
+        $bookedRanges = $bookedRanges ?? [];
+        $shouldShowAddons = !$isEquipmentBooking && !empty($addOns);
+        $continueBrowseLabel = $isEquipmentBooking ? 'Equipment' : 'Vehicles';
+        $continueBrowseUrl = $isEquipmentBooking ? : url('/');
+
     @endphp
 
 
@@ -412,7 +438,13 @@
 
         @csrf
 
-        <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
+        @if ($isEquipmentBooking)
+            <input type="hidden" name="equipment_id" value="{{ $equipment->id }}">
+        @else
+            <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
+        @endif
+        <input type="hidden" name="category_id" value="{{ $categoryId ?? '' }}">
+        <input type="hidden" name="location_id" value="{{ $locationId ?? '' }}">
 
         <input type="hidden" name="rental_unit" id="inputRentalUnit">
 
@@ -441,7 +473,7 @@
 
                         <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book
 
-                            {{ $vehicle->name }}</h5>
+                            {{ $bookableName }}</h5>
 
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 
@@ -453,11 +485,11 @@
 
                         <div class="row text-center g-3 text-muted">
 
-                            @if ($vehicle->rental_price_day)
+                            @if ($pricingDay)
                                 <div class="col-md-4">
 
                                     <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
-                                        data-price="{{ $vehicle->rental_price_day }}">
+                                        data-price="{{ $pricingDay }}">
 
                                         <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
 
@@ -465,7 +497,7 @@
 
                                         <p class="small text-muted mb-1">Perfect for short trips</p>
 
-                                        <div class="text-dark">R{{ number_format($vehicle->rental_price_day) }}/day
+                                        <div class="text-dark">R{{ number_format($pricingDay) }}/day
 
                                         </div>
 
@@ -474,11 +506,11 @@
                                 </div>
                             @endif
 
-                            @if ($vehicle->rental_price_week)
+                            @if ($pricingWeek)
                                 <div class="col-md-4">
 
                                     <div class="option-card p-3 border rounded-4 h-100" data-type="week"
-                                        data-price="{{ $vehicle->rental_price_week }}">
+                                        data-price="{{ $pricingWeek }}">
 
                                         <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
 
@@ -486,7 +518,7 @@
 
                                         <p class="small text-muted mb-1">Great for 1-4 weeks</p>
 
-                                        <div class="text-dark">R{{ number_format($vehicle->rental_price_week) }}/week
+                                        <div class="text-dark">R{{ number_format($pricingWeek) }}/week
 
                                         </div>
 
@@ -495,11 +527,11 @@
                                 </div>
                             @endif
 
-                            @if ($vehicle->rental_price_month)
+                            @if ($pricingMonth)
                                 <div class="col-md-4">
 
                                     <div class="option-card p-3 border rounded-4 h-100" data-type="month"
-                                        data-price="{{ $vehicle->rental_price_month }}">
+                                        data-price="{{ $pricingMonth }}">
 
                                         <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
 
@@ -509,7 +541,7 @@
 
                                         <div class="text-dark">
 
-                                            R{{ number_format($vehicle->rental_price_month) }}/month
+                                            R{{ number_format($pricingMonth) }}/month
 
                                         </div>
 
@@ -532,8 +564,8 @@
 
                                 <input type="text" id="rentalStartDate" class="form-control ps-5"
                                     placeholder="Select a start date" readonly
-                                    data-lead="{{ (int) ($vehicle->booking_lead_days ?? 0) }}"
-                                    data-blocked='@json($bookedRanges ?? [])'>
+                                    data-lead="{{ $bookingLeadDays }}"
+                                    data-blocked='@json($bookedRanges)'>
 
                                 <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
 
@@ -575,7 +607,7 @@
 
                         <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100">
 
-                            Continue to Add-Ons
+                            {{ $shouldShowAddons ? 'Continue to Add-Ons' : 'Continue to Details' }}
 
                         </button>
 
@@ -589,6 +621,7 @@
 
         </div>
 
+        @if ($shouldShowAddons)
         <!-- Step 2: Add-Ons Modal -->
 
         <!-- Step 2: Add-Ons Modal -->
@@ -955,7 +988,7 @@
 
 
 
-
+        @endif
 
 
         <!-- Step 3: Customer Details Modal -->
@@ -1112,18 +1145,18 @@
 
                         <div class="border rounded p-3 mb-3 bg-light">
 
-                            <h6 class="fw-semibold">Vehicle</h6>
+                            <h6 class="fw-semibold">{{ $bookableLabel }}</h6>
 
                             <div class="d-flex align-items-center gap-3">
 
-                                <img src="{{ $vehicle->mainImage() }}" class="rounded"
+                                <img src="{{ $bookableImage }}" class="rounded"
                                     style="width:80px; height:80px; object-fit:cover;">
 
                                 <div>
 
-                                    <p class="fw-bold mb-1">{{ $vehicle->name }}</p>
+                                    <p class="fw-bold mb-1">{{ $bookableName }}</p>
 
-                                    <p class="text-muted small">{{ $vehicle->description ?? '' }}</p>
+                                    <p class="text-muted small">{{ $bookableDescription ?? '' }}</p>
 
                                 </div>
 
@@ -1171,13 +1204,13 @@
 
                             <div class="d-flex justify-content-between small mb-1">
 
-                                <span>Vehicle rental</span>
+                                <span>{{ $bookableLabel }} rental</span>
 
                                 <span id="summaryVehicleTotal">R0.00</span>
 
                             </div>
 
-                            <div class="d-flex justify-content-between small mb-2">
+                            <div class="d-flex justify-content-between small mb-2 {{ $shouldShowAddons ? '' : 'd-none' }}">
 
                                 <span>Add-ons</span>
 
@@ -1197,7 +1230,7 @@
 
 
 
-                        <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="border rounded p-3 mb-3 bg-light {{ $shouldShowAddons ? '' : 'd-none' }}">
 
                             <h6 class="fw-semibold">Add-Ons</h6>
 
@@ -1603,7 +1636,7 @@
 
                                     <div>
 
-                                        <div class="small text-muted">Vehicle</div>
+                                        <div class="small text-muted">{{ $bookableLabel }}</div>
 
                                         <div class="fw-semibold" id="tyVehicleName">N/A</div>
 
@@ -1718,9 +1751,10 @@
                 <div
                     class="modal-footer border-0 pt-0 px-4 px-md-5 pb-4 d-flex flex-wrap gap-2 justify-content-between">
 
-                    <a href="/" class="btn btn-outline-secondary rounded-3" id="tyContinueVehicles">
+                    <a href="{{ $continueBrowseUrl }}" class="btn btn-outline-secondary rounded-3"
+                        id="tyContinueVehicles">
 
-                        Continue to Vehicles
+                        Continue to {{ $continueBrowseLabel }}
 
                     </a>
 
@@ -2416,6 +2450,8 @@
                ========================= */
 
             const bookingForm = document.getElementById('bookingForm');
+            const isEquipmentBooking = {{ $isEquipmentBooking ? 'true' : 'false' }};
+            const shouldShowAddons = {{ $shouldShowAddons ? 'true' : 'false' }};
 
             const step1Modal = document.getElementById('multiStepBookingModal');
 
@@ -2507,8 +2543,14 @@
                         }
                         return;
                     }
-                    refreshAllAddons();
-                    swapModal('multiStepBookingModal', 'addonsStep');
+                    if (shouldShowAddons) {
+                        if (typeof refreshAllAddons === 'function') {
+                            refreshAllAddons();
+                        }
+                        swapModal('multiStepBookingModal', 'addonsStep');
+                    } else {
+                        swapModal('multiStepBookingModal', 'customerStep');
+                    }
                 });
             }
 
@@ -2549,7 +2591,7 @@
 
                 e.preventDefault();
 
-                swapModal('customerStep', 'addonsStep');
+                swapModal('customerStep', shouldShowAddons ? 'addonsStep' : 'multiStepBookingModal');
 
             });
 
@@ -2851,7 +2893,7 @@
 
     <div class="d-flex justify-content-between align-items-center">
 
-      <span class="small text-muted">Vehicle total (${qty} ${unit}${qty>1?'s':''})</span>
+      <span class="small text-muted">{{ $bookableLabel }} total (${qty} ${unit}${qty>1?'s':''})</span>
 
       <span class="fw-bold">${money(vehicleTotal)}</span>
 
@@ -4633,7 +4675,7 @@ const showCard = () => {
 
                 const tyVehicleNameEl = document.getElementById('tyVehicleName');
 
-                if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($vehicle->name) }}";
+                if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($bookableName) }}";
 
 
 
@@ -5647,7 +5689,7 @@ const showCard = () => {
 
             const bookingThankYouModalEl = document.getElementById('bookingThankYou');
 
-            const vehiclesUrl = "{{ url('/vehicles') }}"; // change if your route differs
+            const vehiclesUrl = "{{ $continueBrowseUrl }}"; // change if your route differs
 
             const homeUrl = "{{ url('/') }}";
 
@@ -5700,11 +5742,11 @@ const showCard = () => {
 
 
 
-                // Vehicle name (from Blade)
+                // Item name (from Blade)
 
                 const tyVehicleNameEl = document.getElementById('tyVehicleName');
 
-                if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($vehicle->name) }}";
+                if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($bookableName) }}";
 
 
 
@@ -5712,7 +5754,7 @@ const showCard = () => {
 
                 const tyVehicleSubEl = document.getElementById('tyVehicleSub');
 
-                if (tyVehicleSubEl) tyVehicleSubEl.textContent = "{{ addslashes($vehicle->model ?? '') }}";
+                if (tyVehicleSubEl) tyVehicleSubEl.textContent = "{{ addslashes($bookableModel) }}";
 
 
 
@@ -5785,7 +5827,7 @@ const showCard = () => {
                 const wa = document.getElementById('tyWhatsappBtn');
 
                 if (wa) wa.href = buildWhatsappHref(reference);
-                // Continue to vehicles button
+                // Continue browse button
                 const cont = document.getElementById('tyContinueVehicles');
                 if (cont) cont.onclick = () => {
                     window.location.href = vehiclesUrl;

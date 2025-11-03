@@ -103,7 +103,7 @@ class BookingController extends Controller
 
                 /* ---------- 2) Category & Pricing ---------- */
                 $category = Category::findOrFail($validated['category_id']);
-                $locations = Location::findOrFail($validated['location_id']);
+                $location = Location::findOrFail($validated['location_id']);
                 $equipment = !empty($validated['equipment_id'])
                     ? Equipment::find($validated['equipment_id'])
                     : null;
