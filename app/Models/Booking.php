@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+
 
 class Booking extends Model
 {
@@ -52,5 +54,16 @@ class Booking extends Model
         return $this->belongsTo(Equipment::class);
     }
 
-  
+
+    public function scopeOverlapping(Builder $query, $start, $end)
+{
+    // Overlap if start <= existing_end AND end >= existing_start
+    return $query->where(function ($q) use ($start, $end) {
+        $q->where(function ($a) use ($start, $end) {
+            $a->whereDate('start_date', '<=', $end)
+              ->whereDate('end_date', '>=', $start);
+        });
+    });
+
+}
 }

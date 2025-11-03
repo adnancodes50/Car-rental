@@ -175,10 +175,12 @@
                                 </div>
 
                                 {{-- Dates form --}}
+                                {{-- Dates form --}}
                                 <form class="booking-dates-form" data-booking-id="{{ $booking->id }}"
                                     data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
                                     data-disabled-dates='@json($bookedRanges)'
-                                    data-daily-rate="{{ optional($booking->equipment)->daily_price ?? 0 }}">
+                                    data-daily-rate="{{ optional($booking->equipment)->daily_price ?? 0 }}"
+                                    data-stock="{{ optional($booking->equipment)->stock ?? 0 }}">
 
                                     @csrf
                                     @method('PATCH')
@@ -186,17 +188,16 @@
                                     <div class="row g-2 align-items-center">
                                         <div class="col-md-6">
                                             <label class="form-label mb-1"><strong>Start Date:</strong></label>
-                                            <inPurchase Historyput type="text" name="start_date"
-                                                value="{{ $booking->start_date }}"
+                                            <input type="text" name="start_date" value="{{ $booking->start_date }}"
                                                 class="form-control form-control-sm booking-start-date"
-                                                placeholder="Select start date">
+                                                placeholder="Select start date" autocomplete="off" readonly>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label mb-1"><strong>End Date:</strong></label>
                                             <input type="text" name="end_date" value="{{ $booking->end_date }}"
                                                 class="form-control form-control-sm booking-end-date"
-                                                placeholder="Select end date">
+                                                placeholder="Select end date" autocomplete="off" readonly>
                                         </div>
 
                                         <div class="col-md-6">
@@ -210,11 +211,23 @@
                                             @enderror
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <div class="col-md-3">
                                             <label class="form-label mb-1 mt-1"><strong>Total Price:</strong></label>
-                                            <input type="text" class="form-control form-control-sm" disabled
-                                                value="R{{ number_format($booking->total_price, 2) }}">
+                                            <input type="text" class="form-control form-control-sm booking-total-price"
+                                                disabled value="R{{ number_format($booking->total_price, 2) }}">
                                         </div>
+
+                                      @php
+    $availableStock = \App\Models\EquipmentStock::where('equipment_id', $booking->equipment_id)
+        ->where('location_id', $booking->location_id)
+        ->value('stock') ?? 0;
+@endphp
+
+<div class="col-md-3">
+    <label class="form-label mb-1 mt-1"><strong>Available Stock:</strong></label>
+    <input type="text" class="form-control form-control-sm" disabled value="{{ $availableStock }}">
+</div>
+
                                     </div>
 
                                     <div class="d-flex justify-content-end mt-2">
@@ -223,6 +236,7 @@
                                         </button>
                                     </div>
                                 </form>
+
                             </div>
                         </div>
                     @empty
@@ -561,129 +575,96 @@
            BOOKING DATES UPDATE (flatpickr + price + overlap)
         ===================================================== */
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.booking-dates-form').forEach(form => {
-                const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
-                const disabledDates = disabledRanges.map(r => ({
-                    from: r.from,
-                    to: r.to
-                }));
+          document.querySelectorAll('.booking-dates-form').forEach(form => {
+    const startInput = form.querySelector('.booking-start-date');
+    const endInput = form.querySelector('.booking-end-date');
+    const priceField = form.querySelector('.booking-total-price');
+    const stockField = form.querySelector('.booking-available-stock');
+    const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
+    const dailyRate = parseFloat(form.dataset.dailyRate || 0);
+    const bookingId = form.dataset.bookingId;
+    let availableStock = parseInt(form.dataset.stock || 0);
 
-                const startInput = form.querySelector('.booking-start-date');
-                const endInput = form.querySelector('.booking-end-date');
-                const priceField = form.querySelector('input[disabled]');
-                const bookingId = form.dataset.bookingId;
-                const dailyRate = parseFloat(form.dataset.dailyRate || 0);
+    // Build array of fully booked (stock=0) dates
+    const fullyBookedDates = disabledRanges.map(range => ({
+        from: range.from,
+        to: range.to
+    }));
 
-                const startPicker = flatpickr(startInput, {
-                    dateFormat: "Y-m-d",
-                    disable: disabledDates,
-                    minDate: "today",
-                    onChange: (selectedDates, dateStr) => {
-                        endPicker.set('minDate', dateStr);
-                        updatePrice();
-                    }
-                });
+    const startPicker = flatpickr(startInput, {
+        dateFormat: "Y-m-d",
+        disable: fullyBookedDates,
+        onChange: updatePrice
+    });
 
-                const endPicker = flatpickr(endInput, {
-                    dateFormat: "Y-m-d",
-                    disable: disabledDates,
-                    minDate: startInput.value || "today",
-                    onChange: updatePrice
-                });
+    const endPicker = flatpickr(endInput, {
+        dateFormat: "Y-m-d",
+        disable: fullyBookedDates,
+        onChange: updatePrice
+    });
 
-                function updatePrice() {
-                    const start = startInput.value ? new Date(startInput.value) : null;
-                    const end = endInput.value ? new Date(endInput.value) : null;
+    function updatePrice() {
+        if (!startInput.value || !endInput.value) return;
+        const s = new Date(startInput.value);
+        const e = new Date(endInput.value);
+        const days = Math.max(1, (e - s) / (1000 * 60 * 60 * 24) + 1);
+        priceField.value = "R" + (days * dailyRate).toFixed(2);
+    }
 
-                    if (start && end && end >= start) {
-                        const days = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1);
-                        const total = days * dailyRate;
-                        priceField.value = `R${total.toFixed(2)}`;
-                    } else {
-                        priceField.value = "R0.00";
-                    }
-                }
-                updatePrice();
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
+        const payload = {
+            start_date: startInput.value,
+            end_date: endInput.value,
+            admin_note: form.querySelector('[name="admin_note"]').value,
+            booked_stock: 1 // you can make this dynamic if selecting quantity
+        };
 
-                    const url = form.dataset.url;
-                    const start = (startInput.value || '').trim();
-                    const end = (endInput.value || '').trim();
-                    const adminNoteEl = form.querySelector('input[name="admin_note"]');
-                    const adminNote = adminNoteEl ? adminNoteEl.value.trim() : '';
-
-                    const conflicts = [];
-                    for (const range of disabledRanges) {
-                        if (!(end < range.from || start > range.to)) conflicts.push(range);
-                    }
-
-                    if (conflicts.length > 0) {
-                        const conflictList = conflicts.map(r =>
-                            `• <b>${r.from}</b> → <b>${r.to}</b>`).join('<br>');
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Date Conflicts Found',
-                            html: `Your selected dates overlap with:<br><br>${conflictList}`,
-                        });
-                        return;
-                    }
-
-                    const confirm = await Swal.fire({
-                        title: 'Confirm Update',
-                        text: `Update booking from ${start} to ${end}?`,
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, update',
-                        cancelButtonText: 'Cancel'
-                    });
-                    if (!confirm.isConfirmed) return;
-
-                    try {
-                        const res = await fetch(url, {
-                            method: 'PATCH',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                start_date: start,
-                                end_date: end,
-                                admin_note: adminNote,
-                                total_price: priceField.value.replace(/[^\d.]/g,
-                                    '')
-                            })
-                        });
-
-                        const data = await res.json();
-                        if (!res.ok || !data.success) throw new Error(data.message ||
-                            'Update failed');
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Updated!',
-                            text: 'Booking updated successfully with new total.',
-                            toast: true,
-                            position: 'top-end',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
-                    } catch (err) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: err.message || 'Something went wrong.',
-                            toast: true,
-                            position: 'top-end',
-                            timer: 2500,
-                            showConfirmButton: false
-                        });
-                    }
-                });
+        try {
+            const res = await fetch(form.dataset.url, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
+
+            const json = await res.json();
+
+            if (!json.success) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: json.message
+                });
+                return;
+            }
+
+            // Update live stock
+            if (stockField) stockField.value = json.available;
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Updated!',
+                text: `Booking updated successfully. Remaining stock: ${json.available}`,
+                toast: true,
+                position: 'top-end',
+                timer: 1800,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message
+            });
+        }
+    });
+});
+
         });
 
 
@@ -703,5 +684,75 @@
                 }
             });
         };
+
+
+
+
+
+        document.querySelectorAll('.booking-dates-form').forEach(form => {
+    const startInput = form.querySelector('.booking-start-date');
+    const endInput = form.querySelector('.booking-end-date');
+    const priceField = form.querySelector('.booking-total-price');
+    const stockField = form.querySelector('.booking-available-stock');
+    const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
+    const dailyRate = parseFloat(form.dataset.dailyRate || 0);
+    let availableStock = parseInt(form.dataset.stock || 0);
+
+    const startPicker = flatpickr(startInput, {
+        dateFormat: "Y-m-d",
+        disable: disabledRanges,
+        onChange: updatePrice,
+    });
+
+    const endPicker = flatpickr(endInput, {
+        dateFormat: "Y-m-d",
+        disable: disabledRanges,
+        onChange: updatePrice,
+    });
+
+    function updatePrice() {
+        if (!startInput.value || !endInput.value) return;
+        const s = new Date(startInput.value);
+        const e = new Date(endInput.value);
+        const days = (e - s) / (1000 * 60 * 60 * 24) + 1;
+        if (days < 1) return;
+        priceField.value = "R" + (days * dailyRate).toFixed(2);
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            start_date: startInput.value,
+            end_date: endInput.value,
+            admin_note: form.querySelector('[name="admin_note"]').value
+        };
+
+        const res = await fetch(form.dataset.url, {
+            method: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+        if (json.success) {
+            stockField.value = json.available; // ✅ update stock live
+            Swal.fire({
+                icon: 'success',
+                title: 'Updated',
+                text: `Stock left: ${json.available}`,
+                timer: 1500,
+                toast: true,
+                showConfirmButton: false,
+            });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: json.message });
+        }
+    });
+});
+
     </script>
 @stop

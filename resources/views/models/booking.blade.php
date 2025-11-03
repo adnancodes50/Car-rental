@@ -403,21 +403,19 @@
                         <div class="row g-3" id="locationRow">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold" for="bookingLocationSelect">Select Location</label>
-                                <select class="form-select" id="bookingLocationSelect">
-    <option value="" selected disabled hidden>Select a location</option>
-    @foreach ($locationOptions as $loc)
-        <option
-            value="{{ $loc['id'] ?? '' }}"
-            data-base-stock="{{ $loc['stock'] ?? '' }}"
-            data-display-name="{{ $loc['name'] ?? 'Location' }}">
-            {{ $loc['name'] ?? 'Location' }}
-            @if (!is_null($loc['stock']))
-                ({{ $loc['stock'] }} in stock)
-            @endif
-        </option>
-    @endforeach
-</select>
-
+                                <select class="form-select" id="bookingLocationSelect" {{ $locationOptions->count() === 1 ? 'data-single="true"' : '' }}>
+                                    @if (!$locationId)
+                                        <option value="" selected disabled>Select a location</option>
+                                    @endif
+                                    @foreach ($locationOptions as $loc)
+                                        <option value="{{ $loc['id'] ?? '' }}" data-base-stock="{{ $loc['stock'] ?? '' }}" data-display-name="{{ $loc['name'] ?? 'Location' }}" {{ (string) ($locationId ?? '') === (string) ($loc['id'] ?? '') ? 'selected' : '' }}>
+                                            {{ $loc['name'] ?? 'Location' }}
+                                            @if (!is_null($loc['stock']))
+                                                ({{ $loc['stock'] }} in stock)
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold" for="stockQuantitySelect">Stock Quantity</label>
@@ -2124,4 +2122,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStep1Paint();
     populateStockQuantitySelect(null);
 });
-</script>
+</script>   

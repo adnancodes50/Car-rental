@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BookingStatusUpdate;
 use App\Models\EmailLog;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Models\EquipmentStock;
 
 
 
@@ -26,32 +29,28 @@ class CustomerController extends Controller
 
 public function getCustomerDetails($id)
 {
-    $customer = Customer::withCount(['bookings', 'purchases'])
-        ->withSum('purchases as total_purchase_deposit', 'deposit_paid')
-        ->withSum('purchases as total_purchase_price', 'total_price')
+    $customer = Customer::withCount(['bookings', 'purchase'])
+        ->withSum('purchase as total_purchase_deposit', 'deposit_paid')
+        ->withSum('purchase as total_purchase_price', 'total_price')
         ->findOrFail($id);
 
     $bookings  = $customer->bookings()->latest()->get();
-    $purchases = $customer->purchases()->latest()->get();
+    $purchases = $customer->purchase()->latest()->get();
 
-    // Load this customer's email logs
+    // ✅ Load this customer's email logs
     $emailLogs = EmailLog::where('customer_id', $customer->id)
         ->orderByDesc('sent_at')
         ->get();
 
-    // Sum confirmed booking totals
     $customer->total_booking_price = $customer->bookings()
         ->where('status', 'confirmed')
         ->sum('total_price');
 
-    // Grand total
     $customer->grand_total_spent =
         ($customer->total_booking_price ?? 0) + ($customer->total_purchase_price ?? 0);
 
-    // NOTE: compact must pass 'purchases' (plural), not 'purchase'
-    return view('admin.customer.customerDetails', compact('customer', 'bookings', 'purchases', 'emailLogs'));
+return view('admin.customer.customerDetails', compact('customer', 'bookings', 'purchases', 'emailLogs'));
 }
-
 
 
 public function update(Request $request, $id)
@@ -79,62 +78,76 @@ public function update(Request $request, $id)
 }
 
 
+
 public function updateBookingDates(Request $request, Booking $booking)
 {
     $validated = $request->validate([
         'start_date'   => 'required|date',
         'end_date'     => 'required|date|after_or_equal:start_date',
-        'total_price'  => 'nullable|numeric',
-        'admin_note'   => 'nullable|string|max:1000', // ✅ added for admin note
+        'admin_note'   => 'nullable|string|max:1000',
+        'booked_stock' => 'nullable|integer|min:1',
+        'location_id'  => 'nullable|integer',
     ]);
 
-    $vehicle = $booking->vehicle;
-    $vehicleId = $vehicle->id;
+    return DB::transaction(function () use ($validated, $booking) {
+        $start       = Carbon::parse($validated['start_date']);
+        $end         = Carbon::parse($validated['end_date']);
+        $locationId  = $validated['location_id'] ?? $booking->location_id;
+        $equipmentId = $booking->equipment_id;
+        $requested   = (int) ($validated['booked_stock'] ?? $booking->booked_stock ?? 1);
 
-    // ✅ Check overlapping bookings
-    $overlapping = \App\Models\Booking::where('vehicle_id', $vehicleId)
-        ->where('id', '!=', $booking->id)
-        ->where(function ($query) use ($validated) {
-            $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                ->orWhere(function ($q) use ($validated) {
-                    $q->where('start_date', '<=', $validated['start_date'])
-                      ->where('end_date', '>=', $validated['end_date']);
-                });
-        })
-        ->first();
+        if (!$equipmentId) {
+            return response()->json(['success' => false, 'message' => 'Missing equipment.'], 422);
+        }
 
-    if ($overlapping) {
+        // Lock stock row to prevent concurrent updates
+        $stockRow = EquipmentStock::where('equipment_id', $equipmentId)
+            ->where('location_id', $locationId)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$stockRow) {
+            return response()->json(['success' => false, 'message' => 'No inventory record found.'], 422);
+        }
+
+        $totalStock = (int) $stockRow->stock;
+
+        // Count already booked units overlapping this date range
+        $sumBooked = Booking::where('equipment_id', $equipmentId)
+            ->where('location_id', $locationId)
+            ->where('id', '!=', $booking->id)
+            ->whereDate('start_date', '<=', $end)
+            ->whereDate('end_date', '>=', $start)
+            ->sum('booked_stock');
+
+        $available = $totalStock - $sumBooked;
+
+        if ($requested > $available) {
+            return response()->json([
+                'success' => false,
+                'message' => "Not enough stock. Available: {$available}, requested: {$requested}."
+            ], 422);
+        }
+
+        // Update booking record
+        $booking->update([
+            'start_date'   => $start->toDateString(),
+            'end_date'     => $end->toDateString(),
+            'admin_note'   => $validated['admin_note'] ?? $booking->admin_note,
+            'booked_stock' => $requested,
+        ]);
+
         return response()->json([
-            'success' => false,
-            'message' => "This date range overlaps with another booking from {$overlapping->start_date} to {$overlapping->end_date}.",
-        ], 422);
-    }
-
-    // ✅ Recalculate total price
-    $start = new \Carbon\Carbon($validated['start_date']);
-    $end   = new \Carbon\Carbon($validated['end_date']);
-    $days  = $start->diffInDays($end) + 1;
-
-    $dailyRate = $vehicle->rental_price_day ?? 0;
-    $totalPrice = $days * $dailyRate;
-
-    // ✅ Update booking including admin note
-    $booking->update([
-        'start_date'   => $validated['start_date'],
-        'end_date'     => $validated['end_date'],
-        'total_price'  => $totalPrice,
-        'admin_note'   => $validated['admin_note'] ?? $booking->admin_note, // ✅
-    ]);
-
-    return response()->json([
-        'success'      => true,
-        'message'      => 'Booking updated successfully.',
-        'start_date'   => $booking->start_date,
-        'end_date'     => $booking->end_date,
-        'total_price'  => $booking->total_price,
-        'admin_note'   => $booking->admin_note,
-    ]);
+            'success'    => true,
+            'message'    => 'Booking updated successfully.',
+            'available'  => $available - $requested,
+        ]);
+    });
+}
+// helper JSON error
+protected function errorResponse($msg, $code = 422)
+{
+    return response()->json(['success' => false, 'message' => $msg], $code);
 }
 
 
