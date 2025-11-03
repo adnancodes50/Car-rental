@@ -12,7 +12,7 @@ class Booking extends Model
     protected $fillable = [
         'location_id',
         'category_id',
-        'equipment_id', // optional if you want to book specific equipment
+        'equipment_id',
         'customer_id',
         'start_date',
         'end_date',
@@ -23,6 +23,7 @@ class Booking extends Model
         'notes',
         'total_price',
         'extra_days',
+        'booked_stock', 
     ];
 
     /* ------------------ Relationships ------------------ */

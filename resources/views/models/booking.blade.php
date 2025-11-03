@@ -417,16 +417,82 @@
         $bookableImage = $isEquipmentBooking
             ? asset('storage/' . ($equipment->image ?? ''))
             : ($vehicle->mainImage() ?? null);
-        $categoryId = $isEquipmentBooking ? $equipment->category_id : ($vehicle->category_id ?? null);
+        $categoryId = $isEquipmentBooking ? ($equipment->category_id ?? null) : ($vehicle->category_id ?? null);
         $locationId = $isEquipmentBooking
             ? optional($equipment->stocks->first())->location_id
             : ($vehicle->location_id ?? null);
-        $addOns = $addOns ?? [];
-        $addonFullyBooked = $addonFullyBooked ?? [];
+
         $bookedRanges = $bookedRanges ?? [];
-        $shouldShowAddons = !$isEquipmentBooking && !empty($addOns);
+        $addOns = collect($addOns ?? []);
+        $addonFullyBooked = $addonFullyBooked ?? [];
+
+        $locationOptions = collect($locationOptions ?? []);
+        $locationBookings = collect($locationBookings ?? []);
+
+        if ($isEquipmentBooking && isset($equipment)) {
+            if ($locationOptions->isEmpty()) {
+                $locationOptions = ($equipment->stocks ?? collect())->map(function ($stock) {
+                    return [
+                        'id' => $stock->location?->id,
+                        'name' => $stock->location?->name ?? 'Location',
+                        'stock' => (int) ($stock->stock ?? 0),
+                    ];
+                });
+            }
+        } elseif (isset($vehicle)) {
+            if ($locationOptions->isEmpty()) {
+                $locationOptions = collect([
+                    [
+                        'id' => $locationId ?? optional($vehicle->branch ?? null)->id,
+                        'name' => optional($vehicle->branch ?? null)->name
+                            ?? ($vehicle->location ?? 'Primary Location'),
+                        'stock' => null,
+                    ],
+                ]);
+            }
+        }
+
+        $locationOptions = $locationOptions
+            ->filter(fn($loc) => !empty($loc['id']) || !empty($loc['name']))
+            ->unique(fn($loc) => $loc['id'] ?? $loc['name'])
+            ->values();
+
+        if (!$locationId && $locationOptions->count() === 1) {
+            $locationId = $locationOptions->first()['id'] ?? null;
+        }
+
+        $locationInventory = $locationOptions->filter(fn($loc) => !empty($loc['id']))->mapWithKeys(function ($loc) {
+            return [
+                (string) $loc['id'] => [
+                    'stock' => isset($loc['stock']) ? (int) $loc['stock'] : null,
+                    'name' => $loc['name'] ?? 'Location',
+                ],
+            ];
+        })->toArray();
+
+        $locationBookingMap = $locationBookings->mapWithKeys(function ($bookings, $locationKey) {
+            if (is_null($locationKey)) {
+                return [];
+            }
+
+            $items = collect($bookings)->map(function ($booking) {
+                return [
+                    'from' => $booking['from'] ?? null,
+                    'to' => $booking['to'] ?? null,
+                    'units' => (int) ($booking['units'] ?? 1),
+                ];
+            })->filter(fn($item) => $item['from'] && $item['to'])->values();
+
+            return [(string) $locationKey => $items];
+        })->toArray();
+
+        $showLocationSelect = $locationOptions->contains(function ($loc) {
+            return !empty($loc['id']);
+        });
+
+        $shouldShowAddons = !$isEquipmentBooking && $addOns->isNotEmpty();
         $continueBrowseLabel = $isEquipmentBooking ? 'Equipment' : 'Vehicles';
-        $continueBrowseUrl = $isEquipmentBooking ? : url('/');
+        $continueBrowseUrl = $isEquipmentBooking ?  : url('/');
 
     @endphp
 
@@ -444,7 +510,8 @@
             <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
         @endif
         <input type="hidden" name="category_id" value="{{ $categoryId ?? '' }}">
-        <input type="hidden" name="location_id" value="{{ $locationId ?? '' }}">
+        <input type="hidden" name="location_id" id="inputLocationId" value="{{ $locationId ?? '' }}">
+        <input type="hidden" name="stock_quantity" id="inputStockQuantity" value="1">
 
         <input type="hidden" name="rental_unit" id="inputRentalUnit">
 
@@ -480,6 +547,41 @@
                     </div>
 
                     <div class="modal-body">
+
+                        @if ($showLocationSelect)
+                            @php
+                                $selectedLocation = $locationId
+                                    ? $locationOptions->firstWhere('id', $locationId)
+                                    : null;
+                                $initialHint = $selectedLocation
+                                    ? (($selectedLocation['stock'] ?? null) !== null
+                                        ? ($selectedLocation['stock'] . ' in stock')
+                                        : 'Location selected')
+                                    : 'Select a location to view availability.';
+                            @endphp
+                            <div class="mb-3" id="locationSection">
+                                <label class="form-label fw-semibold" for="bookingLocationSelect">Select
+                                    Location</label>
+                                <select class="form-select" id="bookingLocationSelect"
+                                    {{ $locationOptions->count() === 1 ? 'data-single="true"' : '' }}>
+                                    @if (!$locationId)
+                                        <option value="" selected disabled>Select a location</option>
+                                    @endif
+                                    @foreach ($locationOptions as $loc)
+                                        <option value="{{ $loc['id'] ?? '' }}"
+                                            data-base-stock="{{ $loc['stock'] ?? '' }}"
+                                            data-display-name="{{ $loc['name'] ?? 'Location' }}"
+                                            {{ (string) ($locationId ?? '') === (string) ($loc['id'] ?? '') ? 'selected' : '' }}>
+                                            {{ $loc['name'] ?? 'Location' }}
+                                            @if (!is_null($loc['stock']))
+                                                ({{ $loc['stock'] }} in stock)
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text" id="locationAvailabilityHint">{{ $initialHint }}</div>
+                            </div>
+                        @endif
 
                         <h5 class="mb-3 text-center">Select Rental Duration</h5>
 
@@ -588,6 +690,18 @@
                             <label for="rentalQuantity" class="form-label" id="quantityLabel"></label>
 
                             <select id="rentalQuantity" class="form-select rounded-3"></select>
+
+                        </div>
+
+                        <div class="mb-3 d-none" id="extraDaysSection">
+
+                            <label for="extraDaysInput" class="form-label">Extra day(s)</label>
+
+                            <input type="number" min="0" step="1" value="0" class="form-control"
+                                id="extraDaysInput" inputmode="numeric">
+
+                            <div class="form-text" id="extraDaysHelp">Add additional day(s) on top of the selected
+                                duration.</div>
 
                         </div>
 
@@ -1185,6 +1299,14 @@
                                     <p class="text-muted small mb-1">Period</p>
 
                                     <p class="fw-bold" id="summaryPeriod"></p>
+
+                                </div>
+
+                                <div class="col-md-6">
+
+                                    <p class="text-muted small mb-1">Location</p>
+
+                                    <p class="fw-bold" id="summaryLocation"></p>
 
                                 </div>
 
@@ -5675,6 +5797,268 @@ const showCard = () => {
 
             }
 
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const locationSelect = document.getElementById('bookingLocationSelect');
+            const locationHint = document.getElementById('locationAvailabilityHint');
+            const hiddenLocationId = document.getElementById('inputLocationId');
+            const extraDaysSection = document.getElementById('extraDaysSection');
+            const extraDaysInput = document.getElementById('extraDaysInput');
+            const hiddenExtraInput = document.getElementById('inputExtraDays');
+            const extraDaysHelp = document.getElementById('extraDaysHelp');
+            const summaryLocationEl = document.getElementById('summaryLocation');
+            const step1NextBtn = document.getElementById('continueFromStep1');
+            const locationInventory = @json($locationInventory);
+            const locationBookingMap = @json($locationBookingMap);
+            let latestLocationAvailability = null;
+
+            const parseIntSafe = (value, fallback = 0) => {
+                const parsed = parseInt(value ?? '', 10);
+                return Number.isNaN(parsed) ? fallback : parsed;
+            };
+
+            const toYMD = (date) => date.toISOString().slice(0, 10);
+
+            const fromYMD = (value) => {
+                if (!value) return null;
+                const parts = value.split('-');
+                if (parts.length !== 3) return null;
+                const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                return Number.isNaN(d.getTime()) ? null : d;
+            };
+
+            const addDays = (date, amount) => {
+                const next = new Date(date.getTime());
+                next.setDate(next.getDate() + amount);
+                return next;
+            };
+
+            const rangesOverlap = (startA, endA, startB, endB) => {
+                if (!startA || !endA || !startB || !endB) return false;
+                return !(endA < startB || endB < startA);
+            };
+
+            const ensureHiddenLocation = () => {
+                if (hiddenLocationId && locationSelect && locationSelect.value) {
+                    hiddenLocationId.value = locationSelect.value;
+                }
+            };
+
+            const baseStockForLocation = (locationId) => {
+                if (!locationId) return null;
+                const info = locationInventory[String(locationId)];
+                if (info && info.stock !== null && info.stock !== undefined) {
+                    const parsed = parseInt(info.stock, 10);
+                    return Number.isNaN(parsed) ? null : parsed;
+                }
+                if (!locationSelect) return null;
+                const opt = Array.from(locationSelect.options || []).find(o => o.value === String(locationId));
+                if (!opt) return null;
+                const attr = opt.dataset.baseStock;
+                if (attr === undefined || attr === null || attr === '') return null;
+                const parsed = parseInt(attr, 10);
+                return Number.isNaN(parsed) ? null : parsed;
+            };
+
+            const computeRentalContext = () => {
+                const unit = (document.getElementById('inputRentalUnit')?.value || '').toLowerCase();
+                const quantity = parseIntSafe(document.getElementById('inputRentalQuantity')?.value);
+                const startValue = document.getElementById('inputRentalStartDate')?.value || '';
+                const extra = parseIntSafe(hiddenExtraInput?.value);
+                const startDate = fromYMD(startValue);
+                if (!unit || !quantity || !startDate) return null;
+
+                let totalDays = 0;
+                switch (unit) {
+                    case 'week':
+                        totalDays = quantity * 7 + extra;
+                        break;
+                    case 'month':
+                        totalDays = quantity * 30 + extra;
+                        break;
+                    default:
+                        totalDays = quantity + (unit === 'day' ? 0 : extra);
+                        break;
+                }
+                if (totalDays <= 0) return null;
+                const endDate = addDays(startDate, totalDays - 1);
+                return {
+                    unit,
+                    quantity,
+                    extra,
+                    start: toYMD(startDate),
+                    end: toYMD(endDate),
+                    totalDays,
+                };
+            };
+
+            const availableUnitsForLocation = (locationId, context) => {
+                const base = baseStockForLocation(locationId);
+                if (base === null || base === undefined) return null;
+                if (!context) return base;
+                const bookings = locationBookingMap[String(locationId)] || [];
+                let available = base;
+                bookings.forEach(booking => {
+                    const units = parseIntSafe(booking.units, 1);
+                    if (rangesOverlap(context.start, context.end, booking.from, booking.to)) {
+                        available -= units;
+                    }
+                });
+                return available < 0 ? 0 : available;
+            };
+
+            const updateSummaryLocation = () => {
+                if (!summaryLocationEl) return;
+                let label = 'N/A';
+                if (locationSelect && locationSelect.value) {
+                    const selected = locationSelect.selectedOptions[0];
+                    if (selected) {
+                        label = selected.dataset.displayName || selected.textContent.trim();
+                    }
+                }
+                summaryLocationEl.textContent = label || 'N/A';
+            };
+
+            const updateLocationAvailability = () => {
+                if (!locationSelect || !locationHint) return;
+                ensureHiddenLocation();
+                const locationId = locationSelect.value;
+                if (!locationId) {
+                    locationHint.textContent = 'Select a location to view availability.';
+                    locationHint.classList.remove('text-danger');
+                    latestLocationAvailability = null;
+                    updateSummaryLocation();
+                    return;
+                }
+                const context = computeRentalContext();
+                const base = baseStockForLocation(locationId);
+                if (base === null || base === undefined) {
+                    locationHint.textContent = 'Availability varies for this location.';
+                    locationHint.classList.remove('text-danger');
+                    latestLocationAvailability = null;
+                    updateSummaryLocation();
+                    return;
+                }
+                if (!context) {
+                    locationHint.textContent = `${base} in stock`;
+                    locationHint.classList.toggle('text-danger', base <= 0);
+                    latestLocationAvailability = base;
+                    updateSummaryLocation();
+                    return;
+                }
+                const available = availableUnitsForLocation(locationId, context);
+                latestLocationAvailability = available;
+                if (available === null || available === undefined) {
+                    locationHint.textContent = `${base} in stock`;
+                    locationHint.classList.remove('text-danger');
+                } else if (available <= 0) {
+                    locationHint.textContent = 'Not available for the selected dates.';
+                    locationHint.classList.add('text-danger');
+                } else {
+                    locationHint.textContent = `${available} of ${base} available for the selected dates.`;
+                    locationHint.classList.remove('text-danger');
+                }
+                updateSummaryLocation();
+            };
+
+            const updateExtraDaysVisibility = () => {
+                if (!extraDaysSection || !extraDaysInput || !hiddenExtraInput) return;
+                const unit = (document.getElementById('inputRentalUnit')?.value || '').toLowerCase();
+                if (unit === 'week' || unit === 'month') {
+                    const limit = unit === 'week' ? 6 : 29;
+                    extraDaysSection.classList.remove('d-none');
+                    extraDaysInput.setAttribute('max', String(limit));
+                    let value = parseIntSafe(extraDaysInput.value);
+                    if (value > limit) value = limit;
+                    extraDaysInput.value = String(value);
+                    hiddenExtraInput.value = String(value);
+                    hiddenExtraInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (extraDaysHelp) {
+                        extraDaysHelp.textContent = limit === 6
+                            ? 'Add up to 6 extra days on top of a weekly rental.'
+                            : 'Add up to 29 extra days on top of a monthly rental.';
+                    }
+                } else {
+                    extraDaysSection.classList.add('d-none');
+                    extraDaysInput.value = '0';
+                    hiddenExtraInput.value = '0';
+                    hiddenExtraInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+
+            if (extraDaysInput) {
+                extraDaysInput.addEventListener('input', () => {
+                    const max = parseIntSafe(extraDaysInput.getAttribute('max'), Infinity);
+                    let value = parseIntSafe(extraDaysInput.value);
+                    if (value < 0) value = 0;
+                    if (value > max) value = max;
+                    extraDaysInput.value = String(value);
+                    hiddenExtraInput.value = String(value);
+                    hiddenExtraInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    document.dispatchEvent(new CustomEvent('rental:updated'));
+                });
+            }
+
+            if (locationSelect) {
+                locationSelect.addEventListener('change', () => {
+                    ensureHiddenLocation();
+                    document.dispatchEvent(new CustomEvent('rental:updated'));
+                });
+            }
+
+            if (step1NextBtn) {
+                step1NextBtn.addEventListener('click', (event) => {
+                    if (!locationSelect) return;
+                    ensureHiddenLocation();
+                    if (!locationSelect.value) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        if (window.Swal?.fire) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Select location',
+                                text: 'Please choose a location before continuing.'
+                            });
+                        } else {
+                            alert('Please choose a location before continuing.');
+                        }
+                        return;
+                    }
+                    if (latestLocationAvailability !== null && latestLocationAvailability <= 0) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        if (window.Swal?.fire) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'No availability',
+                                text: 'Selected location has no availability for the chosen dates.'
+                            });
+                        } else {
+                            alert('Selected location has no availability for the chosen dates.');
+                        }
+                    }
+                }, true);
+            }
+
+            document.addEventListener('rental:updated', () => {
+                updateExtraDaysVisibility();
+                updateLocationAvailability();
+            });
+
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        const instance = bootstrap.Modal.getInstance(modal);
+                        instance?.hide();
+                    }
+                });
+            });
+
+            updateExtraDaysVisibility();
+            updateLocationAvailability();
+            updateSummaryLocation();
         });
     </script>
 

@@ -202,6 +202,12 @@
     });
 </script>
 
-@include('models.booking', ['equipment' => $equipment, 'bookedRanges' => $bookedRanges ?? [], 'addOns' => []])
+@include('models.booking', [
+    'equipment' => $equipment,
+    'bookedRanges' => $bookedRanges ?? [],
+   
+    'locationOptions' => $locationOptions ?? [],
+    'locationBookings' => $locationBookings ?? [],
+])
 @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])
 @endsection

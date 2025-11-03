@@ -39,7 +39,7 @@ public function show($id)
             'category',
             'stocks.location',
             'bookings' => function ($query) {
-                $query->select('id', 'equipment_id', 'start_date', 'end_date')
+                $query->select('id', 'equipment_id', 'location_id', 'start_date', 'end_date', 'notes')
                     ->orderBy('start_date');
             },
         ]);
@@ -51,7 +51,41 @@ public function show($id)
             ];
         })->values();
 
-        return view('user.show', compact('equipment', 'settings', 'bookedRanges'));
+        $locationOptions = $equipment->stocks->map(function ($stock) {
+            return [
+                'id' => $stock->location?->id,
+                'name' => $stock->location?->name ?? 'Location',
+                'stock' => (int) ($stock->stock ?? 0),
+            ];
+        })->filter(fn ($item) => !empty($item['id']))->values();
+
+        $locationBookings = $equipment->bookings
+            ->groupBy('location_id')
+            ->map(function ($bookings) {
+                return $bookings->map(function ($booking) {
+                    $notes = [];
+                    if (!empty($booking->notes)) {
+                        $decoded = json_decode($booking->notes, true);
+                        if (is_array($decoded)) {
+                            $notes = $decoded;
+                        }
+                    }
+
+                    return [
+                        'from' => Carbon::parse($booking->start_date)->toDateString(),
+                        'to' => Carbon::parse($booking->end_date)->toDateString(),
+                        'units' => (int) ($notes['units_reserved'] ?? 1),
+                    ];
+                })->values();
+            })->filter(fn ($collection, $key) => !is_null($key))->toArray();
+
+        return view('user.show', compact(
+            'equipment',
+            'settings',
+            'bookedRanges',
+            'locationOptions',
+            'locationBookings'
+        ));
     }
 
 
