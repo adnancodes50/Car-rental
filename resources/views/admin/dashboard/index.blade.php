@@ -23,7 +23,7 @@
                     'link' => route('categories.index'),
                 ],
                 [
-                    'title' => 'Total Items',
+                    'title' => 'Total Equipment',
                     'value' => $totalItems,
                     'icon' => 'fa-wallet',
                     'color' => '#c7a014',

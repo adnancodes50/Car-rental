@@ -62,7 +62,7 @@ class BookingController extends Controller
             'rental_unit'    => ['required', 'in:day,week,month'],
             'rental_quantity'=> ['required', 'integer', 'min:1'],
             'rental_start_date' => ['required', 'date'],
-            'extra_days'     => ['nullable', 'integer', 'min:0'],
+            'extra_days'     => ['nullable', 'integer', 'min:0', 'max:29'],
             'stock_quantity' => ['nullable', 'integer', 'min:1'],
 
             'name'     => ['required', 'string', 'max:255'],
@@ -102,6 +102,13 @@ class BookingController extends Controller
                 $unit = $validated['rental_unit']; // day, week, month
                 $qty  = (int) $validated['rental_quantity'];
                 $extraDays = (int) ($validated['extra_days'] ?? 0);
+                if ($unit === 'week') {
+                    $extraDays = max(0, min($extraDays, 6));
+                } elseif ($unit === 'month') {
+                    $extraDays = max(0, min($extraDays, 29));
+                } else {
+                    $extraDays = 0;
+                }
                 $reservedUnits = max(1, (int) ($validated['stock_quantity'] ?? $qty));
                 $start = Carbon::parse($validated['rental_start_date'])->startOfDay();
 

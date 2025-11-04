@@ -1616,6 +1616,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    if (hidUnit) {
+        hidUnit.addEventListener('change', () => {
+            updateExtraDaysVisibility();
+            updateLocationAvailability();
+        });
+    }
+
     // Event Listeners for location and stock
     if (extraDaysInput) {
         extraDaysInput.addEventListener('input', () => {
@@ -1626,6 +1633,7 @@ document.addEventListener('DOMContentLoaded', function() {
             extraDaysInput.value = String(value);
             hidExtra.value = String(value);
             hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+            updateLocationAvailability();
             updateStep1Paint();
         });
     }
