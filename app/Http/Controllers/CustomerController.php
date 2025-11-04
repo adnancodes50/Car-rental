@@ -424,49 +424,22 @@ public function updateBookingStatus(Request $request, Booking $booking)
         Config::set('mail.from.name', $settings->mail_from_name ?? config('app.name'));
 
         try {
-            $mailable = new BookingStatusUpdate($booking->fresh('vehicle', 'customer'), $booking->status);
-            Mail::mailer('smtp')->to($booking->customer->email)->send($mailable);
+            // Use explicit 'smtp' mailer
+            Mail::mailer('smtp')->to($booking->customer->email)
+                ->send(new BookingStatusUpdate($booking, $booking->status));
 
-            $renderedBody = method_exists($mailable, 'render') ? $mailable->render() : '';
-            $emailSubject = $mailable->subject ?? ('Booking status updated to ' . ucfirst($booking->status));
+            \Log::info('Booking status email sent successfully to '.$booking->customer->email);
 
-            EmailLog::create([
-                'customer_id' => $booking->customer_id,
-                'subject'     => $emailSubject,
-                'body'        => $renderedBody,
-                'sent_at'     => now(),
-                'sent_by'     => $request->user()?->id,
-            ]);
-
-            \Log::info('Booking status email sent successfully to '.$booking->customer->email, [
-                'booking_id' => $booking->id,
-                'status'     => $booking->status,
-            ]);
-
-        } catch (\Throwable $e) {
-            EmailLog::create([
-                'customer_id' => $booking->customer_id,
-                'subject'     => 'Booking status update failed to send',
-                'body'        => $e->getMessage(),
-                'sent_at'     => now(),
-                'sent_by'     => $request->user()?->id,
-            ]);
-
+        } catch (\Exception $e) {
+            // Log full exception details for debugging
             \Log::error('Failed to send booking status email', [
                 'booking_id' => $booking->id,
                 'customer_email' => $booking->customer->email,
                 'status' => $booking->status,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
-    } elseif ($booking->customer_id) {
-        EmailLog::create([
-            'customer_id' => $booking->customer_id,
-            'subject'     => 'Booking status update email not sent',
-            'body'        => 'Mail delivery skipped because email is missing or mail settings are disabled.',
-            'sent_at'     => now(),
-            'sent_by'     => $request->user()?->id,
-        ]);
     }
 
     if ($request->wantsJson() || $request->ajax()) {
