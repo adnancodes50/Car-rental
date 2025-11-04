@@ -2122,4 +2122,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStep1Paint();
     populateStockQuantitySelect(null);
 });
-</script>   
+</script>

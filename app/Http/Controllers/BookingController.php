@@ -26,46 +26,35 @@ class BookingController extends Controller
     /* -------------------------------------------------
      |  List all bookings
      |--------------------------------------------------*/
-    public function index()
-    {
-        $driver = \DB::connection()->getDriverName();
+  public function index()
+{
 
-        if ($driver === 'sqlite') {
-            $yearExpr  = "CAST(STRFTIME('%Y', start_date) AS INTEGER)";
-            $monthExpr = "CAST(STRFTIME('%m', start_date) AS INTEGER)";
-        } elseif ($driver === 'pgsql') {
-            $yearExpr  = "EXTRACT(YEAR FROM start_date)";
-            $monthExpr = "EXTRACT(MONTH FROM start_date)";
-        } else {
-            $yearExpr  = "YEAR(start_date)";
-            $monthExpr = "MONTH(start_date)";
-        }
 
-        $bookings = Booking::with(['customer', 'location', 'category', 'equipment'])
-            ->orderByRaw("$yearExpr ASC")
-            ->orderByRaw("$monthExpr ASC")
-            ->orderBy('start_date', 'ASC')
-            ->get();
+    $bookings = Booking::with(['customer', 'location', 'category', 'equipment' ])
+           ->orderByRaw('YEAR(start_date) ASC')
+           ->orderByRaw('MONTH(start_date) ASC')
+           ->orderBy('start_date', 'ASC')
+           ->Get();
+    // Return the view with the bookings data
+    return view('admin.booking.index', compact('bookings'));
+}
 
-        return view('admin.booking.index', compact('bookings'));
-    }
 
-    /* -------------------------------------------------
-     |  Show booking details
-     |--------------------------------------------------*/
+
+
+
     public function show(Booking $booking)
     {
-        $booking->load(['customer', 'location', 'category', 'equipment']);
-        return view('admin.booking.show', compact('booking'));
+        $booking->load(['customer'. 'location'. 'category', 'equipment']);
+        return view('admin.booking.show', compacta('booking'));
     }
-
     /* -------------------------------------------------
      |  Store a new booking
      |--------------------------------------------------*/
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'location_id'    => ['required', 'exists:locations,id'],
+            'location_id' => ['required', 'exists:locations,id'],
             'category_id'    => ['required', 'exists:categories,id'],
             'equipment_id'   => ['nullable', 'exists:equipment,id'],
             'rental_unit'    => ['required', 'in:day,week,month'],

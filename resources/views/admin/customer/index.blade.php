@@ -30,22 +30,12 @@
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Phone</th>
-                                <th>Country</th>
+                                <th>Customer Address</th>
                                 <th style="min-width: 240px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($customers as $customer)
-                                @php
-                                    $activeBookings = $customer->bookings()
-                                        ->whereDate('start_date', '<=', $today)
-                                        ->whereDate('end_date', '>=', $today)
-                                        ->with(['equipment', 'location', 'category'])
-                                        ->get();
-
-                                    // stash for later (to render outside the table)
-                                    $activeMap[$customer->id] = $activeBookings;
-                                @endphp
 
                                 <tr>
                                     <td>{{ $customer->name }}</td>
@@ -60,25 +50,6 @@
                                                 <i class="bi bi-person-lines-fill"></i>
                                                 View Details
                                             </a>
-
-                                            {{-- Collapse toggle for active bookings --}}
-                                            @if ($activeBookings->isNotEmpty())
-                                                <button
-                                                    class="btn btn-outline-secondary btn-sm fw-semibold"
-                                                    type="button"
-                                                    data-bs-toggle="collapse"
-                                                    data-bs-target="#bookings-{{ $customer->id }}"
-                                                    aria-expanded="false"
-                                                    aria-controls="bookings-{{ $customer->id }}">
-                                                    <i class="bi bi-calendar-event"></i>
-                                                    Active Bookings ({{ $activeBookings->count() }})
-                                                </button>
-                                            @else
-                                                <button class="btn btn-secondary btn-sm fw-semibold" type="button" disabled>
-                                                    <i class="bi bi-calendar-x"></i>
-                                                    No Active Bookings
-                                                </button>
-                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -86,58 +57,6 @@
                         </tbody>
                     </table>
 
-                    {{-- Collapsible sections rendered OUTSIDE the table so DataTables won't touch them --}}
-                    @foreach ($customers as $customer)
-                        @php
-                            $activeBookings = $activeMap[$customer->id] ?? collect();
-                        @endphp
-
-                        <div id="bookings-{{ $customer->id }}" class="collapse booking-details-row mt-2">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-body">
-                                    @if ($activeBookings->isEmpty())
-                                        <div class="text-muted small">No active bookings for this customer.</div>
-                                    @else
-                                        <div class="table-responsive border rounded-3 p-2 bg-light">
-                                            <table class="table table-sm mb-0 align-middle">
-                                                <thead class="table-secondary">
-                                                    <tr>
-                                                        <th>Reference</th>
-                                                        <th>Equipment</th>
-                                                        <th>Location</th>
-                                                        <th>Category</th>
-                                                        <th>Start</th>
-                                                        <th>End</th>
-                                                        <th>Go to Details</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach ($activeBookings as $booking)
-                                                        <tr>
-                                                            <td>{{ $booking->reference ?? 'N/A' }}</td>
-                                                            <td>{{ $booking->equipment->name ?? 'N/A' }}</td>
-                                                            <td>{{ $booking->location->name ?? 'N/A' }}</td>
-                                                            <td>{{ $booking->category->name ?? 'N/A' }}</td>
-                                                            <td>{{ \Carbon\Carbon::parse($booking->start_date)->format('Y-m-d') }}</td>
-                                                            <td>{{ \Carbon\Carbon::parse($booking->end_date)->format('Y-m-d') }}</td>
-                                                            <td>
-                                                                <a href="{{ route('customers.details', $customer->id) }}"
-                                                                   class="btn btn-outline-primary btn-sm fw-semibold">
-                                                                    <i class="bi bi-box-arrow-up-right"></i>
-                                                                    View Details
-                                                                </a>
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                    {{-- /Collapsibles --}}
                 </div>
             </div>
         </div>
