@@ -348,7 +348,7 @@
                             <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="text-bold text-black mb-0">
-                                        {{ optional($booking->equipment)->name ?? 'N/A' }}
+                                        {{-- {{ optional($booking->equipment)->name ?? 'N/A' }} --}}
                                     </h6>
                                     <span class="badge bg-primary">Purchase</span>
                                 </div>
