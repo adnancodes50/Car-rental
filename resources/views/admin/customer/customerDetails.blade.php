@@ -656,16 +656,19 @@
                             confirmed: 'bg-primary',
                             ongoing: 'bg-info',
                         };
-                        badge.textContent = (data.status || newStatus).replace(/^./, c => c.toUpperCase());
+                        const statusForDisplay = (data.status || newStatus || '').toLowerCase();
+                        badge.textContent = statusForDisplay.replace(/^./, c => c.toUpperCase());
                         badge.className = 'badge booking-status-badge';
-                        (clsMap[data.status] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(
+                        (clsMap[statusForDisplay] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(
                             c));
                     }
+
+                    sel.dataset.prev = data.status || newStatus;
 
                     Swal.fire({
                         icon: 'success',
                         title: 'Updated',
-                        text: 'Booking status changed successfully.',
+                        text: data.message || 'Booking status changed successfully.',
                         toast: true,
                         position: 'top-end',
                         timer: 1400,

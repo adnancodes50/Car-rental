@@ -408,13 +408,47 @@ public function updateBookingStatus(Request $request, Booking $booking)
         'status' => 'required|in:pending,confirmed,completed,canceled',
     ]);
 
-    $booking->status = $validated['status'];
+    $originalStatus = $booking->status;
+    $newStatus = $validated['status'];
+
+    if ($originalStatus === $newStatus) {
+        \Log::info('Booking status update skipped - status unchanged.', [
+            'booking_id' => $booking->id,
+            'status' => $originalStatus,
+        ]);
+
+        $message = 'Booking status is already set to ' . $newStatus . '. Email not sent.';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'status'  => $booking->status,
+                'start'   => $booking->start_date ? (string)$booking->start_date : null,
+                'end'     => $booking->end_date ? (string)$booking->end_date : null,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    $booking->status = $newStatus;
     $booking->save();
+
+    \Log::info('Booking status updated.', [
+        'booking_id' => $booking->id,
+        'previous_status' => $originalStatus,
+        'new_status' => $newStatus,
+        'customer_id' => $booking->customer_id,
+    ]);
 
     // --- Dynamic SMTP setup ---
     $settings = SystemSetting::first(); // assuming only one row
+    $customerEmail = $booking->customer?->email;
+    $mailAttempted = false;
+    $mailSent = false;
 
-    if ($settings && $settings->mail_enabled && $booking->customer?->email) {
+    if ($settings && $settings->mail_enabled && $customerEmail) {
         Config::set('mail.mailers.smtp.host', $settings->mail_host);
         Config::set('mail.mailers.smtp.port', $settings->mail_port);
         Config::set('mail.mailers.smtp.username', $settings->mail_username);
@@ -425,34 +459,58 @@ public function updateBookingStatus(Request $request, Booking $booking)
 
         try {
             // Use explicit 'smtp' mailer
-            Mail::mailer('smtp')->to($booking->customer->email)
+            Mail::mailer('smtp')->to($customerEmail)
                 ->send(new BookingStatusUpdate($booking, $booking->status));
 
-            \Log::info('Booking status email sent successfully to '.$booking->customer->email);
+            $mailAttempted = true;
+            $mailSent = true;
 
-        } catch (\Exception $e) {
-            // Log full exception details for debugging
-            \Log::error('Failed to send booking status email', [
+            \Log::info('Booking status email sent successfully.', [
                 'booking_id' => $booking->id,
-                'customer_email' => $booking->customer->email,
+                'status' => $booking->status,
+                'customer_email' => $customerEmail,
+            ]);
+        } catch (\Exception $e) {
+            $mailAttempted = true;
+
+            // Log full exception details for debugging
+            \Log::error('Failed to send booking status email.', [
+                'booking_id' => $booking->id,
+                'customer_email' => $customerEmail,
                 'status' => $booking->status,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
         }
+    } else {
+        \Log::warning('Skipping booking status email.', [
+            'booking_id' => $booking->id,
+            'status' => $booking->status,
+            'customer_email' => $customerEmail,
+            'mail_enabled' => $settings?->mail_enabled,
+        ]);
+    }
+
+    $message = 'Booking status updated to ' . $booking->status . '.';
+    if ($mailSent) {
+        $message .= ' Email sent to the customer.';
+    } elseif ($mailAttempted) {
+        $message .= ' Email could not be delivered. Check laravel.log for details.';
+    } else {
+        $message .= ' Email not sent (mail disabled or customer missing email).';
     }
 
     if ($request->wantsJson() || $request->ajax()) {
         return response()->json([
             'success' => true,
-            'message' => 'Booking status updated and email attempted.',
+            'message' => $message,
             'status'  => $booking->status,
             'start'   => $booking->start_date ? (string)$booking->start_date : null,
             'end'     => $booking->end_date ? (string)$booking->end_date : null,
         ]);
     }
 
-    return back()->with('success', 'Booking status updated and email attempted.');
+    return back()->with('success', $message);
 }
 
 
