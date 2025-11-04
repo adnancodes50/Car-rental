@@ -210,7 +210,7 @@
                                     <div class="dates-price-section mb-4 p-3 bg-light rounded-3">
 
                                         <div class="row g-3">
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label class="form-label text-dark fw-semibold">Location</label>
                                                     <select name="location_id"
@@ -232,7 +232,7 @@
                                                 </div>
                                             </div>
 
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label class="form-label text-dark fw-semibold">Booked Stock</label>
                                                     <select name="booked_stock"
