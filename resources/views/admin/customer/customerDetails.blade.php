@@ -128,22 +128,38 @@
                 <div class="row g-4">
                     @forelse($bookings as $booking)
                         @php
-                            // Other bookings for the same equipment (excluding this booking)
-                            $bookedRanges = \App\Models\Booking::where('equipment_id', $booking->equipment_id)
-                                ->where('id', '!=', $booking->id)
-                                ->get()
-                                ->map(fn($b) => ['from' => $b->start_date, 'to' => $b->end_date])
-                                ->values();
-                        @endphp
+                            $locationOptions = collect($booking->location_options ?? []);
+                            $locationOptionsMap = $locationOptions->mapWithKeys(function ($option) {
+                                $id = (string) ($option['id'] ?? '');
+                                if ($id === '') {
+                                    return [];
+                                }
+                                return [
+                                    $id => [
+                                        'name' => $option['name'] ?? 'Location',
+                                        'stock' => (int) ($option['stock'] ?? 0),
+                                    ],
+                                ];
+                            });
+                            $locationBookingMap = $booking->location_booking_map ?? [];
+                            $locationFullyBooked = $booking->location_fully_booked ?? [];
+                            $globalFullyBooked = $booking->global_fully_booked ?? [];
+                            $initialAvailableStock = $booking->initial_available_stock ?? null;
 
+                            // Get current location stock for initial display
+                            $currentLocationStock = 0;
+                            if ($booking->location_id) {
+                                $currentLocation = $locationOptions->firstWhere('id', $booking->location_id);
+                                $currentLocationStock = $currentLocation['stock'] ?? 0;
+                            }
+                        @endphp
 
                         <div class="col-md-12">
                             <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
-                                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                                     <h6 class="text-bold text-black mb-0">
                                         {{ optional($booking->equipment)->name ?? 'N/A' }}
                                     </h6>
-
 
                                     {{-- Status dropdown --}}
                                     <div class="d-flex align-items-center gap-2">
@@ -175,35 +191,116 @@
                                 </div>
 
                                 {{-- Dates form --}}
-                                {{-- Dates form --}}
                                 <form class="booking-dates-form" data-booking-id="{{ $booking->id }}"
                                     data-url="{{ route('customers.bookings.updateDates', $booking->id) }}"
-                                    data-disabled-dates='@json($bookedRanges)'
                                     data-daily-rate="{{ optional($booking->equipment)->daily_price ?? 0 }}"
-                                    data-stock="{{ optional($booking->equipment)->stock ?? 0 }}">
+                                    data-location-options='@json($locationOptionsMap)'
+                                    data-location-bookings='@json($locationBookingMap)'
+                                    data-location-fully='@json($locationFullyBooked)'
+                                    data-global-fully='@json($globalFullyBooked)'
+                                    data-current-location="{{ $booking->location_id ?? '' }}"
+                                    data-booked-stock="{{ (int) ($booking->booked_stock ?? 1) }}"
+                                    data-initial-available="{{ $initialAvailableStock ?? '' }}">
 
                                     @csrf
                                     @method('PATCH')
 
-                                    <div class="row g-2 align-items-center">
-                                        <div class="col-md-6">
-                                            <label class="form-label mb-1"><strong>Start Date:</strong></label>
-                                            <input type="text" name="start_date" value="{{ $booking->start_date }}"
-                                                class="form-control form-control-sm booking-start-date"
-                                                placeholder="Select start date" autocomplete="off" readonly>
+
+                                    {{-- Dates and Price Section --}}
+                                    <div class="dates-price-section mb-4 p-3 bg-light rounded-3">
+
+                                        <div class="row g-3">
+                                            <div class="col-md-5">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">Location</label>
+                                                    <select name="location_id"
+                                                        class="form-control booking-location-select"
+                                                        {{ $locationOptions->isEmpty() ? 'disabled' : '' }}>
+                                                        @if ($locationOptions->isEmpty())
+                                                            <option value="">No locations available</option>
+                                                        @else
+                                                            <option value="">Select location</option>
+                                                            @foreach ($locationOptions as $option)
+                                                                <option value="{{ $option['id'] }}"
+                                                                    data-stock="{{ $option['stock'] }}"
+                                                                    @selected((string) $booking->location_id === (string) $option['id'])>
+                                                                    {{ $option['name'] }} ({{ $option['stock'] }} in stock)
+                                                                </option>
+                                                            @endforeach
+                                                        @endif
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">Booked Stock</label>
+                                                    <select name="booked_stock"
+                                                        class="form-control booking-stock-select"
+                                                        {{ $locationOptions->isEmpty() ? 'disabled' : '' }}>
+                                                        <option value="{{ (int) ($booking->booked_stock ?? 1) }}" selected>
+                                                            {{ (int) ($booking->booked_stock ?? 1) }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">Available</label>
+                                                    <input type="text"
+                                                        class="form-control booking-available-stock text-center fw-bold"
+                                                        value="{{ $initialAvailableStock ?? '' }}"
+                                                        readonly
+                                                        style="background-color: #e8f5e8 !important; color: #2e7d32; border: 1px solid #c8e6c9;">
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">In Stock</label>
+                                                    <input type="text"
+                                                        class="form-control booking-total-stock bg-light text-center"
+                                                        value="{{ $currentLocationStock }}"
+                                                        readonly
+                                                        style="background-color: #f5f5f5 !important;">
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div class="col-md-6">
-                                            <label class="form-label mb-1"><strong>End Date:</strong></label>
-                                            <input type="text" name="end_date" value="{{ $booking->end_date }}"
-                                                class="form-control form-control-sm booking-end-date"
-                                                placeholder="Select end date" autocomplete="off" readonly>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">Start Date</label>
+                                                    <input type="text" name="start_date" value="{{ $booking->start_date }}"
+                                                        class="form-control booking-start-date"
+                                                        placeholder="Select start date" autocomplete="off" readonly>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">End Date</label>
+                                                    <input type="text" name="end_date" value="{{ $booking->end_date }}"
+                                                        class="form-control booking-end-date"
+                                                        placeholder="Select end date" autocomplete="off" readonly>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label class="form-label text-dark fw-semibold">Total Price</label>
+                                                    <input type="text" class="form-control booking-total-price fw-bold"
+                                                        disabled value="R{{ number_format($booking->total_price, 2) }}"
+                                                        style="background-color: #e3f2fd !important; color: #1565c0; border: 1px solid #bbdefb;">
+                                                </div>
+                                            </div>
+
                                         </div>
 
-                                        <div class="col-md-6">
-                                            <label class="form-label mb-1 mt-1"><strong>Admin Note For
-                                                    Booking:</strong></label>
-                                            <input type="text" name="admin_note" class="form-control form-control-sm"
+                                          <div class="form-group">
+                                            <label class="form-label text-dark fw-semibold">Admin Note For Booking</label>
+                                            <input type="text" name="admin_note" class="form-control"
                                                 placeholder="Enter a note about this booking"
                                                 value="{{ old('admin_note', $booking->admin_note) }}">
                                             @error('admin_note')
@@ -211,36 +308,27 @@
                                             @enderror
                                         </div>
 
-                                        <div class="col-md-3">
-                                            <label class="form-label mb-1 mt-1"><strong>Total Price:</strong></label>
-                                            <input type="text" class="form-control form-control-sm booking-total-price"
-                                                disabled value="R{{ number_format($booking->total_price, 2) }}">
-                                        </div>
 
-                                      @php
-    $availableStock = \App\Models\EquipmentStock::where('equipment_id', $booking->equipment_id)
-        ->where('location_id', $booking->location_id)
-        ->value('stock') ?? 0;
-@endphp
-
-<div class="col-md-3">
-    <label class="form-label mb-1 mt-1"><strong>Available Stock:</strong></label>
-    <input type="text" class="form-control form-control-sm" disabled value="{{ $availableStock }}">
-</div>
-
-                                    </div>
-
-                                    <div class="d-flex justify-content-end mt-2">
-                                        <button type="submit" class="btn btn-sm py-2 btn-success">
-                                            <i class="fas fa-save"></i> Update Dates
+                                    <div class="d-flex justify-content-end mt-4">
+                                        <button type="submit" class="btn btn-success px-4 py-2">
+                                            <i class="fas fa-save me-2"></i> Update Booking
                                         </button>
                                     </div>
+
+                                    </div>
+
+
+
+
                                 </form>
 
                             </div>
                         </div>
                     @empty
-                        <div class="col-12 text-center text-muted">No booking history available.</div>
+                        <div class="col-12 text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                            <p class="mb-0">No booking history available.</p>
+                        </div>
                     @endforelse
                 </div>
             </div>
@@ -288,7 +376,6 @@
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                 <h3 class="card-title text-bold mb-0">Email Log History</h3>
-                {{-- <span class="badge bg-dark">{{ count($emailLogs) }} total</span> --}}
             </div>
 
             <div class="card-body  email-log-scroll">
@@ -314,8 +401,6 @@
                                         {{ strtoupper(substr(optional($log->sender)->name ?? 'S', 0, 1)) }}
                                     </div>
                                 </div>
-
-                                {{-- Message bubble --}}
                                 <div class="p-3 rounded-3 shadow-sm"
                                     style="background-color: {{ $isSender ? '#f2f2f2' : '#ffffff' }};
                                             border: 1px solid #dee2e6; min-width: 250px;">
@@ -344,15 +429,12 @@
 @stop
 
 @section('css')
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
     <style>
         table.table-hover tbody tr:hover {
             background-color: rgba(255, 193, 7, 0.1);
             transition: background-color 0.2s ease-in-out;
         }
-
 
         .email-log-scroll {
             max-height: 500px;
@@ -393,7 +475,6 @@
             cursor: not-allowed !important;
         }
 
-
         .flatpickr-day.selected,
         .flatpickr-day.startRange,
         .flatpickr-day.endRange {
@@ -405,6 +486,90 @@
         .flatpickr-day:not(.disabled):hover {
             background: #cce5ff !important;
             color: #000 !important;
+        }
+
+        /* Improved form styling */
+        .booking-dates-form .form-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .booking-dates-form .form-control,
+        .booking-dates-form .form-select {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+        }
+
+        .booking-dates-form .form-control:focus,
+        .booking-dates-form .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        /* Section styling */
+        .location-stock-section,
+        .dates-price-section {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .location-stock-section h6,
+        .dates-price-section h6 {
+            color: #495057;
+            font-size: 0.95rem;
+        }
+
+        /* Form group for consistent spacing */
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        /* Improved dropdown styling */
+        .booking-location-select,
+        .booking-stock-select {
+            height: auto;
+            min-height: 38px;
+        }
+
+        .booking-available-stock {
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .booking-total-price {
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Better spacing */
+        .booking-dates-form .row {
+            margin-bottom: 0;
+        }
+
+        .booking-dates-form .form-group {
+            margin-bottom: 1rem;
+        }
+
+        /* Status badge improvements */
+        .booking-status-badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+
+        /* Button improvements */
+        .btn-success {
+            font-weight: 500;
+        }
+
+        /* Ensure all form controls have consistent appearance */
+        select.form-control {
+            appearance: auto;
+            -webkit-appearance: menulist;
+            -moz-appearance: menulist;
+            appearance: menulist;
         }
     </style>
 @stop
@@ -534,7 +699,7 @@
 
                 try {
                     const res = await fetch(form.action, {
-                        method: 'PATCH', // <- fixed to PATCH
+                        method: 'PATCH',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
                             'Accept': 'application/json',
@@ -574,99 +739,321 @@
         /* =====================================================
            BOOKING DATES UPDATE (flatpickr + price + overlap)
         ===================================================== */
-        document.addEventListener('DOMContentLoaded', function() {
-          document.querySelectorAll('.booking-dates-form').forEach(form => {
-    const startInput = form.querySelector('.booking-start-date');
-    const endInput = form.querySelector('.booking-end-date');
-    const priceField = form.querySelector('.booking-total-price');
-    const stockField = form.querySelector('.booking-available-stock');
-    const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
-    const dailyRate = parseFloat(form.dataset.dailyRate || 0);
-    const bookingId = form.dataset.bookingId;
-    let availableStock = parseInt(form.dataset.stock || 0);
+        document.addEventListener('DOMContentLoaded', () => {
+            const parseDate = (value) => {
+                if (!value) return null;
+                const parts = value.split('-').map(Number);
+                if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            };
 
-    // Build array of fully booked (stock=0) dates
-    const fullyBookedDates = disabledRanges.map(range => ({
-        from: range.from,
-        to: range.to
-    }));
+            const toYMD = (date) => {
+                if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            };
 
-    const startPicker = flatpickr(startInput, {
-        dateFormat: "Y-m-d",
-        disable: fullyBookedDates,
-        onChange: updatePrice
-    });
+            const rangesOverlap = (startA, endA, startB, endB) => {
+                const aStart = parseDate(startA);
+                const aEnd = parseDate(endA);
+                const bStart = parseDate(startB);
+                const bEnd = parseDate(endB);
+                if (!aStart || !aEnd || !bStart || !bEnd) return false;
+                return !(aEnd.getTime() < bStart.getTime() || bEnd.getTime() < aStart.getTime());
+            };
 
-    const endPicker = flatpickr(endInput, {
-        dateFormat: "Y-m-d",
-        disable: fullyBookedDates,
-        onChange: updatePrice
-    });
+            const isInRanges = (ranges, ymd) => {
+                if (!Array.isArray(ranges) || !ymd) return false;
+                return ranges.some(range => range && range.from && range.to && ymd >= range.from && ymd <= range.to);
+            };
 
-    function updatePrice() {
-        if (!startInput.value || !endInput.value) return;
-        const s = new Date(startInput.value);
-        const e = new Date(endInput.value);
-        const days = Math.max(1, (e - s) / (1000 * 60 * 60 * 24) + 1);
-        priceField.value = "R" + (days * dailyRate).toFixed(2);
-    }
+            document.querySelectorAll('.booking-dates-form').forEach(form => {
+                const startInput = form.querySelector('.booking-start-date');
+                const endInput = form.querySelector('.booking-end-date');
+                const priceField = form.querySelector('.booking-total-price');
+                const noteField = form.querySelector('[name="admin_note"]');
+                const locationSelect = form.querySelector('.booking-location-select');
+                const stockSelect = form.querySelector('.booking-stock-select');
+                const availableField = form.querySelector('.booking-available-stock');
+                const totalStockField = form.querySelector('.booking-total-stock');
+                const dailyRate = parseFloat(form.dataset.dailyRate || '0');
+                const locationOptions = JSON.parse(form.dataset.locationOptions || '{}');
+                const locationBookingMap = JSON.parse(form.dataset.locationBookings || '{}');
+                const locationFully = JSON.parse(form.dataset.locationFully || '{}');
+                const globalFully = JSON.parse(form.dataset.globalFully || '[]');
+                const initialAvailable = form.dataset.initialAvailable;
+                let selectedStock = parseInt(form.dataset.bookedStock || '1', 10) || 1;
+                const todayYMD = toYMD(new Date());
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+                // Function to update total stock field
+                function updateTotalStock() {
+                    if (!totalStockField || !locationSelect) return;
 
-        const payload = {
-            start_date: startInput.value,
-            end_date: endInput.value,
-            admin_note: form.querySelector('[name="admin_note"]').value,
-            booked_stock: 1 // you can make this dynamic if selecting quantity
-        };
+                    const selectedOption = locationSelect.options[locationSelect.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        const stock = selectedOption.getAttribute('data-stock');
+                        totalStockField.value = stock || '0';
+                    } else {
+                        totalStockField.value = '0';
+                    }
+                }
 
-        try {
-            const res = await fetch(form.dataset.url, {
-                method: 'PATCH',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
+                if (locationSelect && !locationSelect.value && form.dataset.currentLocation) {
+                    const desiredOption = locationSelect.querySelector(`option[value="${form.dataset.currentLocation}"]`);
+                    if (desiredOption) {
+                        desiredOption.selected = true;
+                    }
+                }
 
-            const json = await res.json();
+                if (availableField && initialAvailable !== undefined && initialAvailable !== '') {
+                    availableField.value = initialAvailable;
+                }
 
-            if (!json.success) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: json.message
+                // Initialize total stock on page load
+                updateTotalStock();
+
+                const disableFn = (date) => {
+                    const ymd = toYMD(date);
+                    if (!ymd) return false;
+                    if (ymd < todayYMD) return true;
+                    if (isInRanges(globalFully, ymd)) return true;
+                    const currentLocation = locationSelect?.value || form.dataset.currentLocation || '';
+                    if (currentLocation && isInRanges(locationFully[currentLocation] || [], ymd)) {
+                        return true;
+                    }
+                    return false;
+                };
+
+                const startPicker = flatpickr(startInput, {
+                    dateFormat: 'Y-m-d',
+                    disable: [disableFn],
+                    onChange: () => {
+                        updatePrice();
+                        refreshAvailability();
+                    },
                 });
-                return;
-            }
 
-            // Update live stock
-            if (stockField) stockField.value = json.available;
+                const endPicker = flatpickr(endInput, {
+                    dateFormat: 'Y-m-d',
+                    disable: [disableFn],
+                    onChange: () => {
+                        updatePrice();
+                        refreshAvailability();
+                    },
+                });
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Updated!',
-                text: `Booking updated successfully. Remaining stock: ${json.available}`,
-                toast: true,
-                position: 'top-end',
-                timer: 1800,
-                showConfirmButton: false
+                form.dataset.currentLocation = form.dataset.currentLocation || (locationSelect?.value || '');
+
+                function updatePrice() {
+                    if (!priceField) return;
+                    if (!startInput.value || !endInput.value) {
+                        priceField.value = '';
+                        return;
+                    }
+                    const start = parseDate(startInput.value);
+                    const end = parseDate(endInput.value);
+                    if (!start || !end) return;
+                    const diff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+                    const days = Math.max(1, Math.floor(diff) + 1);
+                    const units = selectedStock && selectedStock > 0 ? selectedStock : 0;
+                    const total = days * dailyRate * units;
+                    priceField.value = `R${total.toFixed(2)}`;
+                }
+
+                function computeAvailableUnits(locationId, startStr, endStr) {
+                    if (!locationId || !locationOptions[locationId]) {
+                        return 0;
+                    }
+                    const baseStock = parseInt(locationOptions[locationId].stock ?? 0, 10);
+                    if (!startStr || !endStr) {
+                        return baseStock;
+                    }
+                    const bookings = locationBookingMap[locationId] || [];
+                    let reserved = 0;
+                    bookings.forEach(booking => {
+                        if (!booking?.from || !booking?.to) return;
+                        if (rangesOverlap(startStr, endStr, booking.from, booking.to)) {
+                            reserved += parseInt(booking.units ?? 1, 10);
+                        }
+                    });
+                    const available = baseStock - reserved;
+                    return available < 0 ? 0 : available;
+                }
+
+                function populateStockOptions(limit) {
+                    if (!stockSelect) return;
+                    stockSelect.innerHTML = '';
+                    if (limit <= 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No stock available';
+                        stockSelect.appendChild(option);
+                        stockSelect.disabled = true;
+                        selectedStock = 0;
+                        form.dataset.bookedStock = '0';
+                        updatePrice();
+                        return;
+                    }
+                    for (let i = 1; i <= limit; i++) {
+                        const option = document.createElement('option');
+                        option.value = String(i);
+                        option.textContent = String(i);
+                        stockSelect.appendChild(option);
+                    }
+                    stockSelect.disabled = false;
+                    if (!selectedStock || selectedStock > limit) {
+                        selectedStock = Math.min(limit, Math.max(1, selectedStock || limit));
+                    }
+                    form.dataset.bookedStock = String(selectedStock);
+                    stockSelect.value = String(selectedStock);
+                    if (!stockSelect.value) {
+                        stockSelect.value = '1';
+                        selectedStock = 1;
+                        form.dataset.bookedStock = '1';
+                    }
+                    updatePrice();
+                }
+
+                function refreshAvailability() {
+                    const locationId = locationSelect ? locationSelect.value : '';
+                    if (!locationId || !locationOptions[locationId]) {
+                        if (stockSelect) {
+                            stockSelect.innerHTML = '<option value="">Select location</option>';
+                            stockSelect.disabled = true;
+                        }
+                        if (availableField) {
+                            availableField.value = '';
+                        }
+                        selectedStock = 0;
+                        form.dataset.bookedStock = '0';
+                        updatePrice();
+                        return;
+                    }
+
+                    const baseStock = parseInt(locationOptions[locationId].stock ?? 0, 10);
+                    const startStr = startInput.value;
+                    const endStr = endInput.value || startStr;
+                    const limit = startStr && endStr ? computeAvailableUnits(locationId, startStr, endStr) : baseStock;
+                    populateStockOptions(limit);
+
+                    if (availableField) {
+                        const displayValue = startStr && endStr ? limit : baseStock;
+                        availableField.value = displayValue >= 0 ? displayValue : 0;
+                    }
+
+                    updatePrice();
+                }
+
+                function ensureValidDates() {
+                    if (startInput.value) {
+                        const date = parseDate(startInput.value);
+                        if (date && disableFn(date)) {
+                            startPicker.clear();
+                        }
+                    }
+                    if (endInput.value) {
+                        const date = parseDate(endInput.value);
+                        if (date && disableFn(date)) {
+                            endPicker.clear();
+                        }
+                    }
+                }
+
+                if (locationSelect) {
+                    locationSelect.addEventListener('change', () => {
+                        selectedStock = 1;
+                        form.dataset.bookedStock = '1';
+                        form.dataset.currentLocation = locationSelect.value;
+                        startPicker.set('disable', [disableFn]);
+                        endPicker.set('disable', [disableFn]);
+                        ensureValidDates();
+                        refreshAvailability();
+                        updateTotalStock(); // Update the total stock when location changes
+                    });
+                }
+
+                if (stockSelect) {
+                    stockSelect.addEventListener('change', () => {
+                        selectedStock = parseInt(stockSelect.value || '1', 10) || 1;
+                        form.dataset.bookedStock = selectedStock;
+                        updatePrice();
+                    });
+                }
+
+                refreshAvailability();
+                updatePrice();
+
+                form.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const rawLocation = locationSelect ? (locationSelect.value || '') : '';
+                    const rawStock = stockSelect ? (stockSelect.value || '') : '';
+
+                    const payload = {
+                        start_date: startInput.value,
+                        end_date: endInput.value,
+                        admin_note: noteField ? noteField.value : '',
+                        booked_stock: rawStock !== '' ? rawStock : null,
+                        location_id: rawLocation !== '' ? rawLocation : null,
+                    };
+
+                    try {
+                        const response = await fetch(form.dataset.url, {
+                            method: 'PATCH',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify(payload),
+                        });
+
+                        const json = await response.json();
+
+                        if (!json.success) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: json.message || 'Unable to update booking.',
+                            });
+                            return;
+                        }
+
+                        if (typeof json.available !== 'undefined' && availableField) {
+                            availableField.value = json.available;
+                        }
+
+                        if (json.location_id && locationSelect) {
+                            form.dataset.currentLocation = json.location_id;
+                        }
+
+                        if (stockSelect && payload.booked_stock) {
+                            selectedStock = parseInt(payload.booked_stock, 10) || selectedStock;
+                            form.dataset.bookedStock = selectedStock;
+                        }
+
+                        refreshAvailability();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Updated!',
+                            text: json.message || 'Booking updated successfully.',
+                            toast: true,
+                            position: 'top-end',
+                            timer: 1800,
+                            showConfirmButton: false,
+                        });
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message || 'Something went wrong.',
+                        });
+                    }
+                });
             });
-        } catch (err) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: err.message
-            });
-        }
-    });
-});
-
         });
-
 
         window.initCustomerAutocomplete = function() {
             const input = document.getElementById("customer_country");
@@ -675,7 +1062,7 @@
                 fields: ["formatted_address"],
                 componentRestrictions: {
                     country: "ZA"
-                } // 🇿🇦 change/remove as needed
+                }
             });
             autocomplete.addListener("place_changed", () => {
                 const place = autocomplete.getPlace();
@@ -684,75 +1071,5 @@
                 }
             });
         };
-
-
-
-
-
-        document.querySelectorAll('.booking-dates-form').forEach(form => {
-    const startInput = form.querySelector('.booking-start-date');
-    const endInput = form.querySelector('.booking-end-date');
-    const priceField = form.querySelector('.booking-total-price');
-    const stockField = form.querySelector('.booking-available-stock');
-    const disabledRanges = JSON.parse(form.dataset.disabledDates || '[]');
-    const dailyRate = parseFloat(form.dataset.dailyRate || 0);
-    let availableStock = parseInt(form.dataset.stock || 0);
-
-    const startPicker = flatpickr(startInput, {
-        dateFormat: "Y-m-d",
-        disable: disabledRanges,
-        onChange: updatePrice,
-    });
-
-    const endPicker = flatpickr(endInput, {
-        dateFormat: "Y-m-d",
-        disable: disabledRanges,
-        onChange: updatePrice,
-    });
-
-    function updatePrice() {
-        if (!startInput.value || !endInput.value) return;
-        const s = new Date(startInput.value);
-        const e = new Date(endInput.value);
-        const days = (e - s) / (1000 * 60 * 60 * 24) + 1;
-        if (days < 1) return;
-        priceField.value = "R" + (days * dailyRate).toFixed(2);
-    }
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const data = {
-            start_date: startInput.value,
-            end_date: endInput.value,
-            admin_note: form.querySelector('[name="admin_note"]').value
-        };
-
-        const res = await fetch(form.dataset.url, {
-            method: 'PATCH',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-
-        const json = await res.json();
-        if (json.success) {
-            stockField.value = json.available; // ✅ update stock live
-            Swal.fire({
-                icon: 'success',
-                title: 'Updated',
-                text: `Stock left: ${json.available}`,
-                timer: 1500,
-                toast: true,
-                showConfirmButton: false,
-            });
-        } else {
-            Swal.fire({ icon: 'error', title: 'Error', text: json.message });
-        }
-    });
-});
-
     </script>
 @stop
