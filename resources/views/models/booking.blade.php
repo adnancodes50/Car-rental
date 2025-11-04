@@ -492,15 +492,13 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Your Address</label>
-                            <input type="text"
-                                id="bookingCustomerCountry"
-                                name="country"
-                                class="form-control rounded-3"
-                                placeholder="Start typing your address..."
-                                autocomplete="off"
-                                required>
-                            <small class="text-muted">Use the suggestions to fill your full address.</small>
+                            <label class="form-label">Country</label>
+                            <select name="country" class="form-select rounded-3" required>
+                                <option value="" disabled selected>Select your country</option>
+                                @foreach ($countries as $country)
+                                    <option value="{{ $country }}">{{ $country }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -588,7 +586,7 @@
                                 <p class="fw-bold" id="summaryCustomerPhone"></p>
                             </div>
                             <div class="col-md-6">
-                                <p class="small text-muted mb-1">Address</p>
+                                <p class="small text-muted mb-1">Country</p>
                                 <p class="fw-bold" id="summaryCustomerCountry"></p>
                             </div>
                         </div>
@@ -2202,23 +2200,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStep1Paint();
     populateStockQuantitySelect(null);
 });
-
-window.initCustomerAutocomplete = function() {
-    const addressInput = document.getElementById('bookingCustomerCountry');
-    if (!addressInput || typeof google === 'undefined' || !google.maps?.places) return;
-
-    addressInput.setAttribute('autocomplete', 'street-address');
-
-    const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-        types: ['geocode'],
-        fields: ['formatted_address', 'address_components'],
-    });
-
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place?.formatted_address) {
-            addressInput.value = place.formatted_address;
-        }
-    });
-};
 </script>
