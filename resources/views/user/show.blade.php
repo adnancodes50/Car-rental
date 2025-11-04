@@ -208,6 +208,7 @@
     'addOns' => $addOns ?? [],
     'locationOptions' => $locationOptions ?? [],
     'locationBookings' => $locationBookings ?? [],
+    'locationFullyBooked' => $locationFullyBooked ?? [],
 ])
 
 @include('models.purchase', ['item' => $equipment, 'type' => 'equipment'])

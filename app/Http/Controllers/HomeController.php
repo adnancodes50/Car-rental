@@ -76,15 +76,18 @@ class HomeController extends Controller
                 })->values();
             })->filter(fn ($collection, $key) => !is_null($key))->toArray();
 
-        // Generate booked ranges - consider a date booked if any booking makes location fully booked
-        $bookedRanges = $this->getFullyBookedDates($locationBookings, $locationOptions);
+        // Generate booked ranges & per-location availability
+        $fullyBooked = $this->getFullyBookedDates($locationBookings, $locationOptions);
+        $bookedRanges = $fullyBooked['global'];
+        $locationFullyBooked = $fullyBooked['by_location'];
 
         return view('user.show', compact(
             'equipment',
             'settings',
             'bookedRanges',
             'locationOptions',
-            'locationBookings'
+            'locationBookings',
+            'locationFullyBooked'
         ));
     }
 
@@ -93,61 +96,107 @@ class HomeController extends Controller
      */
     private function getFullyBookedDates($locationBookings, $locationOptions)
     {
-        $bookedRanges = [];
+        $locationFullyBooked = [];
+        $dailyUsage = [];
+        $consideredLocations = $locationOptions
+            ->filter(fn ($loc) => !empty($loc['id']) && (int) ($loc['stock'] ?? 0) > 0)
+            ->map(fn ($loc) => (string) $loc['id'])
+            ->values();
 
         foreach ($locationBookings as $locationId => $bookings) {
-            $locationStock = $locationOptions->firstWhere('id', $locationId)['stock'] ?? 0;
+            $locationStock = (int) ($locationOptions->firstWhere('id', $locationId)['stock'] ?? 0);
+            if ($locationStock <= 0) {
+                $locationFullyBooked[(string) $locationId] = [];
+                continue;
+            }
+
+            $daily = [];
 
             foreach ($bookings as $booking) {
-                // If this booking alone uses all available stock, mark these dates as booked
-                if ($booking['units'] >= $locationStock) {
-                    $bookedRanges[] = [
-                        'from' => $booking['from'],
-                        'to' => $booking['to'],
-                    ];
+                $start = Carbon::parse($booking['from'])->startOfDay();
+                $end = Carbon::parse($booking['to'])->startOfDay();
+
+                for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
+                    $key = $day->toDateString();
+                    $daily[$key] = ($daily[$key] ?? 0) + (int) ($booking['units'] ?? 1);
+                }
+            }
+
+            $dailyUsage[(string) $locationId] = $daily;
+            $fullDates = array_keys(array_filter($daily, fn ($count) => $count >= $locationStock));
+            $locationFullyBooked[(string) $locationId] = $this->datesToRanges($fullDates);
+        }
+
+        $globalFullDates = [];
+
+        if ($consideredLocations->isNotEmpty()) {
+            $allDates = collect($dailyUsage)
+                ->flatMap(fn ($usage) => array_keys($usage))
+                ->unique()
+                ->values()
+                ->all();
+
+            sort($allDates);
+
+            foreach ($allDates as $date) {
+                $allBooked = true;
+
+                foreach ($consideredLocations as $locId) {
+                    $stock = (int) ($locationOptions->firstWhere('id', $locId)['stock'] ?? 0);
+                    if ($stock <= 0) {
+                        continue;
+                    }
+
+                    $locationDaily = $dailyUsage[$locId] ?? [];
+                    $reserved = $locationDaily[$date] ?? 0;
+                    if ($reserved < $stock) {
+                        $allBooked = false;
+                        break;
+                    }
+                }
+
+                if ($allBooked) {
+                    $globalFullDates[] = $date;
                 }
             }
         }
 
-        // Remove duplicates and merge overlapping ranges
-        return $this->mergeRanges($bookedRanges);
+        return [
+            'global' => $this->datesToRanges($globalFullDates),
+            'by_location' => $locationFullyBooked,
+        ];
     }
 
     /**
-     * Merge overlapping date ranges
+     * Convert a list of date strings into merged ranges
      */
-    private function mergeRanges($ranges)
+    private function datesToRanges(array $dates): array
     {
-        if (empty($ranges)) {
+        if (empty($dates)) {
             return [];
         }
 
-        // Sort by start date
-        usort($ranges, function ($a, $b) {
-            return strcmp($a['from'], $b['from']);
-        });
+        sort($dates);
+        $ranges = [];
+        $current = [
+            'from' => $dates[0],
+            'to' => $dates[0],
+        ];
 
-        $merged = [];
-        $current = $ranges[0];
+        for ($i = 1; $i < count($dates); $i++) {
+            $date = $dates[$i];
+            $expected = Carbon::parse($current['to'])->addDay()->toDateString();
 
-        for ($i = 1; $i < count($ranges); $i++) {
-            $range = $ranges[$i];
-            $currentEnd = Carbon::parse($current['to']);
-            $nextStart = Carbon::parse($range['from']);
-
-            if ($nextStart->lte($currentEnd->copy()->addDay())) {
-                // Ranges overlap or are adjacent
-                $currentEndRange = Carbon::parse($range['to']);
-                if ($currentEndRange->gt($currentEnd)) {
-                    $current['to'] = $range['to'];
-                }
+            if ($date === $expected) {
+                $current['to'] = $date;
             } else {
-                $merged[] = $current;
-                $current = $range;
+                $ranges[] = $current;
+                $current = ['from' => $date, 'to' => $date];
             }
         }
 
-        $merged[] = $current;
-        return $merged;
+        $ranges[] = $current;
+
+        return $ranges;
     }
 }

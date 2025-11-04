@@ -223,10 +223,34 @@
         ? optional($equipment->stocks->first())->location_id
         : $vehicle->location_id ?? null;
 
-    $bookedRanges = $bookedRanges ?? [];
+    $bookedRanges = collect($bookedRanges ?? [])
+        ->map(function ($range) {
+            return [
+                'from' => $range['from'] ?? null,
+                'to' => $range['to'] ?? null,
+            ];
+        })
+        ->filter(fn ($range) => $range['from'] && $range['to'])
+        ->values()
+        ->toArray();
 
     $locationOptions = collect($locationOptions ?? []);
     $locationBookings = collect($locationBookings ?? []);
+    $locationFullyBooked = collect($locationFullyBooked ?? [])
+        ->mapWithKeys(function ($ranges, $locationKey) {
+            $items = collect($ranges)
+                ->map(function ($range) {
+                    return [
+                        'from' => $range['from'] ?? null,
+                        'to' => $range['to'] ?? null,
+                    ];
+                })
+                ->filter(fn ($range) => $range['from'] && $range['to'])
+                ->values();
+
+            return [(string) $locationKey => $items];
+        })
+        ->toArray();
 
     if ($isEquipmentBooking && isset($equipment)) {
         if ($locationOptions->isEmpty()) {
@@ -926,7 +950,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const hiddenStockQuantity = document.getElementById('inputStockQuantity');
     const step1Modal = document.getElementById('multiStepBookingModal');
     const startDateInput = document.getElementById('rentalStartDate');
+    let startDatePicker = null;
     let bookingCreationInFlight = false;
+
+    const setDefaultStockSelection = () => {
+        if (!stockSelect) return;
+        const optionOne = stockSelect.querySelector('option[value="1"]');
+        if (optionOne) {
+            optionOne.selected = true;
+            stockSelect.value = '1';
+            if (hiddenStockQuantity) hiddenStockQuantity.value = '1';
+            return;
+        }
+        if (stockSelect.options.length > 0) {
+            stockSelect.selectedIndex = 0;
+            if (hiddenStockQuantity) hiddenStockQuantity.value = stockSelect.value || '';
+            return;
+        }
+        if (hiddenStockQuantity) hiddenStockQuantity.value = '';
+    };
 
     if (bookingForm) {
         bookingForm.addEventListener('submit', (e) => {
@@ -1168,15 +1210,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 periodBox?.classList.add('d-none');
                 if (periodBox) periodBox.textContent = '';
                 if (hidTotal) hidTotal.value = '';
-                if (showLocationSelect && locationRow) locationRow.classList.add('d-none');
-                if (stockSelect) {
-                    stockSelect.disabled = true;
-                    stockSelect.innerHTML = '<option value="">Select quantity</option>';
-                }
-                if (!suppressRentalEvent) {
-                    document.dispatchEvent(new CustomEvent('rental:updated'));
-                }
-                return;
+            if (showLocationSelect && locationRow) locationRow.classList.add('d-none');
+            if (stockSelect) {
+                stockSelect.disabled = false;
+                setDefaultStockSelection();
+            }
+            if (!suppressRentalEvent) {
+                document.dispatchEvent(new CustomEvent('rental:updated'));
+            }
+            return;
             }
 
             if (showLocationSelect && locationRow) locationRow.classList.remove('d-none');
@@ -1307,7 +1349,7 @@ document.addEventListener('DOMContentLoaded', function() {
     /* =========================================
        CALENDAR (lead days + booked ranges lock)
        ========================================= */
-    (function initCalendar() {
+    const initCalendar = () => {
         const inp = startDateInput;
         if (!inp) return;
 
@@ -1327,6 +1369,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const minDate = new Date(todayLocal);
         if (leadDays > 0) minDate.setDate(minDate.getDate() + leadDays);
 
+        const getActiveLocationId = () => {
+            if (locationSelect && locationSelect.value) return locationSelect.value;
+            if (hiddenLocationId && hiddenLocationId.value) return hiddenLocationId.value;
+            return null;
+        };
+
+        const isInRanges = (ranges, ymd) => {
+            if (!Array.isArray(ranges)) return false;
+            return ranges.some(range => {
+                if (!range?.from || !range?.to) return false;
+                return ymd >= range.from && ymd <= range.to;
+            });
+        };
+
         // All checks in LOCAL YYYY-MM-DD
         function isDisabled(dateObj) {
             const dLocal = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
@@ -1343,16 +1399,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Blocked ranges: inclusive [from .. to]
-            for (const r of blockedRanges) {
-                if (!r?.from || !r?.to) continue;
-                if (ymd >= r.from && ymd <= r.to) return true;
+            if (isInRanges(blockedRanges, ymd)) {
+                return true;
+            }
+
+            // Location-specific fully booked dates
+            const activeLocationId = getActiveLocationId();
+            if (activeLocationId) {
+                const ranges = locationFullyBookedMap[String(activeLocationId)] || [];
+                if (isInRanges(ranges, ymd)) {
+                    return true;
+                }
             }
             return false;
         }
 
         // Use flatpickr if available; otherwise basic fallback with native <input type="date">
         if (typeof flatpickr !== 'undefined') {
-            flatpickr(inp, {
+            startDatePicker = flatpickr(inp, {
                 minDate,
                 disable: [isDisabled],
                 dateFormat: 'Y-m-d',
@@ -1395,13 +1459,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateStep1Paint();
             });
         }
-    })();
+    };
 
     /* =========================
        LOCATION & STOCK MANAGEMENT
        ========================= */
     const locationInventory = @json($locationInventory);
     const locationBookingMap = @json($locationBookingMap);
+    const locationFullyBookedMap = @json($locationFullyBooked);
     let latestLocationAvailability = null;
     window.latestLocationAvailability = null;
 
@@ -1496,9 +1561,9 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = 'No stock available';
             stockSelect.appendChild(option);
             stockSelect.disabled = true;
+            if (hiddenStockQuantity) hiddenStockQuantity.value = '0';
         } else {
-            const maxSelectable = Math.min(available, 10);
-            for (let i = 1; i <= maxSelectable; i++) {
+            for (let i = 1; i <= available; i++) {
                 const option = document.createElement('option');
                 option.value = i;
                 option.textContent = i;
@@ -1507,11 +1572,9 @@ document.addEventListener('DOMContentLoaded', function() {
             stockSelect.disabled = false;
         }
 
-        if (!stockSelect.disabled) {
-            stockSelect.value = '1';
-            if (hiddenStockQuantity) {
-                hiddenStockQuantity.value = '1';
-            }
+        setDefaultStockSelection();
+        if (stockSelect.disabled && available !== null && available <= 0 && hiddenStockQuantity) {
+            hiddenStockQuantity.value = '0';
         }
     };
 
@@ -1605,8 +1668,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
             if (extraDaysHelp) {
                 extraDaysHelp.textContent = limit === 6 ?
-                    'Add up to 6 extra days on top of a weekly rental.' :
-                    'Add up to 29 extra days on top of a monthly rental.';
+                    ' 1 to 6 days.' :
+                    '1 to 29 days.';
             }
         } else {
             extraDaysSection.classList.add('d-none');
@@ -1643,6 +1706,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ensureHiddenLocation();
             updateLocationAvailability();
             updateStep1Paint();
+            if (startDatePicker && typeof startDatePicker.redraw === 'function') {
+                startDatePicker.redraw();
+            }
         });
     }
 
@@ -2125,6 +2191,7 @@ document.addEventListener('DOMContentLoaded', function() {
     /* =========================
        INITIALIZATION
        ========================= */
+    initCalendar();
     updateExtraDaysVisibility();
     updateLocationAvailability();
     updateStep1Paint();
