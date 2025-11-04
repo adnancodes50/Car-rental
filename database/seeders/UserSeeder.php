@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-        $admin->assignRole($superAdminRole);
+        $admin->assignRole($userRole);
 
         // --- REGULAR USER ---
         $regularUser = User::firstOrCreate(
