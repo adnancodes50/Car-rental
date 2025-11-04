@@ -448,12 +448,20 @@ public function updateBookingStatus(Request $request, Booking $booking)
     $mailAttempted = false;
     $mailSent = false;
 
-    if ($settings && $settings->mail_enabled && $customerEmail) {
+    $hasSmtpConfig = $settings
+        && $settings->mail_enabled
+        && $customerEmail
+        && filled($settings->mail_host)
+        && filled($settings->mail_port);
+
+    if ($hasSmtpConfig) {
+        Config::set('mail.default', 'smtp');
+        Config::set('mail.mailers.smtp.transport', 'smtp');
         Config::set('mail.mailers.smtp.host', $settings->mail_host);
         Config::set('mail.mailers.smtp.port', $settings->mail_port);
         Config::set('mail.mailers.smtp.username', $settings->mail_username);
         Config::set('mail.mailers.smtp.password', $settings->mail_password);
-        Config::set('mail.mailers.smtp.encryption', $settings->mail_encryption);
+        Config::set('mail.mailers.smtp.encryption', $settings->mail_encryption ?: null);
         Config::set('mail.from.address', $settings->mail_from_address ?? 'no-reply@example.com');
         Config::set('mail.from.name', $settings->mail_from_name ?? config('app.name'));
 
@@ -478,6 +486,8 @@ public function updateBookingStatus(Request $request, Booking $booking)
                 'booking_id' => $booking->id,
                 'customer_email' => $customerEmail,
                 'status' => $booking->status,
+                'mail_host' => $settings->mail_host,
+                'mail_port' => $settings->mail_port,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -488,6 +498,8 @@ public function updateBookingStatus(Request $request, Booking $booking)
             'status' => $booking->status,
             'customer_email' => $customerEmail,
             'mail_enabled' => $settings?->mail_enabled,
+            'mail_host' => $settings?->mail_host,
+            'mail_port' => $settings?->mail_port,
         ]);
     }
 

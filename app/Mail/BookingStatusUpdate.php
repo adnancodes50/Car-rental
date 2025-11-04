@@ -4,10 +4,10 @@ namespace App\Mail;
 
 use App\Models\Booking;
 use App\Models\EmailTemplate;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Carbon\Carbon;
 
 class BookingStatusUpdate extends Mailable
 {
@@ -18,48 +18,53 @@ class BookingStatusUpdate extends Mailable
 
     public function __construct(Booking $booking, string $status)
     {
-        $this->booking = $booking->loadMissing('vehicle', 'customer');
+        $this->booking = $booking->loadMissing('equipment', 'customer', 'location');
         $this->status = ucfirst($status);
     }
 
     public function build(): self
     {
         $booking = $this->booking;
-        $vehicle = $booking->vehicle;
+        $equipment = $booking->equipment;
         $customer = $booking->customer;
+        $location = $booking->location;
 
-        // Placeholder values
+        $statusLower = strtolower($this->status);
+        $totalPrice = (float) ($booking->total_price ?? 0);
+        $reference = $booking->reference ?: ('BK-' . $booking->id);
+        $itemDisplay = $equipment?->name ?? '';
+
+        $itemRows = $this->buildRow('Equipment', $itemDisplay);
+        $itemRows .= $this->buildRow('Location', $location?->name ?? '');
+        $itemRows .= $this->buildRow('Units Booked', $booking->booked_stock ? (string) $booking->booked_stock : null);
+
         $data = [
             'app_name' => config('app.name', 'Our Site'),
             'customer_name' => $customer->name ?? 'Customer',
             'booking_id' => (string) $booking->id,
-            'booking_reference' => $booking->reference ?: ('BK-' . $booking->id),
+            'booking_reference' => $reference,
             'booking_reference_paren' => $booking->reference ? '(' . $booking->reference . ')' : '',
-            'vehicle_name' => $vehicle?->name ? ($vehicle->name . (($vehicle->year || $vehicle->model) ? " ({$vehicle->year} {$vehicle->model})" : '')) : '',
-            'start_date' => Carbon::parse($booking->start_date)->toFormattedDateString(),
-            'end_date' => Carbon::parse($booking->end_date)->toFormattedDateString(),
+            'item_name' => $itemDisplay,
+            'vehicle_name' => $itemDisplay,
+            'location_name' => $location?->name ?? '',
+            'start_date' => $this->formatDate($booking->start_date),
+            'end_date' => $this->formatDate($booking->end_date),
             'status' => $this->status,
-            'paid_now' => number_format((float)$booking->total_price, 2),
-            'total_amount' => number_format((float)$booking->total_price, 2),
+            'paid_now' => number_format($totalPrice, 2),
+            'total_amount' => number_format($totalPrice, 2),
             'logo_url' => asset('vendor/adminlte/dist/img/logo.png'),
             'year' => date('Y'),
-            'status_message' => strtolower($this->status) === 'canceled'
+            'status_message' => in_array($statusLower, ['canceled', 'cancelled'], true)
                 ? 'Unfortunately, your booking has been canceled. Please contact our support team if you have any questions or need assistance.'
                 : "Your booking status has been updated to {$this->status}.",
         ];
 
         $raw = [
-            'vehicle_row' => $vehicle ? (
-                '<tr>
-                    <td style="padding:6px 0;color:#555;">Vehicle</td>
-                    <td style="padding:6px 0;text-align:right;color:#111;">'
-                    . e($vehicle->name . (($vehicle->year || $vehicle->model) ? " ({$vehicle->year} {$vehicle->model})" : '')) .
-                '</td></tr>'
-            ) : '',
+            'item_rows' => $itemRows,
+            'vehicle_row' => $itemRows,
             'receipt_button' => '',
         ];
 
-        // Determine DB template trigger
         $statusKey = strtolower($this->status);
         $triggerStatus = [
             'completed' => 'complete',
@@ -77,18 +82,49 @@ class BookingStatusUpdate extends Mailable
             return $this->subject($subject)->html($body);
         }
 
+        $fallbackSubject = sprintf(
+            '%s - Booking %s (%s)',
+            config('app.name'),
+            $this->status,
+            $reference
+        );
 
-        // Fallback Blade view
-        return $this->subject(config('app.name') . " • Booking {$this->status} ({$booking->reference})")
+        return $this->subject($fallbackSubject)
             ->view('emails.booking_status', $data + $raw);
     }
 
     protected function replacePlaceholders(string $text, array $values, array $rawKeys = [], bool $escapeAll = true): string
     {
         foreach ($values as $key => $val) {
-            $replacement = (in_array($key, $rawKeys, true) || !$escapeAll) ? (string)$val : e((string)$val);
-            $text = str_replace('{{'.$key.'}}', $replacement, $text);
+            $replacement = (in_array($key, $rawKeys, true) || !$escapeAll) ? (string) $val : e((string) $val);
+            $text = str_replace('{{' . $key . '}}', $replacement, $text);
         }
+
         return $text;
+    }
+
+    protected function formatDate($value): string
+    {
+        if (empty($value)) {
+            return 'To be confirmed';
+        }
+
+        try {
+            return Carbon::parse($value)->toFormattedDateString();
+        } catch (\Throwable $e) {
+            return (string) $value;
+        }
+    }
+
+    protected function buildRow(string $label, ?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return '<tr>
+            <td style="padding:6px 0;color:#555;">' . e($label) . '</td>
+            <td style="padding:6px 0;text-align:right;color:#111;">' . e($value) . '</td>
+        </tr>';
     }
 }
