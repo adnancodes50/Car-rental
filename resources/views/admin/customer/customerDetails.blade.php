@@ -299,14 +299,14 @@
                                         </div>
 
                                           <div class="form-group">
-                                            <label class="form-label text-dark fw-semibold">Admin Note For Booking</label>
-                                            <input type="text" name="admin_note" class="form-control"
-                                                placeholder="Enter a note about this booking"
-                                                value="{{ old('admin_note', $booking->admin_note) }}">
-                                            @error('admin_note')
-                                                <span class="text-danger small">{{ $message }}</span>
-                                            @enderror
-                                        </div>
+    <label class="form-label text-dark fw-semibold">Admin Note For Booking</label>
+    <textarea name="admin_note" class="form-control" rows="3"
+        placeholder="Enter a note or comment about this booking">{{ old('admin_note', $booking->admin_note) }}</textarea>
+    @error('admin_note')
+        <span class="text-danger small">{{ $message }}</span>
+    @enderror
+</div>
+
 
 
                                     <div class="d-flex justify-content-end mt-4">
