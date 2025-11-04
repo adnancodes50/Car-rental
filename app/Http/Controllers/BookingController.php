@@ -346,4 +346,15 @@ class BookingController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+//     public function initPayfastBooking(Booking $booking)
+// {
+//     // Your PayFast initialization logic here
+//     // Example placeholder:
+//     return response()->json([
+//         'success' => true,
+//         'message' => 'PayFast booking initialized.',
+//         'booking_id' => $booking->id,
+//     ]);
+// }
 }
