@@ -40,21 +40,23 @@ class BookingController extends Controller
 }
 
 
-
-
-
+    /* -------------------------------------------------
+     |  Show booking details
+     |--------------------------------------------------*/
     public function show(Booking $booking)
     {
-        $booking->load(['customer'. 'location'. 'category', 'equipment']);
-        return view('admin.booking.show', compacta('booking'));
+        $booking->load(['customer', 'location', 'category', 'equipment']);
+        return view('admin.booking.show', compact('booking'));
     }
+
+
     /* -------------------------------------------------
      |  Store a new booking
      |--------------------------------------------------*/
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'location_id' => ['required', 'exists:locations,id'],
+            'location_id'    => ['required', 'exists:locations,id'],
             'category_id'    => ['required', 'exists:categories,id'],
             'equipment_id'   => ['nullable', 'exists:equipment,id'],
             'rental_unit'    => ['required', 'in:day,week,month'],

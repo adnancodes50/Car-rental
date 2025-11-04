@@ -26,7 +26,7 @@
 
                 <div class="col-md-6">
                     <h5 class="text-uppercase text-muted mb-3">Vehicle & Booking Info</h5>
-                    <p><strong>Vehicle:</strong> {{ $booking->vehicle->name ?? '-' }}</p>
+                    <p><strong>Vehicle:</strong> {{ $booking->equipment->name ?? '-' }}</p>
                     <p><strong>Type:</strong> {{ ucfirst($booking->type) }}</p>
                     <p><strong>Status:</strong>
                         @php
