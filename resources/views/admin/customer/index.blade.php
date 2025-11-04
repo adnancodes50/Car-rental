@@ -16,39 +16,36 @@
             <hr>
 
             <div class="card-body">
+                {{-- Responsive DataTable --}}
                 <div class="table-responsive">
                     @php
                         use Carbon\Carbon;
                         $today = Carbon::today();
-                        // We'll collect active bookings per customer so we can render collapses after the table
-                        $activeMap = [];
                     @endphp
 
-                    <table id="customersTable" class="table table-striped table-hover align-middle text-sm w-100">
+                    <table id="customersTable" class="table table-striped table-hover align-middle text-sm w-100 nowrap">
                         <thead class="table-light text-uppercase text-muted">
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Phone</th>
                                 <th>Customer Address</th>
-                                <th style="min-width: 240px;">Action</th>
+                                <th style="min-width: 180px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($customers as $customer)
-
                                 <tr>
                                     <td>{{ $customer->name }}</td>
                                     <td>{{ $customer->email }}</td>
                                     <td>{{ $customer->phone }}</td>
                                     <td>{{ $customer->country }}</td>
                                     <td>
-                                        <div class="d-flex gap-2">
-                                            {{-- Always go to details page --}}
+                                        <div class="d-flex flex-wrap gap-2">
                                             <a href="{{ route('customers.details', $customer->id) }}"
                                                class="btn btn-success btn-sm fw-semibold">
                                                 <i class="bi bi-person-lines-fill"></i>
-                                                View Details
+                                                View Profile
                                             </a>
                                         </div>
                                     </td>
@@ -56,7 +53,6 @@
                             @endforeach
                         </tbody>
                     </table>
-
                 </div>
             </div>
         </div>
@@ -68,14 +64,27 @@
             transition: background-color 0.2s ease-in-out;
         }
 
-        /* Separate container for collapses; not inside the DataTable */
-        .booking-details-row {
-            background-color: #f9f9f9;
+        /* Keep collapse button simple */
+        table.dataTable.dtr-inline.collapsed > tbody > tr > td:first-child:before,
+        table.dataTable.dtr-inline.collapsed > tbody > tr > th:first-child:before {
+            background-color: transparent !important;
+            border: 2px solid #888 !important;
+            color: #333 !important;
+            box-shadow: none !important;
+        }
+
+        /* Optional: tighten up mobile buttons */
+        @media (max-width: 768px) {
+            .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
         }
     </style>
 @stop
 
 @section('css')
+    {{-- DataTables + Responsive extension --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
 @stop
@@ -83,15 +92,32 @@
 @section('js')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
     <script>
         $(document).ready(function () {
             $('#customersTable').DataTable({
-                responsive: true,
+                responsive: {
+                    details: {
+                        display: $.fn.dataTable.Responsive.display.childRowImmediate,
+                        type: 'inline'
+                    }
+                },
+                autoWidth: false,
                 pageLength: 10,
                 ordering: false,
-                columnDefs: [{ orderable: false, targets: [4] }],
+                columnDefs: [
+                    { orderable: false, targets: [4] }
+                ],
+                language: {
+                    lengthMenu: "_MENU_ per page",
+                    search: "Search:",
+                    paginate: {
+                        previous: "&laquo;",
+                        next: "&raquo;"
+                    }
+                }
             });
-            // No need to touch the collapses: Bootstrap handles them, and they’re outside the table.
         });
     </script>
 @stop
