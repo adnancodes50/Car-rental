@@ -68,7 +68,7 @@ class BookingController extends Controller
 
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email:rfc,filter', 'max:255'],
-            'phone'    => ['required', 'regex:/^\\+?[0-9]{1,4}(?:[\\s-]?[0-9]{2,4}){2,4}$/'],
+            'phone' => ['required', 'regex:/^[0-9]+$/'],
             'country'  => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -390,6 +390,9 @@ class BookingController extends Controller
 
         if ($booking->customer?->phone) {
             $sanitizedCell = preg_replace('/\D+/', '', $booking->customer->phone);
+            if ($sanitizedCell && str_starts_with($sanitizedCell, '27') && strlen($sanitizedCell) === 11) {
+                $sanitizedCell = '0' . substr($sanitizedCell, 2);
+            }
             if ($sanitizedCell && preg_match('/^0\d{9}$/', $sanitizedCell)) {
                 $fields['cell_number'] = $sanitizedCell;
             }
@@ -500,12 +503,12 @@ class BookingController extends Controller
             }
         }
 
-        return redirect()->route('home')->with('payfast_success', $message);
+        return redirect('/')->with('payfast_success', $message);
     }
 
     public function payfastBookingCancel(Request $request)
     {
-        return redirect()->route('home')->with(
+        return redirect('/')->with(
             'payfast_cancelled',
             'You cancelled the payment. Your booking remains pending until payment is completed.'
         );
