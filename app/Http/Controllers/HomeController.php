@@ -18,13 +18,20 @@ class HomeController extends Controller
     }
 
     public function show($id)
-    {
-        $category = Category::findOrFail($id);
-        $equipments = Equipment::with(['stocks.location'])->where('category_id', $id)->get();
-        $settings = Landing::first();
+{
+    $category = Category::findOrFail($id);
 
-        return view('user.view', compact('category', 'equipments', 'settings'));
-    }
+    // ✅ Only get equipment that is active and belongs to this category
+    $equipments = Equipment::with(['stocks.location'])
+        ->where('category_id', $id)
+        ->where('status', 'active')
+        ->get();
+
+    $settings = Landing::first();
+
+    return view('user.view', compact('category', 'equipments', 'settings'));
+}
+
 
     public function viewEquipment(Equipment $equipment)
     {

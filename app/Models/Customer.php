@@ -18,11 +18,6 @@ class Customer extends Model
         return $this->hasMany(EquipmentPurchase::class, 'customer_id');
     }
 
-    // If you also have a purchases table for vehicles:
-   public function purchase()
-{
-    return $this->hasMany(\App\Models\Purchase::class);
-}
 
 
 

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\Purchase;
+use App\Models\EquipmentPurchase;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use App\Models\SystemSetting;
@@ -29,9 +29,9 @@ class CustomerController extends Controller
 
 public function getCustomerDetails($id)
 {
-    $customer = Customer::withCount(['bookings', 'purchase'])
-        ->withSum('purchase as total_purchase_deposit', 'deposit_paid')
-        ->withSum('purchase as total_purchase_price', 'total_price')
+    $customer = Customer::withCount(['bookings', 'equipmentPurchases'])
+        ->withSum('equipmentPurchases as total_purchase_deposit', 'deposit_paid')
+        ->withSum('equipmentPurchases as total_purchase_price', 'total_price')
         ->findOrFail($id);
 
     $bookings = $customer->bookings()
@@ -117,7 +117,7 @@ public function getCustomerDetails($id)
         );
     });
 
-    $purchases = $customer->purchase()->latest()->get();
+    $purchases = $customer->equipmentPurchases()->latest()->get();
 
     // Load this customer's email logs
     $emailLogs = EmailLog::where('customer_id', $customer->id)

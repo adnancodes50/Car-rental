@@ -56,7 +56,7 @@
 
                 <div class="col-md-6">
                     <h5 class="text-uppercase text-muted mb-3">Pricing</h5>
-                    <p><strong>Total Price:</strong> <span class="text-success">${{ number_format($booking->total_price, 2) }}</span></p>
+                    <p><strong>Total Price:</strong> <span class="text-success">R{{ number_format($booking->total_price, 2) }}</span></p>
                     <p><strong>Extra Days:</strong> {{ $booking->extra_days ?? 0 }}</p>
                 </div>
             </div>

@@ -31,7 +31,7 @@
                 ],
                 [
                     'title' => 'Total Booking Amount',
-                    'value' => '$' . number_format($totalBookingAmount, 2),
+                    'value' => 'R' . number_format($totalBookingAmount, 2),
                     'icon' => 'fa-book',
                     'color' => '#007bff',
                 ],
@@ -48,6 +48,25 @@
                     'color' => '#17a2b8',
                     'link' => route('customers.index'),
                 ],
+
+                [
+                    'title' => 'Total Purchases Amount',
+                    'value' =>  'R' . number_format($totalPurchases, 2),
+                    'icon' => 'fa-money-bill',
+                    'color' => '#00C851',
+                    // 'link' => route('customers.index'),
+                ],
+
+                 [
+                    'title' => 'Total Purchase Quantity',
+                    'value' => $totalPurchaseItems,
+                    'icon' => 'fa-boxes',
+                    'color' => '#ff6f00',
+                    // 'link' => route('customers.index'),
+                ],
+
+
+
                 [
                     'title' => 'Active Bookings',
                     'value' => $activeBookings,

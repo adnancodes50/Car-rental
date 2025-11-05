@@ -66,7 +66,7 @@
                                 @endphp
                                 <span class="{{ $statusData['class'] }}">{{ $statusData['label'] }}</span>
                             </td>
-                            <td>${{ number_format($booking->total_price, 2) }}</td>
+                            <td>R{{ number_format($booking->total_price, 2) }}</td>
                             <td class="text-center">
                                 <a href="{{ route('bookings.show', $booking->id) }}" class="btn btn-outline-info btn-sm action-btn" title="View Details">
                                     <i class="fas fa-eye"></i>
