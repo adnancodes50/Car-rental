@@ -272,7 +272,7 @@ Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNoti
 
 
 
-// Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
+Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
 Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
 Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])->name('payfast.booking.return');
 Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
