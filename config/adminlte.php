@@ -420,7 +420,7 @@ return [
 
 
         [
-            'text' => 'Setting',
+            'text' => 'Settings',
             'icon' => 'fas fa-fw fa-cogs text-warning',
             'submenu' => [
                    [
@@ -432,7 +432,7 @@ return [
 
 
 [
-    'text' => 'Forget Password',
+    'text' => 'Forgot Password',
     'route'  => 'forget-password.edit',
     'icon' => 'fas fa-key text-warning',
 ],
