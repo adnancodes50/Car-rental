@@ -34,8 +34,12 @@ class EquipmentPurchaseController extends Controller
 
         $equipment = Equipment::with('category')->findOrFail($validated['equipment_id']);
 
-        if (($equipment->status ?? null) === 'sold') {
-            return response()->json(['success' => false, 'message' => 'This equipment has already been sold.'], 422);
+        $equipmentStatus = $equipment->status ?? null;
+        if ($equipmentStatus && strtolower((string) $equipmentStatus) !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This equipment is no longer available for purchase.',
+            ], 422);
         }
 
         $locationId = (int) $validated['location_id'];
@@ -205,7 +209,7 @@ class EquipmentPurchaseController extends Controller
                 if ($purchase->equipment) {
                     $remaining = EquipmentStock::where('equipment_id', $purchase->equipment_id)->sum('stock');
                     if ($remaining <= 0 && isset($purchase->equipment->status) && in_array('status', $purchase->equipment->getFillable() ?? [])) {
-                        $purchase->equipment->status = 'sold';
+                        $purchase->equipment->status = 'inactive';
                         $purchase->equipment->save();
                     }
                 }
@@ -354,7 +358,7 @@ class EquipmentPurchaseController extends Controller
                 if ($purchase->equipment) {
                     $remaining = EquipmentStock::where('equipment_id', $purchase->equipment_id)->sum('stock');
                     if ($remaining <= 0 && isset($purchase->equipment->status) && in_array('status', $purchase->equipment->getFillable() ?? [])) {
-                        $purchase->equipment->status = 'sold';
+                        $purchase->equipment->status = 'inactive';
                         $purchase->equipment->save();
                     }
                 }
@@ -366,3 +370,5 @@ class EquipmentPurchaseController extends Controller
         return response('OK');
     }
 }
+
+

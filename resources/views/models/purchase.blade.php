@@ -1,9 +1,10 @@
-﻿{{-- resources/views/models/purchase.blade.php --}}
+{{-- resources/views/models/purchase.blade.php --}}
 @php
 
 
 
-    $isSold = ($item->status ?? null) === 'sold';
+    $itemStatus = strtolower((string) ($item->status ?? ''));
+    $isUnavailable = in_array($itemStatus, ['sold', 'inactive']);
 
     if ($type === 'equipment') {
         // Use Category pricing via accessors on Equipment (sale_price, deposit_amount)
@@ -33,10 +34,10 @@
     $remaining = max($price - $deposit, 0);
 @endphp
 
-@if ($isSold)
+@if ($isUnavailable)
     <div class="alert alert-warning d-flex align-items-center mb-3">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        This {{ $type }} has been <strong>sold</strong> and is no longer available.
+        This {{ $type }} is <strong>no longer available</strong> for purchase.
     </div>
     <style>
         .purchase-trigger {
@@ -93,7 +94,7 @@
                                 </div>
 
                                 <select name="location_id" id="locationSelect" class="form-select rounded-3" required
-                                    {{ $isSold ? 'disabled' : '' }}>
+                                    {{ $isUnavailable ? 'disabled' : '' }}>
                                     <option value="" disabled selected>Select a location</option>
                                     @foreach ($item->stocks ?? [] as $s)
                                         <option value="{{ $s->location->id }}" data-stock="{{ (int) $s->stock }}">
@@ -111,7 +112,7 @@
                                 </label>
 
                                 <select name="quantity" id="qtySelect" class="form-select rounded-3" required
-                                    {{ $isSold ? 'disabled' : '' }}>
+                                    {{ $isUnavailable ? 'disabled' : '' }}>
                                     <option value="" selected disabled>Select</option>
                                 </select>
                             </div>
@@ -169,7 +170,7 @@
 
                     {{-- Continue --}}
                     <button type="button" id="purchaseStep1Next" class="btn btn-dark w-100 py-2 fw-semibold rounded-3"
-                        {{ $isSold ? 'disabled' : '' }}>
+                        {{ $isUnavailable ? 'disabled' : '' }}>
                         Continue
                     </button>
 
@@ -188,16 +189,16 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-4">
-                    @if ($isSold)
+                    @if ($isUnavailable)
                         <div class="alert alert-danger mb-3">
-                            This {{ $type }} is sold and cannot be purchased.
+                            This {{ $type }} is unavailable and cannot be purchased.
                         </div>
                     @endif
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Full Name</label>
                             <input type="text" name="name" class="form-control rounded-3"
-                                placeholder="John Doe" required {{ $isSold ? 'disabled' : '' }}>
+                                placeholder="John Doe" required {{ $isUnavailable ? 'disabled' : '' }}>
                         </div>
 
                         <div class="col-12">
@@ -206,7 +207,7 @@
                                 placeholder="you@example.com" inputmode="email" autocomplete="email" required
                                 pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
                                 title="Enter a valid email address, e.g. you@example.com"
-                                {{ $isSold ? 'disabled' : '' }}>
+                                {{ $isUnavailable ? 'disabled' : '' }}>
                         </div>
 
                         <div class="col-12">
@@ -214,7 +215,7 @@
                             <input type="tel" name="phone" class="form-control rounded-3"
                                 placeholder="012 345 6789" inputmode="tel" autocomplete="tel" required
                                 pattern="^[0-9 ]+$" title="Digits and spaces only, e.g. 012 345 6789"
-                                {{ $isSold ? 'disabled' : '' }}>
+                                {{ $isUnavailable ? 'disabled' : '' }}>
 
                         </div>
 
@@ -224,7 +225,7 @@
                             {{-- Visible input the user types in --}}
                             <input type="text" id="purchaseCountryInput" class="form-control rounded-3"
                                 placeholder="Start typing your country..." autocomplete="off"
-                                {{ $isSold ? 'disabled' : '' }}>
+                                {{ $isUnavailable ? 'disabled' : '' }}>
 
                             {{-- Real value posted to Laravel --}}
                             <input type="hidden" name="country" id="purchaseCountryHidden" required>
@@ -237,7 +238,7 @@
                         class="btn btn-outline-secondary rounded-3">Back</button>
 
                     <button type="button" id="purchaseStep2Next" class="btn btn-dark rounded-3 px-4"
-                        {{ $isSold ? 'disabled' : '' }}>
+                        {{ $isUnavailable ? 'disabled' : '' }}>
                         Continue to Payment
                     </button>
                 </div>
@@ -275,9 +276,9 @@
                 </div>
 
                 <div class="modal-body">
-                    @if ($isSold)
+                    @if ($isUnavailable)
                         <div class="alert alert-danger mb-3">
-                            This {{ $type }} is sold and cannot be purchased.
+                            This {{ $type }} is unavailable and cannot be purchased.
                         </div>
                     @endif
 
@@ -285,9 +286,9 @@
                         @if ($settings->stripe_enabled)
                             <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
                                 <input type="radio" name="payment_method" id="purchaseStripe" value="stripe"
-                                    class="btn-check" autocomplete="off" required {{ $isSold ? 'disabled' : '' }}>
+                                    class="btn-check" autocomplete="off" required {{ $isUnavailable ? 'disabled' : '' }}>
                                 <label for="purchaseStripe"
-                                    class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isSold ? 'disabled' : '' }}">
+                                    class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isUnavailable ? 'disabled' : '' }}">
                                     <div class="text-center mb-2">
                                         <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe"
                                             style="width:80px;">
@@ -303,9 +304,9 @@
                         @if ($settings->payfast_enabled)
                             <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
                                 <input type="radio" name="payment_method" id="purchasePayfast" value="payfast"
-                                    class="btn-check" autocomplete="off" required {{ $isSold ? 'disabled' : '' }}>
+                                    class="btn-check" autocomplete="off" required {{ $isUnavailable ? 'disabled' : '' }}>
                                 <label for="purchasePayfast"
-                                    class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isSold ? 'disabled' : '' }}">
+                                    class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isUnavailable ? 'disabled' : '' }}">
                                     <div class="text-center mb-2">
                                         <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
                                             alt="PayFast" style="width:80px;">
@@ -349,9 +350,9 @@
                 </div>
 
                 <div class="modal-body">
-                    @if ($isSold)
+                    @if ($isUnavailable)
                         <div class="alert alert-danger mb-3">
-                            This {{ $type }} is sold and cannot be purchased.
+                            This {{ $type }} is unavailable and cannot be purchased.
                         </div>
                     @endif
 
@@ -437,7 +438,7 @@
                         class="btn btn-outline-secondary me-auto">Back</button>
 
                     <button type="button" id="purchaseStripePayButton" class="btn btn-dark"
-                        {{ $isSold ? 'disabled' : '' }}>
+                        {{ $isUnavailable ? 'disabled' : '' }}>
                         Purchase Now
                     </button>
                 </div>
@@ -599,8 +600,9 @@ visibleInput.addEventListener('blur', () => {
     (() => {
         const TYPE = @json($type);
         const ITEM_NAME = @json($item->name);
-        const ITEM_STATUS = @json($item->status ?? null);
-        const IS_SOLD = ITEM_STATUS === 'sold';
+        const ITEM_STATUS_RAW = @json($item->status ?? null);
+        const ITEM_STATUS = (ITEM_STATUS_RAW ? String(ITEM_STATUS_RAW) : '').toLowerCase();
+        const IS_UNAVAILABLE = ['sold', 'inactive'].includes(ITEM_STATUS);
 
         // server-rendered numbers
         const ITEM_PRICE = {{ (float) $price }};
@@ -997,9 +999,9 @@ visibleInput.addEventListener('blur', () => {
             };
         }
 
-        // Prevent clicks if sold
+        // Prevent clicks if unavailable
         document.addEventListener('click', (e) => {
-            if (!IS_SOLD) return;
+            if (!IS_UNAVAILABLE) return;
 
             const opener = e.target.closest(
                 '[data-bs-target="#purchaseModal"], ' +
@@ -1016,8 +1018,8 @@ visibleInput.addEventListener('blur', () => {
                 e.preventDefault();
                 Swal?.fire({
                     icon: 'info',
-                    title: 'Sold',
-                    text: `This ${TYPE} has been sold and cannot be purchased.`,
+                    title: 'Unavailable',
+                    text: `This ${TYPE} is unavailable and cannot be purchased.`,
                 });
             }
         });
@@ -1102,10 +1104,10 @@ visibleInput.addEventListener('blur', () => {
             });
 
             $('purchaseStep1Next')?.addEventListener('click', () => {
-                if (IS_SOLD) {
-                    return notify('sold1', {
-                        title: 'Sold',
-                        text: `This ${TYPE} is sold.`,
+                if (IS_UNAVAILABLE) {
+                    return notify('unavailable1', {
+                        title: 'Unavailable',
+                        text: `This ${TYPE} is unavailable.`,
                     });
                 }
 
@@ -1121,10 +1123,10 @@ visibleInput.addEventListener('blur', () => {
             });
 
             $('purchaseStep2Next')?.addEventListener('click', async () => {
-                if (IS_SOLD) {
-                    return notify('sold2', {
-                        title: 'Sold',
-                        text: `This ${TYPE} is sold.`,
+                if (IS_UNAVAILABLE) {
+                    return notify('unavailable2', {
+                        title: 'Unavailable',
+                        text: `This ${TYPE} is unavailable.`,
                     });
                 }
 
@@ -1302,11 +1304,11 @@ visibleInput.addEventListener('blur', () => {
                     radio.addEventListener('change', async function() {
                         const choice = this.value;
 
-                        if (IS_SOLD) {
+                        if (IS_UNAVAILABLE) {
                             this.checked = false;
-                            return notify('sold3', {
-                                title: 'Sold',
-                                text: `This ${TYPE} is sold.`,
+                            return notify('unavailable3', {
+                                title: 'Unavailable',
+                                text: `This ${TYPE} is unavailable.`,
                             });
                         }
 
@@ -1408,10 +1410,10 @@ visibleInput.addEventListener('blur', () => {
             });
 
             $('purchaseStripePayButton')?.addEventListener('click', async () => {
-                if (IS_SOLD) {
-                    return notify('sold4', {
-                        title: 'Sold',
-                        text: `This ${TYPE} is sold.`,
+                if (IS_UNAVAILABLE) {
+                    return notify('unavailable4', {
+                        title: 'Unavailable',
+                        text: `This ${TYPE} is unavailable.`,
                     });
                 }
 
@@ -1605,3 +1607,16 @@ visibleInput.addEventListener('blur', () => {
         });
     })();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
