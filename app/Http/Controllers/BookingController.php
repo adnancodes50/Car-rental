@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Log;
@@ -347,14 +348,166 @@ class BookingController extends Controller
         }
     }
 
-    public function initPayfastBooking(Booking $booking)
-{
-    // Your PayFast initialization logic here
-    // Example placeholder:
-    return response()->json([
-        'success' => true,
-        'message' => 'PayFast booking initialized.',
-        'booking_id' => $booking->id,
-    ]);
-}
+    public function initPayfastBooking(Request $request, Booking $booking)
+    {
+        $booking->loadMissing('customer', 'equipment', 'category', 'location');
+
+        $settings = SystemSetting::first();
+        if (!$settings || !$settings->payfast_enabled) {
+            return response()->json(['success' => false, 'message' => 'PayFast is not configured.'], 422);
+        }
+
+        if (empty($settings->payfast_merchant_id) || empty($settings->payfast_merchant_key)) {
+            return response()->json(['success' => false, 'message' => 'PayFast merchant details are missing.'], 422);
+        }
+
+        $amountDue = (float) ($booking->total_price ?? 0);
+        if ($amountDue <= 0) {
+            return response()->json(['success' => false, 'message' => 'No payable amount found for this booking.'], 422);
+        }
+
+        $action = $settings->payfast_test_mode
+            ? 'https://sandbox.payfast.co.za/eng/process'
+            : ($settings->payfast_live_url ?: 'https://www.payfast.co.za/eng/process');
+
+        $mPaymentId = 'book-' . $booking->id . '-' . Str::random(6);
+        $amount     = number_format($amountDue, 2, '.', '');
+
+        $fields = [
+            'merchant_id'   => $settings->payfast_merchant_id,
+            'merchant_key'  => $settings->payfast_merchant_key,
+            'return_url'    => route('payfast.booking.return', [], true),
+            'cancel_url'    => route('payfast.booking.cancel', [], true),
+            'notify_url'    => route('payfast.booking.notify', [], true),
+            'm_payment_id'  => $mPaymentId,
+            'amount'        => $amount,
+            'item_name'     => 'Booking ' . ($booking->reference ?: '#' . $booking->id),
+            'item_description' => trim('Rental booking ' . ($booking->equipment?->name ?? $booking->category?->name ?? '')),
+            'name_first'    => $booking->customer?->name ?? '',
+            'email_address' => $booking->customer?->email ?? '',
+            'custom_str1'   => (string) $booking->id,
+        ];
+
+        if ($booking->customer?->phone) {
+            $sanitizedCell = preg_replace('/\D+/', '', $booking->customer->phone);
+            if ($sanitizedCell && preg_match('/^0\d{9}$/', $sanitizedCell)) {
+                $fields['cell_number'] = $sanitizedCell;
+            }
+        }
+
+        $signatureFields = $fields;
+        if (!empty($settings->payfast_passphrase)) {
+            $signatureFields['passphrase'] = $settings->payfast_passphrase;
+        }
+
+        ksort($signatureFields);
+        $pairs = [];
+        foreach ($signatureFields as $key => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $pairs[] = $key . '=' . urlencode(trim((string) $value));
+        }
+        $fields['signature'] = md5(implode('&', $pairs));
+
+        $updates = [];
+        if (Schema::hasColumn('bookings', 'payment_method')) {
+            $updates['payment_method'] = 'payfast';
+        }
+        if (Schema::hasColumn('bookings', 'payment_status') && empty($booking->payment_status)) {
+            $updates['payment_status'] = 'pending';
+        }
+        if (Schema::hasColumn('bookings', 'payfast_payment_id')) {
+            $updates['payfast_payment_id'] = $mPaymentId;
+        }
+
+        if (!empty($updates)) {
+            $booking->forceFill($updates)->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'action'  => $action,
+            'fields'  => $fields,
+        ]);
+    }
+
+    public function payfastBookingNotify(Request $request)
+    {
+        Log::info('PayFast booking ITN received', $request->all());
+
+        $bookingId = $request->input('custom_str1');
+        if (!$bookingId) {
+            Log::warning('PayFast booking ITN missing booking ID.');
+            return response('Missing booking reference', 400);
+        }
+
+        $booking = Booking::with(['customer', 'category', 'location', 'equipment'])->find($bookingId);
+        if (!$booking) {
+            Log::warning('PayFast booking ITN: booking not found', ['booking_id' => $bookingId]);
+            return response('Booking not found', 404);
+        }
+
+        $paymentStatus = strtolower($request->input('payment_status', ''));
+        $amountPaid    = (float) $request->input('amount_gross', 0);
+        $pfPaymentId   = $request->input('pf_payment_id');
+        $mPaymentId    = $request->input('m_payment_id');
+
+        if ($paymentStatus === 'complete' && $amountPaid > 0) {
+            $updates = ['status' => 'confirmed'];
+            if (Schema::hasColumn('bookings', 'payment_status')) {
+                $updates['payment_status'] = 'paid';
+            }
+            if (Schema::hasColumn('bookings', 'payment_method')) {
+                $updates['payment_method'] = 'payfast';
+            }
+            if (Schema::hasColumn('bookings', 'paid_at')) {
+                $updates['paid_at'] = now();
+            }
+            if (Schema::hasColumn('bookings', 'payfast_payment_id')) {
+                $updates['payfast_payment_id'] = $mPaymentId ?: $pfPaymentId;
+            }
+
+            $booking->forceFill($updates)->save();
+            $booking->loadMissing('customer', 'category', 'location', 'equipment');
+
+            $this->sendBookingEmails($booking, $amountPaid);
+        } elseif ($paymentStatus === 'failed') {
+            if (Schema::hasColumn('bookings', 'payment_status')) {
+                $booking->forceFill(['payment_status' => 'failed'])->save();
+            }
+        } elseif ($paymentStatus !== '') {
+            if (Schema::hasColumn('bookings', 'payment_status')) {
+                $booking->forceFill(['payment_status' => $paymentStatus])->save();
+            }
+        }
+
+        return response('OK');
+    }
+
+    public function payfastBookingReturn(Request $request)
+    {
+        $bookingId = $request->input('custom_str1');
+        $message = 'We have received your payment response. You will receive confirmation shortly.';
+
+        if ($bookingId) {
+            $booking = Booking::find($bookingId);
+            if ($booking) {
+                $status = strtolower($booking->payment_status ?? $booking->status ?? '');
+                if (in_array($status, ['paid', 'succeeded', 'complete', 'confirmed'], true)) {
+                    $message = 'Thank you! Your booking payment was successful.';
+                }
+            }
+        }
+
+        return redirect()->route('home')->with('payfast_success', $message);
+    }
+
+    public function payfastBookingCancel(Request $request)
+    {
+        return redirect()->route('home')->with(
+            'payfast_cancelled',
+            'You cancelled the payment. Your booking remains pending until payment is completed.'
+        );
+    }
 }
