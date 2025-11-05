@@ -224,7 +224,8 @@
                                                                 <option value="{{ $option['id'] }}"
                                                                     data-stock="{{ $option['stock'] }}"
                                                                     @selected((string) $booking->location_id === (string) $option['id'])>
-                                                                    {{ $option['name'] }} ({{ $option['stock'] }} in stock)
+                                                                    {{ $option['name'] }} ({{ $option['stock'] }} in
+                                                                    stock)
                                                                 </option>
                                                             @endforeach
                                                         @endif
@@ -235,10 +236,10 @@
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label class="form-label text-dark fw-semibold">Booked Stock</label>
-                                                    <select name="booked_stock"
-                                                        class="form-control booking-stock-select"
+                                                    <select name="booked_stock" class="form-control booking-stock-select"
                                                         {{ $locationOptions->isEmpty() ? 'disabled' : '' }}>
-                                                        <option value="{{ (int) ($booking->booked_stock ?? 1) }}" selected>
+                                                        <option value="{{ (int) ($booking->booked_stock ?? 1) }}"
+                                                            selected>
                                                             {{ (int) ($booking->booked_stock ?? 1) }}
                                                         </option>
                                                     </select>
@@ -250,8 +251,7 @@
                                                     <label class="form-label text-dark fw-semibold">Available</label>
                                                     <input type="text"
                                                         class="form-control booking-available-stock text-center fw-bold"
-                                                        value="{{ $initialAvailableStock ?? '' }}"
-                                                        readonly
+                                                        value="{{ $initialAvailableStock ?? '' }}" readonly
                                                         style="background-color: #e8f5e8 !important; color: #2e7d32; border: 1px solid #c8e6c9;">
                                                 </div>
                                             </div>
@@ -261,8 +261,7 @@
                                                     <label class="form-label text-dark fw-semibold">In Stock</label>
                                                     <input type="text"
                                                         class="form-control booking-total-stock bg-light text-center"
-                                                        value="{{ $currentLocationStock }}"
-                                                        readonly
+                                                        value="{{ $currentLocationStock }}" readonly
                                                         style="background-color: #f5f5f5 !important;">
                                                 </div>
                                             </div>
@@ -272,7 +271,8 @@
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label class="form-label text-dark fw-semibold">Start Date</label>
-                                                    <input type="text" name="start_date" value="{{ $booking->start_date }}"
+                                                    <input type="text" name="start_date"
+                                                        value="{{ $booking->start_date }}"
                                                         class="form-control booking-start-date"
                                                         placeholder="Select start date" autocomplete="off" readonly>
                                                 </div>
@@ -281,7 +281,8 @@
                                             <div class="col-md-4">
                                                 <div class="form-group">
                                                     <label class="form-label text-dark fw-semibold">End Date</label>
-                                                    <input type="text" name="end_date" value="{{ $booking->end_date }}"
+                                                    <input type="text" name="end_date"
+                                                        value="{{ $booking->end_date }}"
                                                         class="form-control booking-end-date"
                                                         placeholder="Select end date" autocomplete="off" readonly>
                                                 </div>
@@ -298,22 +299,22 @@
 
                                         </div>
 
-                                          <div class="form-group">
-    <label class="form-label text-dark fw-semibold">Admin Note For Booking</label>
-    <textarea name="admin_note" class="form-control" rows="3"
-        placeholder="Enter a note or comment about this booking">{{ old('admin_note', $booking->admin_note) }}</textarea>
-    @error('admin_note')
-        <span class="text-danger small">{{ $message }}</span>
-    @enderror
-</div>
+                                        <div class="form-group">
+                                            <label class="form-label text-dark fw-semibold">Admin Note For Booking</label>
+                                            <textarea name="admin_note" class="form-control" rows="3"
+                                                placeholder="Enter a note or comment about this booking">{{ old('admin_note', $booking->admin_note) }}</textarea>
+                                            @error('admin_note')
+                                                <span class="text-danger small">{{ $message }}</span>
+                                            @enderror
+                                        </div>
 
 
 
-                                    <div class="d-flex justify-content-end mt-4">
-                                        <button type="submit" class="btn btn-success px-4 py-2">
-                                            <i class="fas fa-save me-2"></i> Update Booking
-                                        </button>
-                                    </div>
+                                        <div class="d-flex justify-content-end mt-4">
+                                            <button type="submit" class="btn btn-success px-4 py-2">
+                                                <i class="fas fa-save me-2"></i> Update Booking
+                                            </button>
+                                        </div>
 
                                     </div>
 
@@ -374,58 +375,80 @@
     {{-- Email Log History --}}
     <div class="container mt-4">
         <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-                <h3 class="card-title text-bold mb-0">Email Log History</h3>
+            <div class="card-header bg-white text-black d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Email Log History</h5>
+
             </div>
 
-            <div class="card-body  email-log-scroll">
-                {{-- Email log entries --}}
-                @if ($emailLogs->isEmpty())
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
-                        <p class="mb-0">No emails sent to this customer please.</p>
-                    </div>
-                @else
-                    @foreach ($emailLogs as $log)
-                        @php $isSender = optional($log->sender)->id === auth()->id(); @endphp
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30%">Subject</th>
+                                <th>Message Body</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($emailLogs as $log)
+                                <tr>
+                                    {{-- Subject Column --}}
+                                    <td class="align-top">
+                                        <strong>{{ $log->subject }}</strong>
+                                    </td>
 
-                        <div class="d-flex {{ $isSender ? 'justify-content-end' : 'justify-content-start' }} mb-3">
-                            <div class="d-flex {{ $isSender ? 'flex-row-reverse' : 'flex-row' }} align-items-start"
-                                style="max-width: 80%;">
-                                {{-- Avatar --}}
-                                <div class="mx-2">
-                                    <div class="rounded-circle d-flex justify-content-center align-items-center text-white"
-                                        style="width: 40px; height: 40px;
-                                         background-color: {{ $isSender ? '#007bff' : '#6c757d' }};
-                                         font-weight: bold;">
-                                        {{ strtoupper(substr(optional($log->sender)->name ?? 'S', 0, 1)) }}
-                                    </div>
-                                </div>
-                                <div class="p-3 rounded-3 shadow-sm"
-                                    style="background-color: {{ $isSender ? '#f2f2f2' : '#ffffff' }};
-                                            border: 1px solid #dee2e6; min-width: 250px;">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <strong class="text-dark">{{ $log->subject }}</strong>
-                                        <small class="text-muted">
-                                            {{ $log->sent_at ? \Carbon\Carbon::parse($log->sent_at)->format('Y-m-d H:i') : '-' }}
-                                        </small>
-                                    </div>
+                                    {{-- Message Column --}}
+                                    <td>
+                                        <div class="message-box p-3 rounded border bg-white position-relative">
+                                            {{-- Sender & Receiver --}}
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <div>
+                                                    <span class="fw-bold text-primary">From:</span>
+                                                    {{ $log->sender->name ?? 'System / Admin' }}
 
-                                    <div class="text-secondary" style="font-size: 0.9rem;">
-                                        {!! $log->body !!}
-                                    </div>
+                                                    <span
+                                                        class="text-muted small">({{ $log->sender->email ?? 'N/A' }})</span>
 
-                                    <div class="mt-2 text-end">
-                                        <small class="text-muted">— {{ optional($log->sender)->name ?? 'System' }}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                @endif
+                                                </div>
+                                                <div>
+                                                    <span class="fw-bold text-success">To:</span>
+                                                    {{ $log->customer->name ?? 'Unknown' }}
+                                                    <span
+                                                        class="text-muted small">({{ $log->customer->email ?? 'N/A' }})</span>
+                                                </div>
+                                            </div>
+
+                                            {{-- Message Body --}}
+                                            <div
+                                                class="message-content border-top border-bottom py-3 my-2 bg-light px-3 rounded">
+                                                {!! $log->body !!}
+                                            </div>
+
+                                            {{-- Timestamp Bottom Right --}}
+                                            <div class="text-end text-muted small">
+                                                <i class="far fa-clock me-1"></i>
+                                                {{ \Carbon\Carbon::parse($log->sent_at)->format('d M Y, h:i A') }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="text-center py-4">
+                                        <i class="fas fa-envelope-open-text fa-2x mb-2 text-muted"></i><br>
+                                        No email logs found.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+
         </div>
     </div>
+
 @stop
 
 @section('css')
@@ -659,8 +682,9 @@
                         const statusForDisplay = (data.status || newStatus || '').toLowerCase();
                         badge.textContent = statusForDisplay.replace(/^./, c => c.toUpperCase());
                         badge.className = 'badge booking-status-badge';
-                        (clsMap[statusForDisplay] || 'bg-secondary').split(' ').forEach(c => badge.classList.add(
-                            c));
+                        (clsMap[statusForDisplay] || 'bg-secondary').split(' ').forEach(c => badge.classList
+                            .add(
+                                c));
                     }
 
                     sel.dataset.prev = data.status || newStatus;
@@ -769,7 +793,8 @@
 
             const isInRanges = (ranges, ymd) => {
                 if (!Array.isArray(ranges) || !ymd) return false;
-                return ranges.some(range => range && range.from && range.to && ymd >= range.from && ymd <= range.to);
+                return ranges.some(range => range && range.from && range.to && ymd >= range.from && ymd <= range
+                    .to);
             };
 
             document.querySelectorAll('.booking-dates-form').forEach(form => {
@@ -804,7 +829,8 @@
                 }
 
                 if (locationSelect && !locationSelect.value && form.dataset.currentLocation) {
-                    const desiredOption = locationSelect.querySelector(`option[value="${form.dataset.currentLocation}"]`);
+                    const desiredOption = locationSelect.querySelector(
+                        `option[value="${form.dataset.currentLocation}"]`);
                     if (desiredOption) {
                         desiredOption.selected = true;
                     }
@@ -847,7 +873,8 @@
                     },
                 });
 
-                form.dataset.currentLocation = form.dataset.currentLocation || (locationSelect?.value || '');
+                form.dataset.currentLocation = form.dataset.currentLocation || (locationSelect?.value ||
+                    '');
 
                 function updatePrice() {
                     if (!priceField) return;
@@ -938,7 +965,8 @@
                     const baseStock = parseInt(locationOptions[locationId].stock ?? 0, 10);
                     const startStr = startInput.value;
                     const endStr = endInput.value || startStr;
-                    const limit = startStr && endStr ? computeAvailableUnits(locationId, startStr, endStr) : baseStock;
+                    const limit = startStr && endStr ? computeAvailableUnits(locationId, startStr, endStr) :
+                        baseStock;
                     populateStockOptions(limit);
 
                     if (availableField) {

@@ -76,7 +76,7 @@
                                         </button>
 
                                         <a href="{{ route('categories.edit', $category) }}"
-                                            class="btn btn-sm btn-primary mr-1">
+                                            class="btn btn-sm btn-primary mr-1" title="edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
 
@@ -84,7 +84,7 @@
                                             class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="button" class="btn btn-sm btn-danger delete-btn"
+                                            <button type="button" class="btn btn-sm btn-danger delete-btn" title="delete"
                                                 {{ $category->equipment->count() > 0 ? 'disabled title=Cannot delete category with items' : '' }}>
                                                 <i class="fas fa-trash"></i>
                                             </button>

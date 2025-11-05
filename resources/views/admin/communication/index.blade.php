@@ -41,69 +41,87 @@
         </div>
 
         {{-- Modern Chat-Style Email Logs --}}
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white text-black d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Email Conversation Logs</h5>
+{{-- Email Logs Table --}}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white text-black d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Email Logs</h5>
 
-                <form id="filterForm" method="GET" action="{{ route('communication-setting.index') }}" class="ms-auto">
-                    <div class="d-flex align-items-center gap-2">
-                        <label for="filter" class="me-2 mb-0 text-muted small">Filter:</label>
-                        <select name="filter" id="filter" class="form-select form-select-sm" style="width: 150px;"
-                            onchange="this.form.submit()">
-                            <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>All</option>
-                            <option value="30days" {{ $filter === '30days' ? 'selected' : '' }}>Last 30 Days</option>
-                            <option value="7days" {{ $filter === '7days' ? 'selected' : '' }}>Last 7 Days</option>
-                        </select>
-                    </div>
-                </form>
+        <form id="filterForm" method="GET" action="{{ route('communication-setting.index') }}" class="ms-auto">
+            <div class="d-flex align-items-center gap-2">
+                <label for="filter" class="me-2 mb-0 text-muted small">Filter:</label>
+                <select name="filter" id="filter" class="form-select form-select-sm" style="width: 150px;"
+                    onchange="this.form.submit()">
+                    <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>All</option>
+                    <option value="30days" {{ $filter === '30days' ? 'selected' : '' }}>Last 30 Days</option>
+                    <option value="7days" {{ $filter === '7days' ? 'selected' : '' }}>Last 7 Days</option>
+                </select>
             </div>
+        </form>
+    </div>
 
-            <div class="card-body chat-box">
-    @forelse($emailLogs as $log)
-        @php
-            // Handle null sender (system messages)
-            $isSentByUser = $log->sent_by == auth()->id();
-            $isSystem = is_null($log->sent_by);
-            $chatClass = $isSentByUser || $isSystem ? 'sent' : 'received';
-            $senderName = $log->sender->name ?? 'Super Admin';
-            $senderInitial = strtoupper(substr($senderName, 0, 1));
-        @endphp
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 30%">Subject</th>
+                        <th>Message Body</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($emailLogs as $log)
+                        <tr>
+                            <td class="align-top">
+                                <strong>{{ $log->subject }}</strong>
+                            </td>
+                            <td>
+                                <div class="message-box p-3 rounded border bg-white position-relative shadow-sm">
+                                    {{-- Top row: sender (left) and receiver (right) --}}
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <div>
+                                            <span class="fw-bold text-primary">From:</span>
+                                            {{ $log->sender->name ?? 'System / Admin' }}
+                                            <span class="text-muted small">({{ $log->sender->email ?? 'N/A' }})</span>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-success">To:</span>
+                                            {{ $log->customer->name ?? 'Unknown' }}
+                                            <span class="text-muted small">({{ $log->customer->email ?? 'N/A' }})</span>
+                                        </div>
+                                    </div>
 
-        <div class="chat-message {{ $chatClass }}">
-            <div class="chat-avatar">
-                <div class="avatar-circle">{{ $senderInitial }}</div>
-            </div>
+                                    {{-- Message body --}}
+                                    <div class="message-content border-top border-bottom py-3 my-2 bg-light px-3 rounded">
+                                        {!! $log->body !!}
+                                    </div>
 
-            <div class="chat-bubble">
-                <div class="message-info">
-                    <strong>{{ $senderName }}</strong>
-                    <small class="text-muted">{{ \Carbon\Carbon::parse($log->sent_at)->format('d M Y, h:i A') }}</small>
-                </div>
-                <div class="message-body">
-                    <p><strong>Subject:</strong> {{ $log->subject }}</p>
-                    <div class="message-content">{!! $log->body !!}</div>
-                </div>
-                <div class="message-footer text-end">
-                    <small>
-                        To: {{ $log->customer->name ?? 'Unknown' }}
-                        ({{ $log->customer->email ?? 'N/A' }})
-                    </small>
-                </div>
-            </div>
+                                    {{-- Timestamp bottom right --}}
+                                    <div class="text-end text-muted small">
+                                        <i class="far fa-clock me-1"></i>
+                                        {{ \Carbon\Carbon::parse($log->sent_at)->format('d M Y, h:i A') }}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="2" class="text-center py-4">
+                                <i class="fas fa-envelope-open-text fa-2x mb-2 text-muted"></i><br>
+                                No email logs found.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-    @empty
-        <div class="text-center text-muted mt-4">
-            <i class="fas fa-envelope-open-text fa-2x mb-2"></i>
-            <p>No email logs found.</p>
-        </div>
-    @endforelse
+    </div>
+
+    <div class="card-footer text-center">
+        {{ $emailLogs->links() }}
+    </div>
 </div>
 
 
-            <div class="card-footer text-center">
-                {{ $emailLogs->links() }}
-            </div>
-        </div>
     </div>
 @stop
 
