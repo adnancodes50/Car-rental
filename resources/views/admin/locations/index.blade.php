@@ -24,7 +24,7 @@
                 </div>
             </div>
 
-            <div class="card-body p-0">
+            <div class="card-body p-2">
                 <div class="table-responsive">
                     <table id="locationsTable" class="table table-striped mb-0 w-100">
                         <thead>
@@ -52,10 +52,10 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <a href="{{ route('locations.edit', $loc) }}" class="btn btn-sm btn-primary">
+                                        <a href="{{ route('locations.edit', $loc) }}" class="btn btn-outline-primary btn-sm action-btn ml-1">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{{ route('locations.view', $loc->id) }}" class="btn btn-sm btn-info" title="View">
+                                        <a href="{{ route('locations.view', $loc->id) }}" class="btn btn-outline-info btn-sm action-btn ml-1" title="View">
                                             <i class="fas fa-eye"></i>
                                         </a>
 
@@ -63,7 +63,7 @@
                                             class="d-inline delete-form">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="button" class="btn btn-sm btn-danger btn-delete">
+                                            <button type="button" class="btn btn-outline-danger btn-sm action-btn ml-1 btn-delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -82,16 +82,41 @@
     </div>
 @stop
 
+
+@section('css')
+    <style>
+        #locationsTable td,
+        #locationsTable th {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+    </style>
+@stop
+
+
 @section('js')
     {{-- Include SweetAlert2 --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    {{-- Include DataTables --}}
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
     <script>
-        // Delete confirmation with SweetAlert
-        document.querySelectorAll('.btn-delete').forEach(button => {
-            button.addEventListener('click', function(e) {
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#locationsTable').DataTable({
+                "columnDefs": [
+                    { "orderable": false, "targets": 5 } // Disable sorting on Actions column
+                ],
+                "pageLength": 10
+            });
+
+            // Delete confirmation with SweetAlert
+            $('.btn-delete').on('click', function(e) {
                 e.preventDefault();
-                let form = this.closest('.delete-form');
+                let form = $(this).closest('.delete-form');
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -107,17 +132,17 @@
                     }
                 });
             });
-        });
 
-        // SweetAlert success messages for Add, Update, Delete
-        @if(session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: '{{ session('success') }}',
-                timer: 2500,
-                showConfirmButton: false
-            });
-        @endif
+            // SweetAlert success messages for Add, Update, Delete
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: '{{ session('success') }}',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            @endif
+        });
     </script>
 @stop

@@ -15,9 +15,9 @@
             </div>
         </div>
 
-        <div class="card-body p-0">
+        <div class="card-body p-2">
             <div class="table-responsive">
-                <table class="table table-striped mb-0 w-100">
+                <table id="equipmentTable" class="table table-striped mb-0 w-100">
                     <thead>
                         <tr>
                             <th style="width: 80px;">Image</th>
@@ -42,7 +42,7 @@
                                 <td>{{ $item->name }}</td>
                                 <td>{{ $item->category->name ?? '-' }}</td>
 
-                                {{-- Show stock per location --}}
+                                {{-- Stock per location --}}
                                 @foreach ($locations as $location)
                                     @php
                                         $stockRecord = $item->stocks->firstWhere('location_id', $location->id);
@@ -50,7 +50,7 @@
                                     <td>{{ $stockRecord ? $stockRecord->stock : 0 }}</td>
                                 @endforeach
 
-                                {{-- Total stock across all locations --}}
+                                {{-- Total stock --}}
                                 <td>{{ $item->stocks->sum('stock') }}</td>
 
                                 <td>
@@ -60,14 +60,15 @@
                                         <span class="badge badge-secondary">Inactive</span>
                                     @endif
                                 </td>
+
                                 <td>
-                                    <a href="{{ route('equipment.edit', $item) }}" class="btn btn-sm btn-primary">
+                                    <a href="{{ route('equipment.edit', $item) }}" class="btn btn-outline-primary btn-sm action-btn ml-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form action="{{ route('equipment.destroy', $item) }}" method="POST" class="d-inline delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="button" class="btn btn-sm btn-danger delete-btn">
+                                        <button type="button" class="btn btn-outline-danger btn-sm action-btn ml-1 delete-btn">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -75,7 +76,15 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 5 + $locations->count() }}" class="text-center p-4">No equipment found.</td>
+                                <td></td> {{-- Image --}}
+                                <td></td> {{-- Name --}}
+                                <td></td> {{-- Category --}}
+                                @foreach ($locations as $location)
+                                    <td></td> {{-- Stock per location --}}
+                                @endforeach
+                                <td></td> {{-- Total Stock --}}
+                                <td></td> {{-- Status --}}
+                                <td class="text-center">No equipment found.</td> {{-- Actions --}}
                             </tr>
                         @endforelse
                     </tbody>
@@ -86,25 +95,50 @@
 </div>
 @stop
 
+@section('css')
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+<style>
+    #equipmentTable td,
+    #equipmentTable th {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+</style>
+@stop
+
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-@if (session('success'))
-<script>
-    Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: '{{ session('success') }}',
-        confirmButtonColor: '#343a40',
-    });
-</script>
-@endif
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
 
 <script>
-document.querySelectorAll('.delete-btn').forEach(button => {
-    button.addEventListener('click', function(e) {
+$(document).ready(function() {
+    // Initialize DataTable only if the table exists
+    if ($('#equipmentTable tbody tr').length) {
+        $('#equipmentTable').DataTable({
+            "columnDefs": [
+                { "orderable": false, "targets": {{ 3 + $locations->count() + 2 }} } // Actions column
+            ],
+            "pageLength": 10
+        });
+    }
+
+    // SweetAlert success message
+    @if (session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: '{{ session('success') }}',
+            timer: 2500,
+            showConfirmButton: false
+        });
+    @endif
+
+    // Delete confirmation
+    $('.delete-btn').on('click', function(e) {
         e.preventDefault();
-        let form = this.closest('form');
+        let form = $(this).closest('form');
+
         Swal.fire({
             title: 'Are you sure?',
             text: "This equipment will be deleted permanently.",

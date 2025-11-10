@@ -43,7 +43,7 @@
                                     <td>
                                         <div class="d-flex flex-wrap gap-2">
                                             <a href="{{ route('customers.details', $customer->id) }}"
-                                               class="btn btn-success btn-sm fw-semibold">
+                                               class="btn btn-outline-success btn-sm action-btn ml-1 fw-semibold">
                                                 <i class="bi bi-person-lines-fill"></i>
                                                 View Profile
                                             </a>

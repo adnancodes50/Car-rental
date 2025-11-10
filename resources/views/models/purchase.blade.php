@@ -208,14 +208,13 @@
                                 {{ $isUnavailable ? 'disabled' : '' }}>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Phone</label>
-                            <input type="tel" name="phone" class="form-control rounded-3"
-                                placeholder="012 345 6789" inputmode="tel" autocomplete="tel" required
-                                pattern="^[0-9 ]+$" title="Digits and spaces only, e.g. 012 345 6789"
-                                {{ $isUnavailable ? 'disabled' : '' }}>
-
-                        </div>
+                       <div class="col-12">
+    <label class="form-label">Phone Number</label>
+    <input type="tel" name="phone" class="form-control rounded-3"
+        placeholder="012 345 6789" inputmode="tel" autocomplete="tel" required
+        pattern="^[0-9 ]+$" title="Digits and spaces only, e.g. 012 345 6789"
+        {{ $isUnavailable ? 'disabled' : '' }}>
+</div>
 
                         <div class="col-12">
                             <label class="form-label">Customer Location</label>
@@ -618,7 +617,7 @@
             "https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website";
 
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-        const phonePattern = /^[0-9 ]+$/;
+        const phonePattern = /^\+?[0-9\s]+$/;
 
         // Build URLs inline
         const STORE_URL = @json(
@@ -1164,13 +1163,13 @@
                     return;
                 }
                 if (!phonePattern.test(phone)) {
-                    notify('phone', {
-                        title: 'Invalid Phone Number',
-                        text: 'Use digits and spaces only.',
-                    });
-                    form.phone?.focus();
-                    return;
-                }
+    notify('phone', {
+        title: 'Invalid Phone Number',
+        text: 'Use numbers with optional + sign and spaces only.',
+    });
+    form.phone?.focus();
+    return;
+}
 
                 const payload = {
                     name,

@@ -58,55 +58,65 @@ class CategoryController extends Controller
         }
     }
 
-    public function storeEquipmentFromModal(Request $request)
-    {
-        try {
-            $data = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'description' => ['nullable', 'string'],
-                'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
-                'category_id' => ['required', 'exists:categories,id'],
-                'status' => ['required', 'in:active,inactive'],
-                'stocks' => ['nullable', 'array'],
-                'stocks.*' => ['nullable', 'integer', 'min:0'],
+   public function storeEquipmentFromModal(Request $request)
+{
+    try {
+        // Normalize stocks
+        if ($request->has('stocks')) {
+            $request->merge([
+                'stocks' => array_map(function ($value) {
+                    return $value === '' ? 0 : (int) $value;
+                }, $request->stocks)
             ]);
+        }
 
-            if ($request->hasFile('image_file')) {
-                $data['image'] = $request->file('image_file')->store('equipment', 'public');
-            }
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+            'category_id' => ['required', 'exists:categories,id'],
+            'status' => ['required', 'in:active,inactive'],
+            'stocks' => ['nullable', 'array'],
+            'stocks.*' => ['integer', 'min:0'],
+        ]);
 
-            unset($data['image_file'], $data['stocks']);
+        if ($request->hasFile('image_file')) {
+            $data['image'] = $request->file('image_file')->store('equipment', 'public');
+        }
 
-            $equipment = Equipment::create($data);
+        unset($data['image_file'], $data['stocks']);
 
-            if ($request->filled('stocks')) {
-                foreach ($request->stocks as $locationId => $stock) {
-                    if ($stock > 0) {
-                        \App\Models\EquipmentStock::updateOrCreate(
-                            [
-                                'equipment_id' => $equipment->id,
-                                'location_id' => $locationId,
-                            ],
-                            ['stock' => $stock]
-                        );
-                    }
+        $equipment = Equipment::create($data);
+
+        if ($request->filled('stocks')) {
+            foreach ($request->stocks as $locationId => $stock) {
+                if ($stock > 0) {
+                    \App\Models\EquipmentStock::updateOrCreate(
+                        [
+                            'equipment_id' => $equipment->id,
+                            'location_id' => $locationId,
+                        ],
+                        ['stock' => $stock]
+                    );
                 }
             }
-
-            Log::info('Equipment created successfully', ['equipment' => $equipment->name]);
-
-            return redirect()
-                ->route('categories.index')
-                ->with('success', 'Equipment added successfully.');
-        } catch (\Throwable $e) {
-            Log::error('Equipment store error: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return back()->withInput()->with('error', 'Failed to create equipment. Check log for details.');
         }
+
+        Log::info('Equipment created successfully', ['equipment' => $equipment->name]);
+
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Equipment added successfully.');
+    } catch (\Throwable $e) {
+        Log::error('Equipment store error: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return back()->withInput()->with('error', 'Failed to create equipment. Check log for details.');
     }
+}
+
 
     public function edit(Category $category)
     {

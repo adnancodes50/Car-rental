@@ -27,7 +27,7 @@ class EquipmentPurchaseController extends Controller
             'quantity'     => ['required','integer','min:1'],
             'name'         => ['required','string','max:255'],
             'email'        => ['required','email:rfc,filter','max:255'],
-            'phone'        => ['required','regex:/^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/'],
+'phone' => ['required', 'regex:/^\+?[0-9\s]+$/'],
             'country'      => ['required','string','max:100'],
             'total_price'  => ['nullable','numeric','min:0'], // client-provided but we will override from server
         ]);
