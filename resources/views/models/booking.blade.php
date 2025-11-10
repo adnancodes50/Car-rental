@@ -300,20 +300,21 @@
                                 title="Enter a valid email address, e.g. you@example.com">
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control rounded-3" name="phone"
-                                placeholder="+27 123 456 7890" inputmode="tel" required
-                                pattern="^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$"
-                                title="Use digits, optional spaces or dashes, e.g. +27 123 456 7890">
-                        </div>
+                       <div class="col-12">
+    <label class="form-label">Phone Number</label>
+    <input type="tel" class="form-control rounded-3" name="phone"
+        placeholder="+27 123 456 7890" inputmode="tel" required
+        pattern="^[a-zA-Z0-9\s\-\.,#()+]+$"
+        title="Enter a valid phone number with country code, e.g. +27 123 456 7890">
+</div>
 
                         <div class="col-12">
                             <label class="form-label">Your Address</label>
                             <input type="text" id="bookingCustomerCountry" name="country"
                                 class="form-control rounded-3" placeholder="Start typing your address..."
-                                autocomplete="street-address" required>
-                            <small class="text-muted">Use the suggestions to pick your full address.</small>
+                                autocomplete="street-address" required
+                                pattern="^[a-zA-Z0-9\s\-\.,#()]+$"
+                                title="Enter a valid address with letters, numbers, spaces, hyphens, commas, periods, #, and parentheses">
                         </div>
                     </div>
                 </div>
@@ -1132,32 +1133,12 @@
         const hidExtra = document.getElementById('inputExtraDays');
         const hidTotal = document.getElementById('inputTotalPrice');
 
-        let currentUnitMax = 30;
+        let currentUnitMax = 6; // Fixed for daily
         let suppressRentalEvent = false;
         let isUpdatingStep1 = false;
 
-        const applyQuantityLimit = (limit) => {
-            if (!qtySelect) return;
-            const fallback = currentUnitMax;
-            let parsedLimit = typeof limit === 'number' ? Math.floor(limit) : null;
-            if (parsedLimit !== null && parsedLimit < 1) parsedLimit = 1;
-            const targetMax = parsedLimit !== null && parsedLimit > 0 ? Math.min(fallback, parsedLimit) : fallback;
-            const previousValue = parseInt(qtySelect.value || '1', 10) || 1;
-            fillSelect(qtySelect, 1, targetMax, 1);
-            const nextValue = Math.min(previousValue, targetMax);
-            qtySelect.value = String(nextValue);
-            if (hidQty) {
-                hidQty.value = String(nextValue);
-            }
-            suppressRentalEvent = true;
-            try {
-                updateStep1Paint();
-            } finally {
-                suppressRentalEvent = false;
-            }
-        };
-
-        window.updateQuantityLimit = (limit) => applyQuantityLimit(typeof limit === 'number' ? limit : null);
+        // REMOVED: applyQuantityLimit function completely
+        // REMOVED: window.updateQuantityLimit
 
         function activeUnit() {
             const a = document.querySelector('.option-card.active');
@@ -1171,24 +1152,24 @@
         }
 
         function configureQtyForUnit(u) {
-            let max = 30;
+            let max = 6; // Daily: ALWAYS 1-6 days
             let label = 'How many day(s)?';
             currentUnitMax = max;
 
             if (u === 'week') {
-                max = 4; // Changed from 12 to 4
+                max = 4; // Weekly: ALWAYS 1-4 weeks
                 label = 'How many week(s)?';
                 currentUnitMax = max;
             }
             if (u === 'month') {
-                max = 12; // Keep 12 for months
+                max = 12; // Monthly: ALWAYS 1-12 months
                 label = 'How many month(s)?';
                 currentUnitMax = max;
             }
 
             qtyLabel.textContent = label;
+            // FIXED: Always show the fixed range, never limit by stock for rental duration
             fillSelect(qtySelect, 1, max, 1);
-            applyQuantityLimit(window.latestLocationAvailability ?? null);
         }
 
         // Compute + paint Step-1 price & period with extra days and stock quantity
@@ -2170,91 +2151,96 @@
         /* =========================
            SUMMARY
            ========================= */
-        const goToSummaryBtn = document.getElementById('goToSummary');
-        if (goToSummaryBtn) {
-            goToSummaryBtn.addEventListener('click', function() {
-                const form = document.getElementById('bookingForm');
-                const name = form.querySelector('[name="name"]');
-                const email = form.querySelector('[name="email"]');
-                const phone = form.querySelector('[name="phone"]');
-                const country = form.querySelector('[name="country"]');
-                const emailValue = (email.value || '').trim();
-                const phoneValue = (phone.value || '').trim();
-                email.value = emailValue;
-                phone.value = phoneValue;
+        /* =========================
+   SUMMARY
+   ========================= */
+const goToSummaryBtn = document.getElementById('goToSummary');
+if (goToSummaryBtn) {
+    goToSummaryBtn.addEventListener('click', function() {
+        const form = document.getElementById('bookingForm');
+        const name = form.querySelector('[name="name"]');
+        const email = form.querySelector('[name="email"]');
+        const phone = form.querySelector('[name="phone"]');
+        const country = form.querySelector('[name="country"]');
+        const emailValue = (email.value || '').trim();
+        const phoneValue = (phone.value || '').trim();
+        email.value = emailValue;
+        phone.value = phoneValue;
 
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-                const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
+        // Updated patterns to match backend validation
+        const emailPattern = /^([^\s@]+)@([^\s@]+)\.[^\s@]{2,}$/;
+        const phonePattern = /^[a-zA-Z0-9\s\-\.,#()+]+$/; // Matches backend pattern exactly
 
-                if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
-                    notify('cust-missing', { icon: 'error', title: 'Missing Information', text: 'Please fill all required customer details.' });
-                    return;
-                }
-
-                if (!emailPattern.test(emailValue)) {
-                    notify('cust-invalid', { icon: 'error', title: 'Invalid Email', text: 'Enter a valid email address, e.g. you@example.com.' });
-                    email.focus();
-                    return;
-                }
-
-                if (!phonePattern.test(phoneValue)) {
-                    notify('cust-invalid', { icon: 'error', title: 'Invalid Phone Number', text: 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
-                    phone.focus();
-                    return;
-                }
-
-                const unitH = document.getElementById('inputRentalUnit');
-                const startH = document.getElementById('inputRentalStartDate');
-                const extraH = document.getElementById('inputExtraDays');
-                const totalH = document.getElementById('inputTotalPrice');
-                const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
-
-                const typeLabel = ({ day: 'Daily', week: 'Weekly', month: 'Monthly' })[unitH.value] || (unitH.value || 'N/A');
-                document.getElementById('summaryType').textContent = typeLabel;
-
-                // Calculate period with start and end dates
-                let vehiclePeriod = '';
-                if (startH && startH.value) {
-                    const startY = startH.value;
-                    const unit = unitH.value;
-                    const qty = parseInt(document.getElementById('inputRentalQuantity').value);
-                    const extra = parseInt(extraH?.value || '0');
-                    const startDt = fromYMD(startY);
-
-                    if (startDt) {
-                        const baseDays = qty * unitDays(unit);
-                        const days = baseDays + (unit === 'day' ? 0 : extra);
-                        const endDt = addDays(startDt, Math.max(0, days - 1));
-                        const endY = toYMD(endDt);
-
-                        vehiclePeriod = `${niceDate(startY)} to ${niceDate(endY)}`;
-
-                        if (extra > 0) {
-                            vehiclePeriod += ` (${days} days total = ${baseDays} base + ${extra} extra)`;
-                        } else {
-                            vehiclePeriod += ` (${days} days)`;
-                        }
-                    }
-                }
-
-                document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
-                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH.value : 0);
-                document.getElementById('summaryUnits').textContent = `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
-
-                const vehicleTotal = parseFloat(totalH?.value || '0');
-                document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
-
-                document.getElementById('summaryCustomerName').textContent = name.value;
-                document.getElementById('summaryCustomerEmail').textContent = email.value;
-                document.getElementById('summaryCustomerPhone').textContent = phone.value;
-                document.getElementById('summaryCustomerCountry').textContent = country.value;
-
-                const custEl = document.getElementById('customerStep');
-                const sumEl = document.getElementById('summaryStep');
-                (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
-                (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
-            });
+        if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
+            notify('cust-missing', { icon: 'error', title: 'Missing Information', text: 'Please fill all required customer details.' });
+            return;
         }
+
+        if (!emailPattern.test(emailValue)) {
+            notify('cust-invalid', { icon: 'error', title: 'Invalid Email', text: 'Enter a valid email address, e.g. you@example.com.' });
+            email.focus();
+            return;
+        }
+
+        if (!phonePattern.test(phoneValue)) {
+            notify('cust-invalid', { icon: 'error', title: 'Invalid Phone Number', text: 'Enter a valid phone number with country code, e.g. +27 123 456 7890. Only letters, numbers, spaces, hyphens, commas, periods, #, parentheses, and + are allowed.' });
+            phone.focus();
+            return;
+        }
+
+        // Rest of the summary code remains the same...
+        const unitH = document.getElementById('inputRentalUnit');
+        const startH = document.getElementById('inputRentalStartDate');
+        const extraH = document.getElementById('inputExtraDays');
+        const totalH = document.getElementById('inputTotalPrice');
+        const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
+
+        const typeLabel = ({ day: 'Daily', week: 'Weekly', month: 'Monthly' })[unitH.value] || (unitH.value || 'N/A');
+        document.getElementById('summaryType').textContent = typeLabel;
+
+        // Calculate period with start and end dates
+        let vehiclePeriod = '';
+        if (startH && startH.value) {
+            const startY = startH.value;
+            const unit = unitH.value;
+            const qty = parseInt(document.getElementById('inputRentalQuantity').value);
+            const extra = parseInt(extraH?.value || '0');
+            const startDt = fromYMD(startY);
+
+            if (startDt) {
+                const baseDays = qty * unitDays(unit);
+                const days = baseDays + (unit === 'day' ? 0 : extra);
+                const endDt = addDays(startDt, Math.max(0, days - 1));
+                const endY = toYMD(endDt);
+
+                vehiclePeriod = `${niceDate(startY)} to ${niceDate(endY)}`;
+
+                if (extra > 0) {
+                    vehiclePeriod += ` (${days} days total = ${baseDays} base + ${extra} extra)`;
+                } else {
+                    vehiclePeriod += ` (${days} days)`;
+                }
+            }
+        }
+
+        document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
+        document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH.value : 0);
+        document.getElementById('summaryUnits').textContent = `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
+
+        const vehicleTotal = parseFloat(totalH?.value || '0');
+        document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
+
+        document.getElementById('summaryCustomerName').textContent = name.value;
+        document.getElementById('summaryCustomerEmail').textContent = email.value;
+        document.getElementById('summaryCustomerPhone').textContent = phone.value;
+        document.getElementById('summaryCustomerCountry').textContent = country.value;
+
+        const custEl = document.getElementById('customerStep');
+        const sumEl = document.getElementById('summaryStep');
+        (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
+        (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
+    });
+}
 
         /* =========================
            THANK YOU MODAL
