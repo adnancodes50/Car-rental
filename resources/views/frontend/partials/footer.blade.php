@@ -24,10 +24,13 @@
                 <i class="bi bi-envelope-fill fs-4"></i>
             </a>
 
-            <a href="https://wa.link/8bgpe5" target="_blank" rel="noopener"
-               class="contact-icon-btn whatsapp d-flex align-items-center justify-content-center">
-                <i class="bi bi-whatsapp fs-4"></i>
-            </a>
+           <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
+   target="_blank"
+   rel="noopener"
+   class="contact-icon-btn whatsapp d-flex align-items-center justify-content-center">
+    <i class="bi bi-whatsapp fs-4"></i>
+</a>
+
         </div>
     </div>
 

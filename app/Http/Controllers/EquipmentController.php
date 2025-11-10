@@ -126,14 +126,15 @@ public function update(Request $request, Equipment $equipment)
     /**
      * Remove the specified equipment.
      */
-    public function destroy(Equipment $equipment)
-    {
-        if ($equipment->image && Storage::disk('public')->exists($equipment->image)) {
-            Storage::disk('public')->delete($equipment->image);
-        }
-
-        $equipment->delete();
-
-        return redirect()->route('equipment.index')->with('success', 'Equipment deleted successfully.');
+  public function destroy(Equipment $equipment)
+{
+    if ($equipment->image && Storage::disk('public')->exists($equipment->image)) {
+        Storage::disk('public')->delete($equipment->image);
     }
+
+    $equipment->delete();
+
+    return redirect()->route('equipment.index')->with('success', 'Equipment deleted successfully.');
+}
+
 }

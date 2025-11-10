@@ -25,8 +25,8 @@ class SystemSettingController extends Controller
             // Stripe
             'stripe_key'     => 'nullable|string|max:255',
             'stripe_secret'  => 'nullable|string|max:255',
-            'stripe_mode'    => 'required|in:sandbox,live',
-            'stripe_enabled' => 'required|boolean',
+            'stripe_mode'    => 'nullable|in:sandbox,live',
+            'stripe_enabled' => 'nullable|boolean',
 
             // PayFast
             'payfast_merchant_id'  => 'nullable|string|max:255',

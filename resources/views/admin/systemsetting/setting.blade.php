@@ -10,7 +10,7 @@
             @csrf
 
             {{-- Stripe Settings --}}
-            <div class="card shadow-sm my-3">
+            {{-- <div class="card shadow-sm my-3">
                 <div class="card-header  text-black text-center py-2">
                     <h5 class="mb-0">Stripe Settings</h5>
                 </div>
@@ -43,7 +43,7 @@
                         <label class="form-check-label" for="stripeToggle">Enable Stripe</label>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             {{-- PayFast Settings --}}
             <div class="card shadow-sm my-3">

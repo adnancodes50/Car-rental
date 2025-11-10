@@ -38,30 +38,35 @@
         <div class="d-flex justify-content-center mb-5">
             <a href="#category-section" class="btn btn-lg fw-bold px-4 py-3"
                 style="background-color: #679767; text:black;">
-                RENT YOUR RECOVERY EQUIPMENT NOW  <i class="bi bi-arrow-right ms-2"></i>
+                RENT OR BUY YOUR RECOVERY EQUIPMENT NOW  <i class="bi bi-arrow-right ms-2"></i>
             </a>
         </div>
 
         <div class="row justify-content-center g-4 px-3 px-lg-5">
             <div class="col-12 col-md-4">
                 <div class="d-flex flex-column align-items-center text-center">
-                    <i class="bi bi-shield-lock display-4 mb-3" style="color:#679767;"></i>
-                    <h3 class="h5 fw-semibold mb-2">Authentic Restoration</h3>
-                    <p class="text-light">Every Land Rover restored to original specifications with modern reliability.</p>
+                   <i class="bi bi-heart display-4 mb-3" style="color:#679767;"></i>
+
+
+                   <h3 class="fw-semibold mb-2" style="font-size: 1.75rem;">Quality Equipment</h3>
+
+                    <p class="text-light">Well-maintained, reliable medicle <br> equipment for your peace of mind </p>
                 </div>
             </div>
             <div class="col-12 col-md-4">
                 <div class="d-flex flex-column align-items-center text-center">
-                    <i class="bi bi-compass display-4 mb-3" style="color:#679767;"></i>
-                    <h3 class="h5 fw-semibold mb-2">Adventure Ready</h3>
-                    <p class="text-light">Equipped for multi-day expeditions with premium overland accessories.</p>
+                    <i class="bi bi-geo-alt display-4 mb-3" style="color:#679767;"></i>
+
+                    <h3 class="h5 fw-semibold mb-2"  style="font-size: 1.75rem;">Delivery Available</h3>
+                    <p class="text-light">Convenient delivery service to your <br> home or facility </p>
                 </div>
             </div>
             <div class="col-12 col-md-4">
                 <div class="d-flex flex-column align-items-center text-center">
-                    <i class="bi bi-arrow-right-circle display-4 mb-3" style="color:#679767;"></i>
-                    <h3 class="h5 fw-semibold mb-2">Own or Rent</h3>
-                    <p class="text-light">Choose your perfect Land Rover for adventure rentals or purchase.</p>
+                    <i class="bi bi-telephone display-4 mb-3" style="color:#679767;"></i>
+
+                    <h3 class="h5 fw-semibold mb-2"  style="font-size: 1.75rem;">Expert Support</h3>
+                    <p class="text-light">Friendly team ready to help with your <br> equipment needs </p>
                 </div>
             </div>
         </div>
@@ -79,55 +84,60 @@
         <div class="text-center mb-5">
             <h2 class="display-5 fw-bold text-dark mb-3">Categories</h2>
             <p class="lead text-muted mx-auto" style="max-width: 700px;">
-                Each Land Rover in our collection has been meticulously restored and prepared <br>
-                for your next adventure.
+               Each piece of equipment in our collection is meticulously maintained and ready for your next project or adventure.
             </p>
         </div>
+<div class="row g-4 justify-content-start">
+    @php
+        $hasActive = false;
+    @endphp
 
-        <div class="row g-4 justify-content-start">
-            @php
-                // we'll track if we rendered at least 1 active category
-                $hasActive = false;
-            @endphp
+    @foreach($categories as $category)
+        @if($category->status === 'active')
+            @php $hasActive = true; @endphp
 
-            @foreach($categories as $category)
-                @if($category->status === 'active')
-                    @php $hasActive = true; @endphp
+            <div class="col-12 col-sm-6 col-lg-3">
+                <a href="{{ route('category.show', $category->id) }}"
+                   class="text-decoration-none text-white">
+                    <div class="category-card position-relative overflow-hidden rounded-4 shadow-sm"
+                         style="cursor: pointer;">
 
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="category-card position-relative overflow-hidden rounded-4 shadow-sm">
-                            @if ($category->image)
-                                <img src="{{ asset('storage/' . $category->image) }}"
-                                     alt="{{ $category->name }}"
-                                     class="img-fluid w-100 h-100 category-bg">
-                            @else
-                                <img src="https://via.placeholder.com/600x400?text=Category+Image"
-                                     alt="{{ $category->name }}"
-                                     class="img-fluid w-100 h-100 category-bg">
-                            @endif
+                        {{-- Category Image --}}
+                        @if ($category->image)
+                            <img src="{{ asset('storage/' . $category->image) }}"
+                                 alt="{{ $category->name }}"
+                                 class="img-fluid w-100 h-100 category-bg">
+                        @else
+                            <img src="https://via.placeholder.com/600x400?text=Category+Image"
+                                 alt="{{ $category->name }}"
+                                 class="img-fluid w-100 h-100 category-bg">
+                        @endif
 
-                            <div class="category-overlay d-flex flex-column justify-content-end p-4">
-                                <div class="text-start text-white">
-                                    <h5 class="fw-bold mb-2">{{ $category->name }}</h5> <br>
-                                    <p class="small mb-0">{{ Str::limit($category->short_description, 80) }}</p>
-                                </div>
+                        {{-- Overlay --}}
+                        <div class="category-overlay d-flex flex-column justify-content-end p-4">
+                            <div class="text-start text-white">
+                                <h5 class="fw-bold mb-2">{{ $category->name }}</h5>
+                                <p class="small mb-0">{{ Str::limit($category->short_description, 80) }}</p>
                             </div>
+                        </div>
 
-                            <a href="{{ route('category.show', $category->id) }}"
-                               class="category-arrow position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle text-white">
-                                <i class="bi bi-arrow-up-right fs-5"></i>
-                            </a>
+                        {{-- Arrow Icon --}}
+                        <div class="category-arrow position-absolute top-0 end-0 m-3 d-flex align-items-center justify-content-center rounded-circle text-white">
+                            <i class="bi bi-arrow-up-right fs-5"></i>
                         </div>
                     </div>
-                @endif
-            @endforeach
+                </a>
+            </div>
+        @endif
+    @endforeach
 
-            @if(!$hasActive)
-                <div class="col-12 text-center text-muted">
-                    <p>No categories available at the moment.</p>
-                </div>
-            @endif
+    @if(!$hasActive)
+        <div class="col-12 text-center text-muted">
+            <p>No categories available at the moment.</p>
         </div>
+    @endif
+</div>
+
     </div>
 </section>
 
@@ -259,3 +269,9 @@
 
 @section('content')
 @endsection
+
+
+
+
+
+

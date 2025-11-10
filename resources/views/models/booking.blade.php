@@ -189,9 +189,10 @@
                         @endif
                     </div>
 
+                    <!-- Date Section -->
                     <div id="dateSection" class="mb-3 mt-3 d-none">
-                        <div class="position-relative">
-                            <input type="text" id="rentalStartDate" class="form-control ps-5"
+                        <div class="position-relative w-100">
+                            <input type="text" id="rentalStartDate" class="form-control ps-5 w-100"
                                 placeholder="Select a start date" readonly data-lead="{{ $bookingLeadDays }}"
                                 data-blocked='@json($bookedRanges)'>
                             <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
@@ -620,8 +621,7 @@
                     Continue to Categories
                 </a>
 
-
-                <a href="https://wa.link/8bgpe5"
+                <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
                     class="btn btn-success fw-bold rounded-3 d-flex align-items-center gap-2" target="_blank"
                     id="tyWhatsappBtn" rel="noopener">
                     <i class="bi bi-whatsapp fs-5"></i>Chat with Us
@@ -696,6 +696,104 @@
     .pac-container {
         z-index: 9999 !important;
     }
+
+    /* FULL WIDTH CALENDAR STYLES */
+    #dateSection {
+        width: 100%;
+    }
+
+    #rentalStartDate {
+        width: 100% !important;
+        display: block;
+        padding: 12px 16px 12px 45px;
+        font-size: 16px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background-color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    #rentalStartDate:focus {
+        border-color: #CF9B4D;
+        box-shadow: 0 0 0 0.2rem rgba(207, 155, 77, 0.25);
+        outline: none;
+    }
+
+    #dateSection .position-relative {
+        width: 100%;
+    }
+
+    #dateSection .position-absolute {
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        color: #6c757d;
+    }
+
+    /* Ensure calendar opens above modals and has proper width */
+    .flatpickr-calendar {
+        z-index: 99999 !important;
+        width: 100% !important;
+        max-width: 42% !important;
+    }
+
+    .flatpickr-wrapper {
+        width: 100% !important;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        #rentalStartDate {
+            padding: 14px 16px 14px 45px;
+            font-size: 16px;
+        }
+
+        #dateSection .position-absolute {
+            left: 16px;
+        }
+    }
+
+    /* Make the calendar input container full width */
+    #dateSection .form-control {
+        width: 100% !important;
+    }
+
+    /* Remove any max-width constraints */
+    #multiStepBookingModal .modal-dialog {
+        max-width: 800px;
+    }
+
+    #multiStepBookingModal .modal-body {
+        padding: 20px;
+    }
+
+    /* Ensure the date section takes full width */
+    #dateSection .row {
+        width: 100%;
+        margin: 0;
+    }
+
+    #dateSection .col-12 {
+        padding: 0;
+    }
+
+    /* Make option cards more interactive */
+    .option-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .option-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .option-card.active {
+        border-color: #CF9B4D !important;
+        background-color: #fff9f0 !important;
+    }
 </style>
 
 <script src="https://js.stripe.com/v3/"></script>
@@ -715,8 +813,7 @@
         }
 
         var autocomplete = new google.maps.places.Autocomplete(input, {
-            types: ['geocode'], // or ['address']
-            // componentRestrictions: { country: ['za'] }, // optional
+            types: ['geocode'],
             fields: ['formatted_address', 'geometry', 'address_components']
         });
 
@@ -727,7 +824,6 @@
             }
         });
 
-        // expose if needed later
         window.bookingAddressAutocomplete = autocomplete;
     };
 </script>
@@ -922,8 +1018,7 @@
                 }
 
                 // Check stock availability
-                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <=
-                    0) {
+                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <= 0) {
                     if (window.Swal?.fire) {
                         Swal.fire({
                             icon: 'error',
@@ -1046,8 +1141,7 @@
             const fallback = currentUnitMax;
             let parsedLimit = typeof limit === 'number' ? Math.floor(limit) : null;
             if (parsedLimit !== null && parsedLimit < 1) parsedLimit = 1;
-            const targetMax = parsedLimit !== null && parsedLimit > 0 ? Math.min(fallback, parsedLimit) :
-                fallback;
+            const targetMax = parsedLimit !== null && parsedLimit > 0 ? Math.min(fallback, parsedLimit) : fallback;
             const previousValue = parseInt(qtySelect.value || '1', 10) || 1;
             fillSelect(qtySelect, 1, targetMax, 1);
             const nextValue = Math.min(previousValue, targetMax);
@@ -1080,16 +1174,18 @@
             let max = 30;
             let label = 'How many day(s)?';
             currentUnitMax = max;
+
             if (u === 'week') {
-                max = 12;
+                max = 4; // Changed from 12 to 4
                 label = 'How many week(s)?';
                 currentUnitMax = max;
             }
             if (u === 'month') {
-                max = 12;
+                max = 12; // Keep 12 for months
                 label = 'How many month(s)?';
                 currentUnitMax = max;
             }
+
             qtyLabel.textContent = label;
             fillSelect(qtySelect, 1, max, 1);
             applyQuantityLimit(window.latestLocationAvailability ?? null);
@@ -1146,11 +1242,11 @@
                 if (extra > 0) {
                     let dailyRate = 0;
                     if (unit === 'week') {
-                        dailyRate = pricePer / 7; // Daily rate from weekly price
+                        dailyRate = pricePer / 7;
                     } else if (unit === 'month') {
-                        dailyRate = pricePer / 30; // Daily rate from monthly price
+                        dailyRate = pricePer / 30;
                     } else {
-                        dailyRate = pricePer; // For daily rentals, use the same rate
+                        dailyRate = pricePer;
                     }
                     extraDaysPrice = dailyRate * extra;
                 }
@@ -1205,9 +1301,7 @@
 
                 if (hidTotal) {
                     hidTotal.value = String(vehicleTotal);
-                    hidTotal.dispatchEvent(new Event('change', {
-                        bubbles: true
-                    }));
+                    hidTotal.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
                 // Inform listeners
@@ -1219,7 +1313,7 @@
             }
         }
 
-        // Unit card selection
+        // Unit card selection with auto-open calendar
         unitCards.forEach(card => {
             card.addEventListener('click', () => {
                 unitCards.forEach(c => c.classList.remove('bg-light', 'active'));
@@ -1228,9 +1322,7 @@
                 const u = card.getAttribute('data-type') || '';
                 if (hidUnit) {
                     hidUnit.value = u;
-                    hidUnit.dispatchEvent(new Event('change', {
-                        bubbles: true
-                    }));
+                    hidUnit.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
                 // show date + qty sections and prepare qty
@@ -1241,10 +1333,20 @@
                 // sync qty hidden
                 if (hidQty && qtySelect) {
                     hidQty.value = qtySelect.value;
-                    hidQty.dispatchEvent(new Event('change', {
-                        bubbles: true
-                    }));
+                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
                 }
+
+                // AUTO-OPEN CALENDAR
+                setTimeout(() => {
+                    if (startDateInput && startDatePicker) {
+                        startDateInput.focus();
+                        // Force open the calendar
+                        if (typeof startDatePicker.open === 'function') {
+                            startDatePicker.open();
+                        }
+                    }
+                }, 300);
+
                 updateStep1Paint();
             });
         });
@@ -1254,9 +1356,7 @@
             qtySelect.addEventListener('change', () => {
                 if (hidQty) {
                     hidQty.value = qtySelect.value;
-                    hidQty.dispatchEvent(new Event('change', {
-                        bubbles: true
-                    }));
+                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 updateStep1Paint();
             });
@@ -1269,13 +1369,11 @@
             const inp = startDateInput;
             if (!inp) return;
 
-            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'),
-                10) || 0;
+            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'), 10) || 0;
 
             let blockedRanges = [];
             try {
-                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window
-                    .vehicleBlockedRanges || []);
+                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window.vehicleBlockedRanges || []);
                 blockedRanges = (JSON.parse(raw) || []).filter(r => r && r.from && r.to);
             } catch {
                 blockedRanges = [];
@@ -1334,7 +1432,7 @@
                 return false;
             }
 
-            // Use flatpickr if available; otherwise basic fallback with native <input type="date">
+            // Use flatpickr if available
             if (typeof flatpickr !== 'undefined') {
                 startDatePicker = flatpickr(inp, {
                     minDate,
@@ -1342,22 +1440,99 @@
                     dateFormat: 'Y-m-d',
                     clickOpens: true,
                     allowInput: false,
+                    // Add these options for better UX and full width
+                    static: true,
+                    monthSelectorType: 'static',
+                    // Ensure full width for calendar
+                    onReady: function(selectedDates, dateStr, instance) {
+                        const calendar = instance.calendarContainer;
+                        const input = instance._input;
+
+                        if (calendar) {
+                            calendar.style.zIndex = '99999';
+                            // Set calendar to full width
+                            calendar.style.width = '100%';
+                            calendar.style.maxWidth = '100%';
+                        }
+
+                        // Ensure input takes full width
+                        if (input) {
+                            input.style.width = '100%';
+                            input.style.maxWidth = '100%';
+                        }
+                    },
+                    onOpen: function(selectedDates, dateStr, instance) {
+                        const calendar = instance.calendarContainer;
+                        if (calendar) {
+                            calendar.style.zIndex = '99999';
+                            calendar.style.width = '100%';
+                            calendar.style.maxWidth = '100%';
+
+                            // Force recalculation of position for full width
+                            setTimeout(() => {
+                                instance.redraw();
+                            }, 10);
+                        }
+
+                        // Close any other open flatpickr instances
+                        document.querySelectorAll('.flatpickr-calendar').forEach(cal => {
+                            if (cal !== calendar && cal.style.display !== 'none') {
+                                cal.style.display = 'none';
+                            }
+                        });
+                    },
+                    onMonthChange: function(selectedDates, dateStr, instance) {
+                        // Ensure calendar maintains full width on month change
+                        const calendar = instance.calendarContainer;
+                        if (calendar) {
+                            calendar.style.width = '100%';
+                            calendar.style.maxWidth = '100%';
+                        }
+                    },
                     onChange: function(selectedDates, dateStr) {
                         if (hidStart) {
                             hidStart.value = dateStr || '';
-                            hidStart.dispatchEvent(new Event('change', {
-                                bubbles: true
-                            }));
+                            hidStart.dispatchEvent(new Event('change', { bubbles: true }));
                         }
                         qtySection?.classList.remove('d-none');
                         updateStep1Paint();
                     }
                 });
+
+                // Add event listener to auto-open when input gets focus
+                inp.addEventListener('focus', function() {
+                    if (startDatePicker && typeof startDatePicker.open === 'function') {
+                        startDatePicker.open();
+                    }
+                });
+
+                // Additional width enforcement after initialization
+                setTimeout(() => {
+                    if (inp) {
+                        inp.style.width = '100%';
+                        inp.style.maxWidth = '100%';
+                        inp.style.boxSizing = 'border-box';
+
+                        // Also set parent elements to full width
+                        const parentRelative = inp.closest('.position-relative');
+                        if (parentRelative) {
+                            parentRelative.style.width = '100%';
+                        }
+
+                        const dateSection = document.getElementById('dateSection');
+                        if (dateSection) {
+                            dateSection.style.width = '100%';
+                        }
+                    }
+                }, 100);
             } else {
                 // Fallback to native date input
                 try {
                     inp.removeAttribute('readonly');
                     inp.setAttribute('type', 'date');
+                    // Set full width for native date input
+                    inp.style.width = '100%';
+                    inp.style.maxWidth = '100%';
                 } catch {}
                 inp.addEventListener('input', () => {
                     const val = inp.value;
@@ -1379,9 +1554,7 @@
                     const dateStr = inp.value || '';
                     if (hidStart) {
                         hidStart.value = dateStr;
-                        hidStart.dispatchEvent(new Event('change', {
-                            bubbles: true
-                        }));
+                        hidStart.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                     qtySection?.classList.remove('d-none');
                     updateStep1Paint();
@@ -1601,21 +1774,15 @@
                 if (value > limit) value = limit;
                 extraDaysInput.value = String(value);
                 hidExtra.value = String(value);
-                hidExtra.dispatchEvent(new Event('change', {
-                    bubbles: true
-                }));
+                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
                 if (extraDaysHelp) {
-                    extraDaysHelp.textContent = limit === 6 ?
-                        ' 1 to 6 days.' :
-                        '1 to 29 days.';
+                    extraDaysHelp.textContent = limit === 6 ? '1 to 6 days.' : '1 to 29 days.';
                 }
             } else {
                 extraDaysSection.classList.add('d-none');
                 extraDaysInput.value = '0';
                 hidExtra.value = '0';
-                hidExtra.dispatchEvent(new Event('change', {
-                    bubbles: true
-                }));
+                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
             }
         };
 
@@ -1635,9 +1802,7 @@
                 if (value > max) value = max;
                 extraDaysInput.value = String(value);
                 hidExtra.value = String(value);
-                hidExtra.dispatchEvent(new Event('change', {
-                    bubbles: true
-                }));
+                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
                 updateLocationAvailability();
                 updateStep1Paint();
             });
@@ -1663,13 +1828,8 @@
            ========================= */
         const alertDebounce = new Map();
 
-        function notify(key, {
-            icon = 'warning',
-            title = 'Notice',
-            text = ''
-        }) {
-            const now = Date.now(),
-                last = alertDebounce.get(key) || 0;
+        function notify(key, { icon = 'warning', title = 'Notice', text = '' }) {
+            const now = Date.now(), last = alertDebounce.get(key) || 0;
             if (now - last < 600) return;
 
             const step1ModalEl = document.getElementById('multiStepBookingModal');
@@ -1678,12 +1838,7 @@
             if (step1Visible && suppressForStep1) return;
 
             alertDebounce.set(key, now);
-            if (window.Swal?.fire) Swal.fire({
-                icon,
-                title,
-                text,
-                confirmButtonText: 'OK'
-            });
+            if (window.Swal?.fire) Swal.fire({ icon, title, text, confirmButtonText: 'OK' });
             else alert(`${title}\n\n${text}`);
         }
 
@@ -1698,25 +1853,19 @@
         const bookingThankYouModalEl = document.getElementById('bookingThankYou');
         const bookingCardErrorsEl = document.getElementById('booking-card-errors');
 
-        const paymentMethodInputs = Array.from(document.querySelectorAll(
-            'input[name="booking_payment_method"]'));
+        const paymentMethodInputs = Array.from(document.querySelectorAll('input[name="booking_payment_method"]'));
         const resetPaymentSelection = () => {
             paymentMethodInputs.forEach((input) => {
                 input.checked = false;
                 input.removeAttribute('checked');
             });
         };
-        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal',
-            resetPaymentSelection);
+        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal', resetPaymentSelection);
 
         let currentBookingReference = null;
 
         const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
-        let stripeInstance = null,
-            stripeElements = null,
-            stripeCardNumber = null,
-            stripeCardExpiry = null,
-            stripeCardCvc = null;
+        let stripeInstance = null, stripeElements = null, stripeCardNumber = null, stripeCardExpiry = null, stripeCardCvc = null;
 
         const showPaymentLoader = (message = 'Processing payment...') => {
             if (window.Swal) {
@@ -1749,8 +1898,7 @@
             const tyPeriodEl = document.getElementById('tyPeriod');
             if (tyPeriodEl) tyPeriodEl.textContent = periodText;
 
-            const reference = currentBookingReference || (bookingIdField?.value ?
-                `#${bookingIdField.value}` : '-');
+            const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
             const tyReferenceEl = document.getElementById('tyReference');
             if (tyReferenceEl) tyReferenceEl.textContent = reference;
 
@@ -1784,24 +1932,19 @@
                     openPaymentBtn.textContent = 'Preparing booking...';
                 } else {
                     openPaymentBtn.disabled = false;
-                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel ||
-                        openPaymentDefaultLabel;
+                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel || openPaymentDefaultLabel;
                 }
             };
 
             openPaymentBtn.addEventListener('click', async () => {
-                if (bookingCreationInFlight) {
-                    return;
-                }
+                if (bookingCreationInFlight) return;
 
                 if (!bookingIdField?.value && bookingForm) {
                     bookingCreationInFlight = true;
                     setOpenPaymentLoading(true);
 
                     const formData = new FormData(bookingForm);
-                    if (!bookingIdField?.value) {
-                        formData.delete('booking_id');
-                    }
+                    if (!bookingIdField?.value) formData.delete('booking_id');
 
                     try {
                         const res = await fetch(bookingForm.action, {
@@ -1809,49 +1952,29 @@
                             body: formData,
                             headers: {
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': document.querySelector(
-                                    'meta[name="csrf-token"]')?.getAttribute(
-                                    'content') || ''
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                             }
                         });
 
                         const text = await res.text();
                         let data;
-                        try {
-                            data = JSON.parse(text);
-                        } catch {
-                            data = {
-                                success: false,
-                                message: text
-                            };
-                        }
+                        try { data = JSON.parse(text); }
+                        catch { data = { success: false, message: text }; }
 
                         if (!res.ok || !data?.success) {
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Booking not created',
-                                text: data?.message || 'Failed to create booking.'
-                            });
+                            await Swal.fire({ icon: 'error', title: 'Booking not created', text: data?.message || 'Failed to create booking.' });
                             return;
                         }
 
                         bookingIdField.value = data.booking_id || data.id || '';
                         currentBookingReference = data.reference || null;
                         if (!bookingIdField.value) {
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Missing booking ID',
-                                text: 'Booking was created but no identifier was returned.'
-                            });
+                            await Swal.fire({ icon: 'error', title: 'Missing booking ID', text: 'Booking was created but no identifier was returned.' });
                             return;
                         }
                     } catch (error) {
                         console.error(error);
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Network error',
-                            text: 'Unable to create booking, please try again.'
-                        });
+                        await Swal.fire({ icon: 'error', title: 'Network error', text: 'Unable to create booking, please try again.' });
                         return;
                     } finally {
                         bookingCreationInFlight = false;
@@ -1859,19 +1982,15 @@
                     }
                 }
 
-                if (!bookingIdField?.value) {
-                    return;
-                }
+                if (!bookingIdField?.value) return;
 
-                const summaryModal = bootstrap.Modal.getInstance(document.getElementById(
-                    'summaryStep'));
+                const summaryModal = bootstrap.Modal.getInstance(document.getElementById('summaryStep'));
                 summaryModal?.hide();
 
                 if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
 
                 const stripeRadio = document.getElementById('bookingStripe');
-                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset
-                    .amount = String(computeGrandTotal());
+                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset.amount = String(computeGrandTotal());
             });
         }
 
@@ -1879,15 +1998,13 @@
             if (!(e.target && e.target.name === 'booking_payment_method')) return;
 
             const method = e.target.value;
-            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(
-                bookingPaymentModalEl) : null;
+            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(bookingPaymentModalEl) : null;
             paymentModalInstance?.hide();
 
             const grandTotal = computeGrandTotal();
 
             if (method === 'stripe') {
-                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(
-                    grandTotal);
+                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(grandTotal);
                 if (bookingStripeModalEl) new bootstrap.Modal(bookingStripeModalEl).show();
                 return;
             }
@@ -1895,11 +2012,7 @@
             if (method === 'payfast') {
                 const bookingId = bookingIdField?.value;
                 if (!bookingId) {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Booking missing',
-                        text: 'Please create the booking first.'
-                    });
+                    await Swal.fire({ icon: 'error', title: 'Booking missing', text: 'Please create the booking first.' });
                     if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
                     e.target.checked = false;
                     return;
@@ -1907,22 +2020,17 @@
 
                 try {
                     showPaymentLoader('Redirecting to PayFast...');
-                    const res = await fetch(
-                        `/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector(
-                                    'meta[name="csrf-token"]')?.content || ''
-                            },
-                            body: JSON.stringify({
-                                booking_id: bookingId
-                            })
-                        });
+                    const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        },
+                        body: JSON.stringify({ booking_id: bookingId })
+                    });
 
                     const data = await res.json();
-                    if (!res.ok || !data?.success) throw new Error(data?.message ||
-                        'Failed to prepare PayFast checkout.');
+                    if (!res.ok || !data?.success) throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
 
                     const form = document.createElement('form');
                     form.method = 'POST';
@@ -1939,11 +2047,7 @@
                     form.submit();
                 } catch (err) {
                     console.error(err);
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'PayFast error',
-                        text: err.message || 'Could not redirect to PayFast.'
-                    });
+                    await Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
                     if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
                     e.target.checked = false;
                 } finally {
@@ -1958,24 +2062,12 @@
             stripeInstance = Stripe(stripePublicKeyJS);
             stripeElements = stripeInstance.elements();
             const stripeStyle = {
-                base: {
-                    fontSize: '16px',
-                    color: '#32325d',
-                    '::placeholder': {
-                        color: '#a0aec0'
-                    }
-                }
+                base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } }
             };
 
-            stripeCardNumber = stripeElements.create('cardNumber', {
-                style: stripeStyle
-            });
-            stripeCardExpiry = stripeElements.create('cardExpiry', {
-                style: stripeStyle
-            });
-            stripeCardCvc = stripeElements.create('cardCvc', {
-                style: stripeStyle
-            });
+            stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
+            stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
+            stripeCardCvc = stripeElements.create('cardCvc', { style: stripeStyle });
 
             const cardNumberMount = document.getElementById('booking-card-number');
             const cardExpiryMount = document.getElementById('booking-card-expiry');
@@ -1993,20 +2085,12 @@
         if (bookingStripePayButton && stripeInstance) {
             bookingStripePayButton.addEventListener('click', async function() {
                 if (!bookingIdField?.value) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Booking missing',
-                        text: 'Please create the booking first.'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Booking missing', text: 'Please create the booking first.' });
                     return;
                 }
 
                 if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Stripe unavailable',
-                        text: 'Payment form is not ready yet.'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Stripe unavailable', text: 'Payment form is not ready yet.' });
                     return;
                 }
 
@@ -2019,99 +2103,62 @@
                 showPaymentLoader();
 
                 try {
-                    const {
-                        paymentMethod,
-                        error
-                    } = await stripeInstance.createPaymentMethod({
+                    const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
                         type: 'card',
                         card: stripeCardNumber,
-                        billing_details: {
-                            name: bookingForm?.name?.value || '',
-                            email: bookingForm?.email?.value || ''
-                        }
+                        billing_details: { name: bookingForm?.name?.value || '', email: bookingForm?.email?.value || '' }
                     });
 
                     if (error) {
-                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message ||
-                            'Payment method error.';
+                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message || 'Payment method error.';
                         hidePaymentLoader();
                         return;
                     }
 
-                    const res = await fetch(
-                        `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector(
-                                    'meta[name="csrf-token"]')?.content || ''
-                            },
-                            body: JSON.stringify({
-                                payment_method_id: paymentMethod.id,
-                                amount: parseFloat(button.dataset.amount || '0')
-                            })
-                        });
+                    const res = await fetch(`/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                        },
+                        body: JSON.stringify({ payment_method_id: paymentMethod.id, amount: parseFloat(button.dataset.amount || '0') })
+                    });
 
                     const text = await res.text();
                     let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch {
-                        data = {
-                            success: false,
-                            message: text
-                        };
-                    }
+                    try { data = JSON.parse(text); }
+                    catch { data = { success: false, message: text }; }
 
                     hidePaymentLoader();
 
                     if (!res.ok || !data) {
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Payment failed',
-                            text: data?.message || 'Server error while processing payment.'
-                        });
+                        await Swal.fire({ icon: 'error', title: 'Payment failed', text: data?.message || 'Server error while processing payment.' });
                         return;
                     }
 
                     if (data.success) {
                         bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
                         populateThankYouModal('Stripe');
-                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
-                            .show();
+                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
                         return;
                     }
 
                     if (data.requires_action && data.payment_intent_client_secret) {
-                        const result = await stripeInstance.confirmCardPayment(data
-                            .payment_intent_client_secret);
+                        const result = await stripeInstance.confirmCardPayment(data.payment_intent_client_secret);
                         if (result.error) {
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Authentication failed',
-                                text: result.error.message || 'Unable to confirm your card.'
-                            });
+                            await Swal.fire({ icon: 'error', title: 'Authentication failed', text: result.error.message || 'Unable to confirm your card.' });
                         } else {
                             bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
                             populateThankYouModal('Stripe');
-                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
-                                .show();
+                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
                         }
                     } else {
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Payment failed',
-                            text: data.message || 'Unable to charge your card.'
-                        });
+                        await Swal.fire({ icon: 'error', title: 'Payment failed', text: data.message || 'Unable to charge your card.' });
                     }
                 } catch (error) {
                     console.error(error);
                     hidePaymentLoader();
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Network error',
-                        text: error.message || 'Unable to reach the payment server.'
-                    });
+                    await Swal.fire({ icon: 'error', title: 'Network error', text: error.message || 'Unable to reach the payment server.' });
                 } finally {
                     hidePaymentLoader();
                     button.disabled = false;
@@ -2140,30 +2187,18 @@
                 const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
 
                 if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
-                    notify('cust-missing', {
-                        icon: 'error',
-                        title: 'Missing Information',
-                        text: 'Please fill all required customer details.'
-                    });
+                    notify('cust-missing', { icon: 'error', title: 'Missing Information', text: 'Please fill all required customer details.' });
                     return;
                 }
 
                 if (!emailPattern.test(emailValue)) {
-                    notify('cust-invalid', {
-                        icon: 'error',
-                        title: 'Invalid Email',
-                        text: 'Enter a valid email address, e.g. you@example.com.'
-                    });
+                    notify('cust-invalid', { icon: 'error', title: 'Invalid Email', text: 'Enter a valid email address, e.g. you@example.com.' });
                     email.focus();
                     return;
                 }
 
                 if (!phonePattern.test(phoneValue)) {
-                    notify('cust-invalid', {
-                        icon: 'error',
-                        title: 'Invalid Phone Number',
-                        text: 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.'
-                    });
+                    notify('cust-invalid', { icon: 'error', title: 'Invalid Phone Number', text: 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
                     phone.focus();
                     return;
                 }
@@ -2174,26 +2209,37 @@
                 const totalH = document.getElementById('inputTotalPrice');
                 const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
 
-                const typeLabel = ({
-                    day: 'Daily',
-                    week: 'Weekly',
-                    month: 'Monthly'
-                })[unitH.value] || (unitH.value || 'N/A');
+                const typeLabel = ({ day: 'Daily', week: 'Weekly', month: 'Monthly' })[unitH.value] || (unitH.value || 'N/A');
                 document.getElementById('summaryType').textContent = typeLabel;
 
+                // Calculate period with start and end dates
                 let vehiclePeriod = '';
                 if (startH && startH.value) {
-                    vehiclePeriod = niceDate(startH.value);
-                    if (extraH && (unitH.value === 'week' || unitH.value === 'month')) {
-                        vehiclePeriod += ` + ${extraH.value || 0} extra day(s)`;
+                    const startY = startH.value;
+                    const unit = unitH.value;
+                    const qty = parseInt(document.getElementById('inputRentalQuantity').value);
+                    const extra = parseInt(extraH?.value || '0');
+                    const startDt = fromYMD(startY);
+
+                    if (startDt) {
+                        const baseDays = qty * unitDays(unit);
+                        const days = baseDays + (unit === 'day' ? 0 : extra);
+                        const endDt = addDays(startDt, Math.max(0, days - 1));
+                        const endY = toYMD(endDt);
+
+                        vehiclePeriod = `${niceDate(startY)} to ${niceDate(endY)}`;
+
+                        if (extra > 0) {
+                            vehiclePeriod += ` (${days} days total = ${baseDays} base + ${extra} extra)`;
+                        } else {
+                            vehiclePeriod += ` (${days} days)`;
+                        }
                     }
                 }
 
                 document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
-                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH
-                    .value : 0);
-                document.getElementById('summaryUnits').textContent =
-                    `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
+                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH.value : 0);
+                document.getElementById('summaryUnits').textContent = `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
 
                 const vehicleTotal = parseFloat(totalH?.value || '0');
                 document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
@@ -2225,8 +2271,7 @@
             const tyPeriodEl = document.getElementById('tyPeriod');
             if (tyPeriodEl) tyPeriodEl.textContent = periodText;
 
-            const reference = currentBookingReference || (bookingIdField?.value ?
-                `#${bookingIdField.value}` : 'N/A');
+            const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : 'N/A');
             const tyReferenceEl = document.getElementById('tyReference');
             if (tyReferenceEl) tyReferenceEl.textContent = reference;
 
@@ -2247,8 +2292,7 @@
 
             const wa = document.getElementById('tyWhatsappBtn');
             if (wa) {
-                const txt =
-                    `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
+                const txt = `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
                 const url = new URL("https://wa.me/27612345678");
                 url.searchParams.set('text', txt);
                 wa.href = url.toString();

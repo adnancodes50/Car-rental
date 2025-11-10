@@ -424,7 +424,7 @@ return [
             'icon' => 'fas fa-fw fa-cogs text-warning',
             'submenu' => [
                    [
-    'text' => 'System Setting',
+    'text' => 'System Settings',
     'route'  => 'systemsetting.edit',
     'icon' => 'fas fa-tools text-danger',
 ],

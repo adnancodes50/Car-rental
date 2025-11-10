@@ -1,8 +1,6 @@
 {{-- resources/views/models/purchase.blade.php --}}
 @php
 
-
-
     $itemStatus = strtolower((string) ($item->status ?? ''));
     $isUnavailable = in_array($itemStatus, ['sold', 'inactive']);
 
@@ -286,7 +284,8 @@
                         @if ($settings->stripe_enabled)
                             <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
                                 <input type="radio" name="payment_method" id="purchaseStripe" value="stripe"
-                                    class="btn-check" autocomplete="off" required {{ $isUnavailable ? 'disabled' : '' }}>
+                                    class="btn-check" autocomplete="off" required
+                                    {{ $isUnavailable ? 'disabled' : '' }}>
                                 <label for="purchaseStripe"
                                     class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isUnavailable ? 'disabled' : '' }}">
                                     <div class="text-center mb-2">
@@ -304,7 +303,8 @@
                         @if ($settings->payfast_enabled)
                             <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
                                 <input type="radio" name="payment_method" id="purchasePayfast" value="payfast"
-                                    class="btn-check" autocomplete="off" required {{ $isUnavailable ? 'disabled' : '' }}>
+                                    class="btn-check" autocomplete="off" required
+                                    {{ $isUnavailable ? 'disabled' : '' }}>
                                 <label for="purchasePayfast"
                                     class="card btn w-100 purchase-pay-option p-3 flex-column {{ $isUnavailable ? 'disabled' : '' }}">
                                     <div class="text-center mb-2">
@@ -559,33 +559,33 @@
         }
 
         // Bias to regions / countries instead of addresses
-       const autocomplete = new google.maps.places.Autocomplete(visibleInput, {
-    // no types restriction => full address search (street, building, etc.)
-    // if you want to bias to real addresses only:
-    types: ['geocode'],
-});
+        const autocomplete = new google.maps.places.Autocomplete(visibleInput, {
+            // no types restriction => full address search (street, building, etc.)
+            // if you want to bias to real addresses only:
+            types: ['geocode'],
+        });
 
-autocomplete.addListener('place_changed', () => {
-    const place = autocomplete.getPlace();
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
 
-    // Try to get full nicely formatted address from Google
-    const fullAddress =
-        place.formatted_address
-        || visibleInput.value.trim(); // fallback if Google didn't give formatted_address
+            // Try to get full nicely formatted address from Google
+            const fullAddress =
+                place.formatted_address ||
+                visibleInput.value.trim(); // fallback if Google didn't give formatted_address
 
-    // Save full address into hidden field
-    hiddenField.value = fullAddress;
+            // Save full address into hidden field
+            hiddenField.value = fullAddress;
 
-    // Also snap the visible text field to the clean formatted version
-    visibleInput.value = fullAddress;
-});
+            // Also snap the visible text field to the clean formatted version
+            visibleInput.value = fullAddress;
+        });
 
-// Safety: if they just typed manually and didn't click a suggestion
-visibleInput.addEventListener('blur', () => {
-    if (!hiddenField.value || hiddenField.value.trim() === '') {
-        hiddenField.value = visibleInput.value.trim();
-    }
-});
+        // Safety: if they just typed manually and didn't click a suggestion
+        visibleInput.addEventListener('blur', () => {
+            if (!hiddenField.value || hiddenField.value.trim() === '') {
+                hiddenField.value = visibleInput.value.trim();
+            }
+        });
 
         // If they just typed and tabbed out, still sync it
         visibleInput.addEventListener('blur', () => {
@@ -614,7 +614,8 @@ visibleInput.addEventListener('blur', () => {
             currency: 'ZAR'
         });
 
-        const WHATSAPP_LINK = "https://wa.link/8bgpe5";
+        const WHATSAPP_LINK =
+            "https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website";
 
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
         const phonePattern = /^[0-9 ]+$/;
@@ -1607,16 +1608,3 @@ visibleInput.addEventListener('blur', () => {
         });
     })();
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-

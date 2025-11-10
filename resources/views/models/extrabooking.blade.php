@@ -1,1636 +1,1819 @@
 ﻿@php
-    use App\Models\SystemSetting;
-    use App\Models\StripeSetting;
-    use Illuminate\Support\Facades\Cache;
+    $isEquipmentBooking = isset($equipment);
+    $bookable = $isEquipmentBooking ? $equipment : $vehicle ?? null;
+    $bookableLabel = $isEquipmentBooking ? 'Equipment' : 'Vehicle';
+    $bookableName = $bookable->name ?? '';
+    $bookableDescription = $bookable->description ?? '';
+    $bookableModel = $isEquipmentBooking ? $equipment->category->name ?? '' : $vehicle->model ?? '';
+    $pricingDay = $isEquipmentBooking ? ($equipment->daily_price ?: null) : $vehicle->rental_price_day ?? null;
+    $pricingWeek = $isEquipmentBooking ? ($equipment->weekly_price ?: null) : $vehicle->rental_price_week ?? null;
+    $pricingMonth = $isEquipmentBooking ? ($equipment->monthly_price ?: null) : $vehicle->rental_price_month ?? null;
+    $bookingLeadDays = $isEquipmentBooking
+        ? (int) ($equipment->category->booking_lead_days ?? 0)
+        : (int) ($vehicle->booking_lead_days ?? 0);
+    $bookableImage = $isEquipmentBooking
+        ? asset('storage/' . ($equipment->image ?? ''))
+        : $vehicle->mainImage() ?? null;
+    $categoryId = $isEquipmentBooking ? $equipment->category_id ?? null : $vehicle->category_id ?? null;
+    $locationId = $isEquipmentBooking
+        ? optional($equipment->stocks->first())->location_id
+        : $vehicle->location_id ?? null;
 
-    $item = $equipment ?? $vehicle ?? null;
-    $category = $item?->category ?? null;
-    $stocks = collect($item?->stocks ?? [])->filter(function ($stock) {
-        return $stock && $stock->location;
-    })->values();
+    $bookedRanges = collect($bookedRanges ?? [])
+        ->map(function ($range) {
+            return [
+                'from' => $range['from'] ?? null,
+                'to' => $range['to'] ?? null,
+            ];
+        })
+        ->filter(fn($range) => $range['from'] && $range['to'])
+        ->values()
+        ->toArray();
 
-    $unitOptions = [
-        'day' => [
-            'label' => 'Daily Rental',
-            'description' => 'Perfect for short trips',
-            'icon' => 'bi-clock',
-            'price' => $category->daily_price ?? $item->daily_price ?? $item->rental_price_day ?? null,
-            'suffix' => '/day',
-        ],
-        'week' => [
-            'label' => 'Weekly Rental',
-            'description' => 'Great for 1-4 weeks',
-            'icon' => 'bi-calendar-event',
-            'price' => $category->weekly_price ?? $item->weekly_price ?? $item->rental_price_week ?? null,
-            'suffix' => '/week',
-        ],
-        'month' => [
-            'label' => 'Monthly Rental',
-            'description' => 'Best for long stays',
-            'icon' => 'bi-box',
-            'price' => $category->monthly_price ?? $item->monthly_price ?? $item->rental_price_month ?? null,
-            'suffix' => '/month',
-        ],
-    ];
+    $locationOptions = collect($locationOptions ?? []);
+    $locationBookings = collect($locationBookings ?? []);
+    $locationFullyBooked = collect($locationFullyBooked ?? [])
+        ->mapWithKeys(function ($ranges, $locationKey) {
+            $items = collect($ranges)
+                ->map(function ($range) {
+                    return [
+                        'from' => $range['from'] ?? null,
+                        'to' => $range['to'] ?? null,
+                    ];
+                })
+                ->filter(fn($range) => $range['from'] && $range['to'])
+                ->values();
 
-    $unitOptions = array_filter($unitOptions, static function ($option) {
-        return !is_null($option['price']) && $option['price'] > 0;
-    });
+            return [(string) $locationKey => $items];
+        })
+        ->toArray();
 
-    $defaultUnit = array_key_first($unitOptions);
-    $categoryId = $category?->id ?? $item?->category_id ?? null;
-    $today = now()->toDateString();
-
-    if (app()->environment('local')) {
-        $settings = SystemSetting::first() ?: new SystemSetting([
-            'stripe_enabled' => false,
-            'payfast_enabled' => false,
-        ]);
-    } else {
-        $settings = Cache::remember('payments.settings', 60, function () {
-            return SystemSetting::first() ?: new SystemSetting([
-                'stripe_enabled' => false,
-                'payfast_enabled' => false,
+    if ($isEquipmentBooking && isset($equipment)) {
+        if ($locationOptions->isEmpty()) {
+            $locationOptions = ($equipment->stocks ?? collect())->map(function ($stock) {
+                return [
+                    'id' => $stock->location?->id,
+                    'name' => $stock->location?->name ?? 'Location',
+                    'stock' => (int) ($stock->stock ?? 0),
+                ];
+            });
+        }
+    } elseif (isset($vehicle)) {
+        if ($locationOptions->isEmpty()) {
+            $locationOptions = collect([
+                [
+                    'id' => $locationId ?? optional($vehicle->branch ?? null)->id,
+                    'name' => optional($vehicle->branch ?? null)->name ?? ($vehicle->location ?? 'Primary Location'),
+                    'stock' => null,
+                ],
             ]);
-        });
+        }
     }
 
-    $stripeConfig = StripeSetting::first();
-    $stripePublicKey = $stripeConfig->stripe_key ?? '';
-    $paymentMethodsEnabled = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
+    $locationOptions = $locationOptions
+        ->filter(fn($loc) => !empty($loc['id']) || !empty($loc['name']))
+        ->unique(fn($loc) => $loc['id'] ?? $loc['name'])
+        ->values();
+
+    if (!$locationId && $locationOptions->count() === 1) {
+        $locationId = $locationOptions->first()['id'] ?? null;
+    }
+
+    $locationInventory = $locationOptions
+        ->filter(fn($loc) => !empty($loc['id']))
+        ->mapWithKeys(function ($loc) {
+            return [
+                (string) $loc['id'] => [
+                    'stock' => isset($loc['stock']) ? (int) $loc['stock'] : null,
+                    'name' => $loc['name'] ?? 'Location',
+                ],
+            ];
+        })
+        ->toArray();
+
+    $locationBookingMap = $locationBookings
+        ->mapWithKeys(function ($bookings, $locationKey) {
+            if (is_null($locationKey)) {
+                return [];
+            }
+
+            $items = collect($bookings)
+                ->map(function ($booking) {
+                    return [
+                        'from' => $booking['from'] ?? null,
+                        'to' => $booking['to'] ?? null,
+                        'units' => (int) ($booking['units'] ?? 1),
+                    ];
+                })
+                ->filter(fn($item) => $item['from'] && $item['to'])
+                ->values();
+
+            return [(string) $locationKey => $items];
+        })
+        ->toArray();
+
+    $showLocationSelect = $locationOptions->contains(function ($loc) {
+        return !empty($loc['id']);
+    });
+
+    $continueBrowseLabel = $isEquipmentBooking ? 'Equipment' : 'Vehicles';
+    $continueBrowseUrl = $isEquipmentBooking ?: url('/');
 @endphp
 
-@if ($item && $categoryId && count($unitOptions) > 0)
-    <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
-        data-bs-keyboard="false">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
-            <div class="modal-content rounded-4">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-calendar-check me-2"></i>Book {{ $item->name }}
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+{{-- Booking FORM --}}
+<form id="bookingForm" method="POST" action="{{ route('bookings.store') }}">
+    @csrf
 
-                <div class="modal-body pt-0">
-                    <div class="booking-stepper mb-4">
-                        <div class="booking-step active" data-step-index="0">
-                            <span class="booking-step-number">1</span>
-                            <span class="booking-step-label">Options</span>
-                        </div>
-                        <div class="booking-step" data-step-index="1">
-                            <span class="booking-step-number">2</span>
-                            <span class="booking-step-label">Your Details</span>
-                        </div>
-                        <div class="booking-step" data-step-index="2">
-                            <span class="booking-step-number">3</span>
-                            <span class="booking-step-label">Review</span>
-                        </div>
-                    </div>
+    @if ($isEquipmentBooking)
+        <input type="hidden" name="equipment_id" value="{{ $equipment->id }}">
+    @else
+        <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
+    @endif
+    <input type="hidden" name="category_id" value="{{ $categoryId ?? '' }}">
+    <input type="hidden" name="location_id" id="inputLocationId" value="{{ $locationId ?? '' }}">
+    <input type="hidden" name="stock_quantity" id="inputStockQuantity" value="1">
+    <input type="hidden" name="rental_unit" id="inputRentalUnit">
+    <input type="hidden" name="rental_quantity" id="inputRentalQuantity">
+    <input type="hidden" name="rental_start_date" id="inputRentalStartDate">
+    <input type="hidden" name="extra_days" id="inputExtraDays" value="0">
+    <input type="hidden" name="total_price" id="inputTotalPrice">
+    <input type="hidden" name="booking_id" id="bookingId">
 
-                    <form id="bookingForm" method="POST" action="{{ route('bookings.store') }}" novalidate>
-                        @csrf
-                        <input type="hidden" name="category_id" value="{{ $categoryId }}">
-                        <input type="hidden" name="equipment_id" value="{{ $item->id }}">
-                        <input type="hidden" name="rental_unit" id="bookingRentalUnit"
-                            value="{{ $defaultUnit ?? '' }}">
-                        <input type="hidden" name="total_price" id="bookingTotalInput" value="0">
-                        <input type="hidden" name="equipment_stock_id" id="bookingStockIdInput" value="">
-                        <input type="hidden" name="booking_id" id="bookingId">
-
-                        <div data-booking-step="0">
-                            <div class="alert alert-danger d-none" id="bookingStep1Error"></div>
-
-                            <h6 class="fw-bold mb-3">Select Rental Duration</h6>
-                            <div class="row g-3 mb-4">
-                                @foreach ($unitOptions as $unit => $option)
-                                    <div class="col-12 col-md-4">
-                                        <button type="button"
-                                            class="booking-unit-card {{ $loop->first ? 'active' : '' }}"
-                                            data-unit-card data-unit="{{ $unit }}"
-                                            data-price="{{ $option['price'] }}"
-                                            data-suffix="{{ $option['suffix'] }}">
-                                            <span class="booking-unit-icon"><i
-                                                    class="bi {{ $option['icon'] }}"></i></span>
-                                            <span class="booking-unit-title">{{ $option['label'] }}</span>
-                                            <span class="booking-unit-description text-muted small">
-                                                {{ $option['description'] }}
-                                            </span>
-                                            <span class="booking-unit-price fw-semibold">
-                                                R{{ number_format($option['price'], 2) }}{{ $option['suffix'] }}
-                                            </span>
-                                        </button>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-12 col-md-6">
-                                    <label for="bookingStartDate" class="form-label">Start Date</label>
-                                    <input type="date" class="form-control" id="bookingStartDate"
-                                        name="rental_start_date" value="{{ $today }}" min="{{ $today }}" required>
-                                </div>
-
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label" for="bookingQuantity">
-                                        <span data-quantity-label>Number of days</span>
-                                    </label>
-                                    <select id="bookingQuantity" name="rental_quantity" class="form-select" required>
-                                        <option value="1" selected>1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                        <option value="4">4</option>
-                                        <option value="5">5</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-12 col-md-6" data-extra-days-wrap>
-                                    <label for="bookingExtraDays" class="form-label">Extra Days (optional)</label>
-                                    <select id="bookingExtraDays" name="extra_days" class="form-select">
-                                        <option value="0" selected>0</option>
-                                    </select>
-                                    <div class="form-text">Add extra days on top of the selected plan.</div>
-                                </div>
-
-                                <div class="col-12 col-md-6">
-                                    <label for="bookingLocation" class="form-label">Select Location</label>
-                                    <select id="bookingLocation" name="location_id" class="form-select" required
-                                        {{ $stocks->isEmpty() ? 'disabled' : '' }}>
-                                        @if ($stocks->isEmpty())
-                                            <option value="" selected>No locations available</option>
-                                        @else
-                                            @foreach ($stocks as $stock)
-                                                <option value="{{ $stock->location_id }}"
-                                                    data-available="{{ (int) $stock->stock }}"
-                                                    data-stock-id="{{ $stock->id }}"
-                                                    data-location-name="{{ $stock->location->name }}">
-                                                    {{ $stock->location->name }} ({{ (int) $stock->stock }} in stock)
-                                                </option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                    @if ($stocks->isEmpty())
-                                        <div class="form-text text-danger">No stock available for this item.</div>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label for="bookingStock" class="form-label">Units to Reserve</label>
-                                    <select id="bookingStock" name="stock_quantity" class="form-select"
-                                        {{ $stocks->isEmpty() ? 'disabled' : '' }}>
-                                        <option value="1" selected>1 unit</option>
-                                    </select>
-                                    <div class="form-text">Controls how many units are reserved at the location.</div>
-                                </div>
-                            </div>
-
-                            <div class="booking-summary-panel mt-4">
-                                <div class="booking-summary-row">
-                                    <span class="text-muted small">Vehicle total</span>
-                                    <strong id="bookingTotalDisplay">R0.00</strong>
-                                </div>
-                                <div class="booking-summary-row border-0 pt-3">
-                                    <div>
-                                        <div class="text-muted small">Start date</div>
-                                        <strong id="bookingPeriodStart">-</strong>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="text-muted small">End date</div>
-                                        <strong id="bookingPeriodEnd">-</strong>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-4">
-                                <button type="button" class="btn btn-dark w-100" id="bookingStep1Next"
-                                    {{ $stocks->isEmpty() ? 'disabled' : '' }}>
-                                    Continue
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="d-none" data-booking-step="1">
-                            <div class="alert alert-danger d-none" id="bookingStep2Error"></div>
-
-                            <h6 class="fw-bold mb-3">Your Details</h6>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label for="bookingName" class="form-label">Full Name</label>
-                                    <input type="text" class="form-control" id="bookingName" name="name"
-                                        placeholder="John Smith" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="bookingEmail" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="bookingEmail" name="email"
-                                        placeholder="you@example.com" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="bookingPhone" class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="bookingPhone" name="phone"
-                                        placeholder="+27 123 456 7890" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="bookingCountry" class="form-label">Country (optional)</label>
-                                    <input type="text" class="form-control" id="bookingCountry" name="country"
-                                        placeholder="South Africa">
-                                </div>
-                            </div>
-
-                            <div class="mt-4 d-flex gap-2">
-                                <button type="button" class="btn btn-outline-secondary flex-grow-1"
-                                    id="bookingStep2Back">
-                                    Back
-                                </button>
-                                <button type="button" class="btn btn-dark flex-grow-1" id="bookingStep2Next">
-                                    Review Booking
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="d-none" data-booking-step="2">
-                            <h6 class="fw-bold mb-3">Review & Confirm</h6>
-
-                            <div class="booking-review mb-4">
-                                <h6 class="fw-semibold mb-2">Rental Details</h6>
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Plan</span>
-                                        <span data-summary="unit">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Rate</span>
-                                        <span data-summary="rate">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Quantity</span>
-                                        <span data-summary="quantity">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Extra days</span>
-                                        <span data-summary="extra_days">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Start</span>
-                                        <span data-summary="start">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>End</span>
-                                        <span data-summary="end">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Location</span>
-                                        <span data-summary="location">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Units reserved</span>
-                                        <span data-summary="stock_qty">-</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div class="booking-review mb-4">
-                                <h6 class="fw-semibold mb-2">Contact</h6>
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Name</span>
-                                        <span data-summary="name">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Email</span>
-                                        <span data-summary="email">-</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Phone</span>
-                                        <span data-summary="phone">-</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div class="booking-total-card mb-3">
-                                <span class="text-muted small">Total price</span>
-                                <span class="h5 mb-0" data-summary="total">R0.00</span>
-                            </div>
-
-                            <div class="alert alert-danger d-none" id="bookingSummaryError" role="alert"></div>
-
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-secondary flex-grow-1"
-                                    id="bookingStep3Back">
-                                    Back
-                                </button>
-                                <button type="button" class="btn btn-dark flex-grow-1" id="openPayment"
-                                    {{ $stocks->isEmpty() ? 'disabled' : '' }}>
-                                    Continue to Payment
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="modal-footer border-0">
-                    <small class="text-muted">Need help? Contact us and we will assist with your booking.</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow">
+    <!-- Step 1: Multi-Step Booking Modal -->
+    <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true"
+        style="height: 90vh; margin-top: 4rem;">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
+            <div class="modal-content rounded-4 shadow-lg">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-credit-card-fill me-2"></i>Select Payment Method
+                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book {{ $bookableName }}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
                 <div class="modal-body">
-                    <div class="row g-3 align-items-stretch justify-content-center">
-                        @if ($settings->stripe_enabled)
-                            <div class="col-12 {{ $paymentMethodsEnabled === 2 ? 'col-md-6' : 'col-md-12' }}">
-                                <input type="radio" name="booking_payment_method" id="bookingStripe"
-                                    value="stripe" class="btn-check" autocomplete="off">
-                                <label for="bookingStripe" class="card btn w-100 booking-pay-option p-3 flex-column">
-                                    <div class="text-center mb-2">
-                                        <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe"
-                                            style="width: 80px;">
-                                    </div>
-                                    <div class="booking-pay-text text-center">
-                                        <div class="fw-bold">Stripe (Card)</div>
-                                        <small class="text-muted">Visa � Mastercard � Amex</small>
-                                    </div>
-                                </label>
+                    <h5 class="mb-3 text-center">Select Rental Duration</h5>
+                    <div class="row text-center g-3 text-muted">
+                        @if ($pricingDay)
+                            <div class="col-md-4">
+                                <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
+                                    data-price="{{ $pricingDay }}">
+                                    <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
+                                    <h6 class="mt-2">Daily Rental</h6>
+                                    <p class="small text-muted mb-1">Perfect for short trips</p>
+                                    <div class="text-dark">R{{ number_format($pricingDay) }}/day</div>
+                                </div>
                             </div>
                         @endif
 
-                        @if ($settings->payfast_enabled)
-                            <div class="col-12 {{ $paymentMethodsEnabled === 2 ? 'col-md-6' : 'col-md-12' }}">
-                                <input type="radio" name="booking_payment_method" id="bookingPayfast"
-                                    value="payfast" class="btn-check" autocomplete="off">
-                                <label for="bookingPayfast" class="card btn w-100 booking-pay-option p-3 flex-column">
-                                    <div class="text-center mb-2">
-                                        <img src="{{ asset('images/payfast.png') }}" class="rounded-3"
-                                            alt="PayFast" style="width: 80px;">
-                                    </div>
-                                    <div class="booking-pay-text text-center">
-                                        <div class="fw-bold">PayFast</div>
-                                        <small class="text-muted">South African payments</small>
-                                    </div>
-                                </label>
+                        @if ($pricingWeek)
+                            <div class="col-md-4">
+                                <div class="option-card p-3 border rounded-4 h-100" data-type="week"
+                                    data-price="{{ $pricingWeek }}">
+                                    <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
+                                    <h6 class="mt-2">Weekly Rental</h6>
+                                    <p class="small text-muted mb-1">Great for 1-4 weeks</p>
+                                    <div class="text-dark">R{{ number_format($pricingWeek) }}/week</div>
+                                </div>
                             </div>
                         @endif
 
-                        @if ($paymentMethodsEnabled === 0)
-                            <div class="col-12">
-                                <div class="alert alert-warning text-center mb-0">
-                                    No payment methods are currently available.
+                        @if ($pricingMonth)
+                            <div class="col-md-4">
+                                <div class="option-card p-3 border rounded-4 h-100" data-type="month"
+                                    data-price="{{ $pricingMonth }}">
+                                    <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
+                                    <h6 class="mt-2">Monthly Rental</h6>
+                                    <p class="small text-muted mb-1">Best for long stays</p>
+                                    <div class="text-dark">R{{ number_format($pricingMonth) }}/month</div>
                                 </div>
                             </div>
                         @endif
                     </div>
+
+                    <div id="dateSection" class="mb-3 mt-3 d-none">
+                        <div class="position-relative">
+                            <input type="text" id="rentalStartDate" class="form-control ps-5"
+                                placeholder="Select a start date" readonly data-lead="{{ $bookingLeadDays }}"
+                                data-blocked='@json($bookedRanges)'>
+                            <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
+                                <i class="bi bi-calendar-event"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Quantity & Extra Days -->
+                    <div class="row">
+                        <!-- Quantity -->
+                        <div class="col-md-6 mb-3 d-none" id="quantitySection">
+                            <label for="rentalQuantity" class="form-label" id="quantityLabel"></label>
+                            <select id="rentalQuantity" class="form-select rounded-3"></select>
+                        </div>
+
+                        <!-- Extra Days -->
+                        <div class="col-md-6 mb-3 d-none" id="extraDaysSection">
+                            <label for="extraDaysInput" class="form-label">Extra day(s)</label>
+                            <input type="number" min="0" step="1" value="0" class="form-control"
+                                id="extraDaysInput" inputmode="numeric">
+                            <div class="form-text" id="extraDaysHelp">Add additional day(s) on top of the selected
+                                duration.</div>
+                        </div>
+                    </div>
+
+                    @if ($showLocationSelect)
+                        @php
+                            $selectedLocation = $locationId ? $locationOptions->firstWhere('id', $locationId) : null;
+                            $initialHint = $selectedLocation
+                                ? (($selectedLocation['stock'] ?? null) !== null
+                                    ? $selectedLocation['stock'] . ' in stock'
+                                    : 'Location selected')
+                                : 'Select a location to view availability.';
+                        @endphp
+                        <div class="row g-3" id="locationRow">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="bookingLocationSelect">Select
+                                    Location</label>
+                                <select class="form-select" id="bookingLocationSelect"
+                                    {{ $locationOptions->count() === 1 ? 'data-single="true"' : '' }}>
+                                    @if (!$locationId)
+                                        <option value="" selected disabled>Select a location</option>
+                                    @endif
+                                    @foreach ($locationOptions as $loc)
+                                        <option value="{{ $loc['id'] ?? '' }}"
+                                            data-base-stock="{{ $loc['stock'] ?? '' }}"
+                                            data-display-name="{{ $loc['name'] ?? 'Location' }}"
+                                            {{ (string) ($locationId ?? '') === (string) ($loc['id'] ?? '') ? 'selected' : '' }}>
+                                            {{ $loc['name'] ?? 'Location' }}
+                                            @if (!is_null($loc['stock']))
+                                                ({{ $loc['stock'] }} in stock)
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="stockQuantitySelect">Stock Quantity</label>
+                                <select class="form-select" id="stockQuantitySelect">
+                                    <option value="" selected>Select quantity</option>
+                                </select>
+                                <div class="form-text" id="locationAvailabilityHint">{{ $initialHint }}</div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Total Price -->
+                    <div class="alert alert-info fw-bold d-none" id="totalPrice"></div>
+
+                    <!-- Rental Period -->
+                    <div class="alert alert-secondary fw-bold d-none" id="rentalPeriod"></div>
                 </div>
 
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" id="paymentBackToSummary">
-                        Back
-                    </button>
+                <div class="modal-footer d-block">
+                    <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100">Continue to
+                        Details</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
-        style="margin-top: 4rem; height:90vh;">
+    <!-- Step 2: Customer Details Modal -->
+    <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true" style="margin-bottom: 10rem">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-credit-card-fill me-2"></i>Stripe Payment
-                    </h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-circle me-2"></i>Enter Your Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
+                <div class="modal-body px-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control rounded-3" name="name"
+                                placeholder="John Doe" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control rounded-3" name="email"
+                                placeholder="you@example.com" inputmode="email" autocomplete="email" required
+                                pattern="^([^\s@]+)@([^\s@]+)\.[^\s@]{2,}$"
+                                title="Enter a valid email address, e.g. you@example.com">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control rounded-3" name="phone"
+                                placeholder="+27 123 456 7890" inputmode="tel" required
+                                pattern="^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$"
+                                title="Use digits, optional spaces or dashes, e.g. +27 123 456 7890">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <input type="text" id="bookingCustomerCountry" name="country"
+                                class="form-control rounded-3" placeholder="Start typing your address..."
+                                autocomplete="street-address" required>
+                            <small class="text-muted">Use the suggestions to pick your full address.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-3"
+                        id="customerBackToStep1">Back</button>
+                    <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">Review
+                        Booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Booking Summary -->
+    <div class="modal fade mt-5" id="summaryStep" tabindex="-1" aria-hidden="true"
+        style="height: 90vh; margin-top: 4rem;">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content rounded-4 shadow-lg">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard-check me-2"></i> Booking Summary</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body">
-                    <div id="booking-card-element" class="mt-3">
-                        <div id="booking-card-number" class="form-control mb-3"></div>
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <div id="booking-card-expiry" class="form-control"></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div id="booking-card-cvc" class="form-control"></div>
+                    <h4 class="fw-bold mb-3 text-center">Review Your Booking</h4>
+                    <p class="text-center text-muted">Please review your booking details before proceeding to payment
+                    </p>
+
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <h6 class="fw-semibold">{{ $bookableLabel }}</h6>
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="{{ $bookableImage }}" class="rounded"
+                                style="width:80px; height:80px; object-fit:cover;">
+                            <div>
+                                <p class="fw-bold mb-1">{{ $bookableName }}</p>
+                                <p class="text-muted small">{{ $bookableDescription ?? '' }}</p>
                             </div>
                         </div>
-                        <div id="booking-card-errors" class="text-danger mt-2"></div>
+                    </div>
+
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <h6 class="fw-semibold">Rental Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="text-muted small mb-1">Rental Type</p>
+                                <p class="fw-bold" id="summaryType"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted small mb-1">Period</p>
+                                <p class="fw-bold" id="summaryPeriod"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted small mb-1">Location</p>
+                                <p class="fw-bold" id="summaryLocation"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted small mb-1">Quantity</p>
+                                <p class="fw-bold" id="summaryUnits">1 unit</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-semibold mb-0">Price Breakdown</h6>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>{{ $bookableLabel }} rental</span>
+                            <span id="summaryVehicleTotal">R0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-semibold border-top pt-2">
+                            <span>Grand total</span>
+                            <span class="text-success" id="summaryGrandTotal">R0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <h6 class="fw-semibold">Customer Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="small text-muted mb-1">Name</p>
+                                <p class="fw-bold" id="summaryCustomerName"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="small text-muted mb-1">Email</p>
+                                <p class="fw-bold" id="summaryCustomerEmail"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="small text-muted mb-1">Phone</p>
+                                <p class="fw-bold" id="summaryCustomerPhone"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="small text-muted mb-1">Address</p>
+                                <p class="fw-bold" id="summaryCustomerCountry"></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary me-auto" id="stripeBackToPayment">
-                        Back
-                    </button>
-                    <button type="button" id="bookingStripePayButton" class="btn btn-dark">
-                        Pay with Stripe
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="bookingPaymentLoader" class="booking-payment-loader d-none" role="alert" aria-live="polite"
-        aria-hidden="true">
-        <div class="booking-payment-loader-backdrop"></div>
-        <div class="booking-payment-loader-content">
-            <div class="spinner-border text-light" role="status" aria-hidden="true"></div>
-            <span id="bookingPaymentLoaderText" class="mt-3 text-white fw-semibold">Processing payment...</span>
-        </div>
-    </div>
-
-    <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
-            <div class="modal-content rounded-4 shadow border-0">
-                <div class="modal-body p-4 p-md-5">
-                    <div class="d-flex align-items-center gap-3 mb-4">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10"
-                            style="width:56px;height:56px;">
-                            <i class="bi bi-check-lg text-success fs-3"></i>
-                        </div>
-                        <div>
-                            <h4 class="fw-bold mb-1">Payment Successful!</h4>
-                            <p class="text-muted mb-0">We've confirmed your booking. A receipt has been sent to your
-                                email.</p>
-                        </div>
-                    </div>
-
-                    <div class="booking-review mb-4">
-                        <h6 class="fw-semibold mb-2">Booking Summary</h6>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Item</span>
-                                <span id="tyItemName">{{ $item->name }}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Reference</span>
-                                <span id="tyReference">-</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Period</span>
-                                <span id="tyPeriod">-</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Payment method</span>
-                                <span id="tyMethod">-</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="booking-total-card mb-4">
-                        <span class="text-muted small">Total paid</span>
-                        <span class="h5 mb-0" id="tyAmount">R0.00</span>
-                    </div>
-
-                    <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
-                        <i class="bi bi-envelope-fill"></i>
-                        <div id="tyCustomerContact">We will email your confirmation shortly.</div>
-                    </div>
-
-                    <div class="d-flex flex-column flex-md-row gap-2 mt-4">
-                        <button type="button" class="btn btn-success w-100" data-bs-dismiss="modal">
-                            Close
-                        </button>
+                    <div class="d-flex justify-content-between w-100">
+                        <button type="button" class="btn btn-outline-secondary"
+                            id="summaryBackToCustomer">Back</button>
+                        <button type="button" id="openPayment" class="btn btn-dark rounded-3">Continue to
+                            Payment</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <style>
-        #bookingModal .booking-stepper {
+</form>
+
+@php
+    use App\Models\SystemSetting;
+    use App\Models\StripeSetting;
+    use Illuminate\Support\Facades\Cache;
+
+    if (app()->environment('local')) {
+        $settings =
+            SystemSetting::first() ?: new SystemSetting(['stripe_enabled' => false, 'payfast_enabled' => false]);
+    } else {
+        $settings = Cache::remember('payments.settings', 60, function () {
+            return SystemSetting::first() ?: new SystemSetting(['stripe_enabled' => false, 'payfast_enabled' => false]);
+        });
+    }
+
+    $stripeConfig = StripeSetting::first();
+    $enabledCount = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
+@endphp
+
+<!-- Payment Method Selection -->
+<div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-credit-card-fill me-2"></i> Select Payment Method</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row g-3 align-items-stretch justify-content-center">
+                    @if ($settings->stripe_enabled)
+                        <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+                            <input type="radio" name="booking_payment_method" id="bookingStripe" value="stripe"
+                                class="btn-check" autocomplete="off" required>
+                            <label for="bookingStripe" class="card btn w-100 booking-pay-option p-3 flex-column">
+                                <div class="text-center mb-2">
+                                    <img src="{{ asset('images/stripe.png') }}" class="rounded-3" alt="Stripe"
+                                        style="width: 80px;">
+                                </div>
+                                <div class="booking-pay-text text-center">
+                                    <div class="fw-bold">Stripe (Card)</div>
+                                    <small class="text-muted">Visa .Mastercard. Amex</small>
+                                </div>
+                            </label>
+                        </div>
+                    @endif
+
+                    @if ($settings->payfast_enabled)
+                        <div class="col-12 {{ $enabledCount === 2 ? 'col-md-6' : 'col-md-12' }}">
+                            <input type="radio" name="booking_payment_method" id="bookingPayfast" value="payfast"
+                                class="btn-check" autocomplete="off" required>
+                            <label for="bookingPayfast" class="card btn w-100 booking-pay-option p-3 flex-column">
+                                <div class="text-center mb-2">
+                                    <img src="{{ asset('images/payfast.png') }}" class="rounded-3" alt="PayFast"
+                                        style="width: 80px;">
+                                </div>
+                                <div class="booking-pay-text text-center">
+                                    <div class="fw-bold">PayFast</div>
+                                    <small class="text-muted">South Africa payments</small>
+                                </div>
+                            </label>
+                        </div>
+                    @endif
+
+                    @if ($enabledCount === 0)
+                        <div class="col-12">
+                            <div class="alert alert-warning text-center mb-0">No payment methods are currently
+                                available.</div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" id="paymentBackToSummary">Back</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stripe Payment Modal -->
+<div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
+    style="margin-top: 4rem; height:90vh;">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-credit-card-fill me-2"></i> Stripe Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="booking-card-element" class="mt-3">
+                    <div id="booking-card-number" class="form-control mb-3"></div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div id="booking-card-expiry" class="form-control"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="booking-card-cvc" class="form-control"></div>
+                        </div>
+                    </div>
+                    <div id="booking-card-errors" class="text-danger mt-2"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto"
+                    id="stripeBackToPayment">Back</button>
+                <button type="button" id="bookingStripePayButton" class="btn btn-dark">Pay with Stripe</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thank You Modal -->
+<div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
+    <div class="container modal-dialog modal-fullscreen-md-down custom-modal-dialog " style="margin-top: 7rem">
+        <div class="modal-content rounded-4 shadow border-0">
+            <div class="modal-body p-4 p-md-5">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10"
+                        style="width:56px;height:56px;">
+                        <i class="bi bi-check-lg text-success fs-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">Payment Successful!</h4>
+                        <div class="text-muted small">Your booking deposit has been processed successfully.</div>
+                    </div>
+                </div>
+
+                <div class="border border-success-subtle rounded-3 p-3 p-md-4 mb-4 bg-success bg-opacity-10">
+                    <div class="fw-semibold mb-3">
+                        Booking Reference: <span class="text-success" id="tyReference">N/A</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-box-seam mt-1"></i>
+                                <div>
+                                    <div class="small text-muted">{{ $bookableLabel }}</div>
+                                    <div class="fw-semibold" id="tyVehicleName">N/A</div>
+                                    <div class="text-muted small" id="tyVehicleSub"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-person mt-1"></i>
+                                <div>
+                                    <div class="small text-muted">Primary renter</div>
+                                    <div class="fw-semibold" id="tyCustomerName">N/A</div>
+                                    <div class="text-muted small" id="tyCustomerContact">N/A</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-calendar-event mt-1"></i>
+                                <div>
+                                    <div class="small text-muted">Rental period</div>
+                                    <div class="fw-semibold" id="tyPeriod"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-credit-card mt-1"></i>
+                                <div>
+                                    <div class="small text-muted">Deposit paid</div>
+                                    <div class="fw-semibold">
+                                        <span id="tyAmount">R0.00</span>
+                                        <span class="text-muted small" id="tyMethod"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-3 p-3 p-md-4 border bg-light">
+                    <div class="fw-semibold text-center mb-2">What happens next?</div>
+                    <div class="text-muted small text-center">
+                        Your booking is now <strong>under offer</strong> and pending confirmation.
+                        We'll be in touch shortly to finalize the details and arrange vehicle handover.
+                        Please keep your booking reference safe for future correspondence.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-0 px-4 px-md-5 pb-4 d-flex flex-wrap gap-2 justify-content-between">
+                <a href="/" class="btn btn-outline-secondary rounded-3" id="tyContinueVehicles">
+                    Continue to Categories
+                </a>
+
+
+                <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
+                    class="btn btn-success fw-bold rounded-3 d-flex align-items-center gap-2" target="_blank"
+                    id="tyWhatsappBtn" rel="noopener">
+                    <i class="bi bi-whatsapp fs-5"></i>Chat with Us
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #bookingThankYou .custom-modal-dialog {
+        max-width: none;
+        width: calc(100vw - 2rem);
+        margin: 1rem auto;
+    }
+
+    @media (min-width: 1200px) {
+        #bookingThankYou .custom-modal-dialog {
+            width: calc(100vw - 4rem);
+            margin: 2rem auto;
+        }
+    }
+
+    #bookingPayment .booking-pay-option {
+        min-height: 160px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        border: 1px solid #dee2e6;
+        border-radius: .75rem;
+        padding: 20px;
+        text-align: left;
+        transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+    }
+
+    #bookingPayment .booking-pay-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .08);
+    }
+
+    #bookingPayment .btn-check:checked+.booking-pay-option {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .2);
+    }
+
+    #stockQuantitySelect:disabled {
+        background-color: #f8f9fa;
+        opacity: 0.6;
+    }
+
+    #locationAvailabilityHint.text-danger {
+        font-weight: 600;
+    }
+
+    #summaryUnits {
+        color: #198754;
+        font-weight: 600;
+    }
+
+    @media (min-width: 768px) {
+        #bookingPayment .col-md-6 {
             display: flex;
-            gap: .75rem;
-            justify-content: space-between;
-        }
-
-        #bookingModal .booking-step {
-            flex: 1;
-            padding: .75rem;
-            border-radius: 1rem;
-            background: #f1f3f2;
-            text-align: center;
-            transition: all .2s ease;
-        }
-
-        #bookingModal .booking-step.completed {
-            background: #dce8dc;
-            color: #2d6a4f;
-        }
-
-        #bookingModal .booking-step.active {
-            background: #679767;
-            color: #fff;
-        }
-
-        #bookingModal .booking-step-number {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, .2);
-            margin-bottom: .35rem;
-            font-weight: 600;
-        }
-
-        #bookingModal .booking-step-label {
-            display: block;
-            font-size: .8rem;
-            font-weight: 600;
-        }
-
-        #bookingModal .booking-unit-card {
-            width: 100%;
-            border: 1px solid #e5e7eb;
-            border-radius: 1rem;
-            background: #fff;
-            padding: 1rem;
-            text-align: left;
-            display: flex;
-            flex-direction: column;
-            gap: .5rem;
-            transition: all .2s ease;
-        }
-
-        #bookingModal .booking-unit-card:hover {
-            border-color: #679767;
-            transform: translateY(-2px);
-        }
-
-        #bookingModal .booking-unit-card.active {
-            border-color: #679767;
-            box-shadow: 0 12px 24px rgba(103, 151, 103, .15);
-        }
-
-        #bookingModal .booking-unit-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: #f5faf5;
-            color: #679767;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        #bookingModal .booking-summary-panel {
-            border: 1px solid #e5e7eb;
-            border-radius: 1rem;
-            padding: 1rem;
-            background: #f8faf8;
-        }
-
-        #bookingModal .booking-summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #e5e7eb;
-            padding-top: .75rem;
-            margin-top: .75rem;
-        }
-
-        #bookingModal .booking-summary-row:first-child {
-            border-top: none;
-            margin-top: 0;
-            padding-top: 0;
-        }
-
-        #bookingModal .booking-review .list-group-item {
-            padding-left: 0;
-            padding-right: 0;
-            border: none;
-        }
-
-        #bookingModal .booking-total-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 1rem;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f5faf5;
-        }
-
-        #bookingModal .form-text {
-            font-size: .75rem;
         }
 
         #bookingPayment .booking-pay-option {
-            min-height: 180px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            border: 1px solid #dee2e6;
-            border-radius: .75rem;
-            padding: 20px;
-            text-align: center;
-            transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+            width: 100%;
+        }
+    }
+
+    /* Make Google Places dropdown visible above all modals */
+    .pac-container {
+        z-index: 9999 !important;
+    }
+</style>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{{-- GOOGLE PLACES AUTOCOMPLETE CALLBACK (GLOBAL, BEFORE MAPS SCRIPT) --}}
+<script>
+    window.initCustomerAutocomplete = function() {
+        var input = document.getElementById('bookingCustomerCountry');
+        if (!input) {
+            return;
         }
 
-        #bookingPayment .booking-pay-option:hover {
-            border-color: #679767;
-            box-shadow: 0 12px 20px rgba(103, 151, 103, .15);
-            transform: translateY(-2px);
+        if (!window.google || !google.maps || !google.maps.places) {
+            console.warn('Google Places library not available.');
+            return;
         }
 
-        #bookingPayment .btn-check:checked+.booking-pay-option {
-            border-color: #679767;
-            background: rgba(103, 151, 103, .08);
-            box-shadow: 0 12px 24px rgba(103, 151, 103, .2);
-        }
+        var autocomplete = new google.maps.places.Autocomplete(input, {
+            types: ['geocode'], // or ['address']
+            // componentRestrictions: { country: ['za'] }, // optional
+            fields: ['formatted_address', 'geometry', 'address_components']
+        });
 
-        .booking-payment-loader {
-            position: fixed;
-            inset: 0;
-            z-index: 1080;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .booking-payment-loader.d-none {
-            display: none;
-        }
-
-        .booking-payment-loader-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(33, 37, 41, .6);
-        }
-
-        .booking-payment-loader-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            border-radius: 1rem;
-            background: rgba(0, 0, 0, .3);
-            backdrop-filter: blur(4px);
-        }
-    </style>
-    <script>
-        (() => {
-            if (window.__extraBookingModalInitialized) {
-                return;
+        autocomplete.addListener('place_changed', function() {
+            var place = autocomplete.getPlace();
+            if (place && place.formatted_address) {
+                input.value = place.formatted_address;
             }
-            window.__extraBookingModalInitialized = true;
+        });
 
-            const modalEl = document.getElementById('bookingModal');
-            if (!modalEl) {
-                return;
+        // expose if needed later
+        window.bookingAddressAutocomplete = autocomplete;
+    };
+</script>
+
+{{-- LOAD GOOGLE MAPS (PLACES) WITH CALLBACK --}}
+<script
+    src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps.key') }}&libraries=places&callback=initCustomerAutocomplete"
+    async defer></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        /* =========================
+           GLOBAL MODAL STACKING
+           ========================= */
+        const Z_BASE = 1055;
+        const Z_STEP = 20;
+
+        function visibleModals() {
+            return Array.from(document.querySelectorAll('.modal.show'));
+        }
+
+        function ensureSingleBackdrop() {
+            const backs = Array.from(document.querySelectorAll('.modal-backdrop'));
+            if (backs.length > 1) backs.slice(0, -1).forEach(b => b.remove());
+
+            const anyVisible = !!document.querySelector('.modal.show');
+            if (!anyVisible) {
+                backs.forEach(b => b.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+            } else {
+                document.body.classList.add('modal-open');
             }
+        }
 
-            const form = modalEl.querySelector('#bookingForm');
-            if (!form) {
-                return;
+        function restack() {
+            const open = visibleModals();
+            open.forEach((m, i) => m.style.zIndex = String(Z_BASE + (i * Z_STEP)));
+            const top = open[open.length - 1];
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (top && backdrop) {
+                const topZ = parseInt(getComputedStyle(top).zIndex || Z_BASE, 10);
+                backdrop.style.zIndex = String(topZ - 10);
             }
+        }
 
-            const steps = Array.from(modalEl.querySelectorAll('[data-booking-step]'));
-            const stepIndicators = Array.from(modalEl.querySelectorAll('.booking-step'));
-            const stepErrors = {
-                0: modalEl.querySelector('#bookingStep1Error'),
-                1: modalEl.querySelector('#bookingStep2Error'),
-            };
-            const summaryErrorEl = modalEl.querySelector('#bookingSummaryError');
+        document.addEventListener('show.bs.modal', ev => {
+            const openCount = visibleModals().length;
+            ev.target.style.zIndex = String(Z_BASE + (openCount * Z_STEP));
+            setTimeout(() => {
+                ensureSingleBackdrop();
+                restack();
+            }, 0);
+        });
 
-            const unitCards = Array.from(modalEl.querySelectorAll('[data-unit-card]'));
-            const rentalUnitInput = form.querySelector('#bookingRentalUnit');
-            const quantitySelect = form.querySelector('#bookingQuantity');
-            const quantityLabel = modalEl.querySelector('[data-quantity-label]');
-            const extraDaysWrap = modalEl.querySelector('[data-extra-days-wrap]');
-            const extraDaysSelect = form.querySelector('#bookingExtraDays');
-            const startDateInput = form.querySelector('#bookingStartDate');
-            const locationSelect = form.querySelector('#bookingLocation');
-            const stockSelect = form.querySelector('#bookingStock');
-            const stockIdInput = form.querySelector('#bookingStockIdInput');
-            const totalInput = form.querySelector('#bookingTotalInput');
-            const bookingIdField = form.querySelector('#bookingId');
+        document.addEventListener('shown.bs.modal', () => setTimeout(() => {
+            ensureSingleBackdrop();
+            restack();
+        }, 0));
 
-            const totalDisplay = modalEl.querySelector('#bookingTotalDisplay');
-            const periodStartDisplay = modalEl.querySelector('#bookingPeriodStart');
-            const periodEndDisplay = modalEl.querySelector('#bookingPeriodEnd');
+        document.addEventListener('hidden.bs.modal', () => setTimeout(() => {
+            ensureSingleBackdrop();
+            restack();
+        }, 0));
 
-            const openPaymentBtn = modalEl.querySelector('#openPayment');
+        const getModalInstance = (id) => {
+            const el = document.getElementById(id);
+            return el ? bootstrap.Modal.getOrCreateInstance(el) : null;
+        };
 
-            const paymentModalEl = document.getElementById('bookingPayment');
-            const paymentBackBtn = document.getElementById('paymentBackToSummary');
-            const paymentMethodInputs = paymentModalEl
-                ? Array.from(paymentModalEl.querySelectorAll('input[name="booking_payment_method"]'))
-                : [];
+        const swapModal = (fromId, toId) => {
+            const toEl = document.getElementById(toId);
+            if (!toEl) return;
 
-            const stripeModalEl = document.getElementById('bookingStripeModal');
-            const stripeBackBtn = document.getElementById('stripeBackToPayment');
-            const stripePayBtn = document.getElementById('bookingStripePayButton');
-            const stripeCardErrorsEl = document.getElementById('booking-card-errors');
-
-            const paymentLoaderEl = document.getElementById('bookingPaymentLoader');
-            const paymentLoaderTextEl = document.getElementById('bookingPaymentLoaderText');
-
-            const thankYouModalEl = document.getElementById('bookingThankYou');
-            const thankYouReferenceEl = document.getElementById('tyReference');
-            const thankYouPeriodEl = document.getElementById('tyPeriod');
-            const thankYouMethodEl = document.getElementById('tyMethod');
-            const thankYouAmountEl = document.getElementById('tyAmount');
-            const thankYouContactEl = document.getElementById('tyCustomerContact');
-
-            const summaryFields = {
-                unit: modalEl.querySelector('[data-summary="unit"]'),
-                rate: modalEl.querySelector('[data-summary="rate"]'),
-                quantity: modalEl.querySelector('[data-summary="quantity"]'),
-                extraDays: modalEl.querySelector('[data-summary="extra_days"]'),
-                start: modalEl.querySelector('[data-summary="start"]'),
-                end: modalEl.querySelector('[data-summary="end"]'),
-                location: modalEl.querySelector('[data-summary="location"]'),
-                stockQty: modalEl.querySelector('[data-summary="stock_qty"]'),
-                total: modalEl.querySelector('[data-summary="total"]'),
-                name: modalEl.querySelector('[data-summary="name"]'),
-                email: modalEl.querySelector('[data-summary="email"]'),
-                phone: modalEl.querySelector('[data-summary="phone"]'),
+            const showNext = () => {
+                const target = getModalInstance(toId);
+                target?.show();
             };
 
-            const fmtCurrency = new Intl.NumberFormat('en-ZA', {
-                style: 'currency',
-                currency: 'ZAR',
-                minimumFractionDigits: 2,
-            });
-
-            const fmtDate = new Intl.DateTimeFormat('en-GB', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-            });
-
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            let currentStep = 0;
-            let bookingCreationInFlight = false;
-            let currentBookingReference = null;
-
-            let stripeInstance = null;
-            let stripeElements = null;
-            let stripeCardNumber = null;
-            let stripeCardExpiry = null;
-            let stripeCardCvc = null;
-
-            const stripePublicKey = "{{ $stripePublicKey }}";
-
-            function setStep(index) {
-                currentStep = index;
-                steps.forEach((stepEl, idx) => {
-                    stepEl.classList.toggle('d-none', idx !== index);
-                });
-                stepIndicators.forEach((indicator, idx) => {
-                    indicator.classList.toggle('active', idx === index);
-                    indicator.classList.toggle('completed', idx < index);
-                });
-            }
-
-            function showStepError(index, message) {
-                const target = stepErrors[index];
-                if (!target) {
+            const fromEl = document.getElementById(fromId);
+            if (fromEl && fromEl.classList.contains('show')) {
+                const fromModal = getModalInstance(fromId);
+                if (!fromModal) {
+                    showNext();
                     return;
                 }
-                if (!message) {
-                    target.classList.add('d-none');
-                    target.textContent = '';
-                    return;
-                }
-                target.textContent = message;
-                target.classList.remove('d-none');
-            }
-
-            function setSummaryError(message) {
-                if (!summaryErrorEl) {
-                    return;
-                }
-                if (!message) {
-                    summaryErrorEl.classList.add('d-none');
-                    summaryErrorEl.textContent = '';
-                    return;
-                }
-                summaryErrorEl.textContent = message;
-                summaryErrorEl.classList.remove('d-none');
-            }
-
-            function selectedUnitCard() {
-                return unitCards.find((card) => card.classList.contains('active'));
-            }
-
-            function ensureSelectOptions(selectEl, count, formatter) {
-                if (!selectEl) {
-                    return;
-                }
-                const currentValue = parseInt(selectEl.value || '1', 10) || 1;
-                selectEl.innerHTML = '';
-                for (let i = 1; i <= count; i += 1) {
-                    const option = document.createElement('option');
-                    option.value = String(i);
-                    option.textContent = formatter(i);
-                    if (i === Math.min(currentValue, count)) {
-                        option.selected = true;
-                    }
-                    selectEl.appendChild(option);
-                }
-            }
-
-            function updateQuantityOptions(unit) {
-                if (!quantitySelect) {
-                    return;
-                }
-
-                let max = 30;
-                let label = 'Number of days';
-                if (unit === 'week') {
-                    max = 12;
-                    label = 'Number of weeks';
-                } else if (unit === 'month') {
-                    max = 12;
-                    label = 'Number of months';
-                }
-
-                if (quantityLabel) {
-                    quantityLabel.textContent = label;
-                }
-
-                ensureSelectOptions(quantitySelect, max, (i) => `${i}`);
-            }
-
-            function updateExtraDays(unit) {
-                if (!extraDaysSelect || !extraDaysWrap) {
-                    return;
-                }
-
-                if (unit === 'week') {
-                    extraDaysWrap.classList.remove('d-none');
-                    extraDaysSelect.innerHTML = '';
-                    for (let i = 0; i <= 6; i += 1) {
-                        const option = document.createElement('option');
-                        option.value = String(i);
-                        option.textContent = `${i} day${i === 1 ? '' : 's'}`;
-                        if (i === 0) option.selected = true;
-                        extraDaysSelect.appendChild(option);
-                    }
-                    return;
-                }
-
-                if (unit === 'month') {
-                    extraDaysWrap.classList.remove('d-none');
-                    extraDaysSelect.innerHTML = '';
-                    for (let i = 0; i <= 30; i += 1) {
-                        const option = document.createElement('option');
-                        option.value = String(i);
-                        option.textContent = `${i} day${i === 1 ? '' : 's'}`;
-                        if (i === 0) option.selected = true;
-                        extraDaysSelect.appendChild(option);
-                    }
-                    return;
-                }
-
-                extraDaysWrap.classList.add('d-none');
-                extraDaysSelect.innerHTML = '<option value="0" selected>0</option>';
-            }
-
-            function updateStockSelect() {
-                if (!locationSelect || !stockSelect || !stockIdInput) {
-                    return;
-                }
-
-                if (locationSelect.disabled || locationSelect.options.length === 0) {
-                    stockSelect.innerHTML = '<option value="0">Not available</option>';
-                    stockSelect.disabled = true;
-                    stockIdInput.value = '';
-                    return;
-                }
-
-                const option = locationSelect.options[locationSelect.selectedIndex];
-                const available = parseInt(option?.dataset.available || '0', 10) || 0;
-                const stockId = option?.dataset.stockId || '';
-                stockIdInput.value = stockId;
-
-                stockSelect.innerHTML = '';
-
-                if (available <= 0) {
-                    const noOption = document.createElement('option');
-                    noOption.value = '0';
-                    noOption.textContent = 'Not available';
-                    stockSelect.appendChild(noOption);
-                    stockSelect.disabled = true;
-                    return;
-                }
-
-                stockSelect.disabled = false;
-                for (let i = 1; i <= Math.min(available, 20); i += 1) {
-                    const newOption = document.createElement('option');
-                    newOption.value = String(i);
-                    newOption.textContent = `${i} unit${i === 1 ? '' : 's'}`;
-                    if (i === 1) newOption.selected = true;
-                    stockSelect.appendChild(newOption);
-                }
-            }
-
-            function computeTotals() {
-                const unitCard = selectedUnitCard();
-                const unit = rentalUnitInput?.value || unitCard?.dataset.unit || '';
-                const pricePerUnit = parseFloat(unitCard?.dataset.price || '0') || 0;
-                const quantity = parseInt(quantitySelect?.value || '0', 10) || 0;
-                let extraDays = parseInt(extraDaysSelect?.value || '0', 10) || 0;
-                const unitsReserved = parseInt(stockSelect?.value || '1', 10) || 1;
-
-                if (unit === 'day') {
-                    extraDays = 0;
-                }
-
-                const startValue = startDateInput?.value ? `${startDateInput.value}T00:00:00` : '';
-                const startDate = startValue ? new Date(startValue) : null;
-
-                let totalPerUnit = pricePerUnit * quantity;
-                if (unit === 'week') {
-                    totalPerUnit += (pricePerUnit / 7) * extraDays;
-                } else if (unit === 'month') {
-                    totalPerUnit += (pricePerUnit / 30) * extraDays;
-                } else {
-                    totalPerUnit += pricePerUnit * extraDays;
-                }
-                const total = Math.round(totalPerUnit * unitsReserved * 100) / 100;
-
-                let endDate = null;
-
-                if (startDate) {
-                    if (unit === 'day') {
-                        endDate = new Date(startDate);
-                        endDate.setDate(endDate.getDate() + quantity + extraDays - 1);
-                    } else if (unit === 'week') {
-                        endDate = new Date(startDate);
-                        endDate.setDate(endDate.getDate() + (quantity * 7) + extraDays - 1);
-                    } else if (unit === 'month') {
-                        endDate = new Date(startDate);
-                        endDate.setMonth(endDate.getMonth() + quantity);
-                        endDate.setDate(endDate.getDate() - 1 + extraDays);
-                    }
-                }
-
-                return {
-                    total,
-                    endDate,
-                    unit,
-                    quantity,
-                    extraDays,
-                    unitsReserved,
+                const onHidden = () => {
+                    fromEl.removeEventListener('hidden.bs.modal', onHidden);
+                    showNext();
                 };
-            }
-
-            function niceDate(ymd) {
-                if (!ymd) return '-';
-                const parsed = new Date(`${ymd}T00:00:00`);
-                if (Number.isNaN(parsed.getTime())) return '-';
-                return fmtDate.format(parsed);
-            }
-
-            function updateTotalsAndSummary() {
-                const totals = computeTotals();
-                if (totalDisplay) {
-                    totalDisplay.textContent = fmtCurrency.format(totals.total);
-                }
-                if (totalInput) {
-                    totalInput.value = totals.total.toFixed(2);
-                }
-
-                const startValue = startDateInput?.value || '';
-                if (periodStartDisplay) {
-                    periodStartDisplay.textContent = niceDate(startValue);
-                }
-                if (periodEndDisplay) {
-                    const endYmd = totals.endDate
-                        ? `${totals.endDate.getFullYear()}-${String(totals.endDate.getMonth() + 1).padStart(2, '0')}-${String(totals.endDate.getDate()).padStart(2, '0')}`
-                        : '';
-                    periodEndDisplay.textContent = niceDate(endYmd);
-                }
-
-                updateSummary();
-            }
-
-            function updateSummary() {
-                const unitCard = selectedUnitCard();
-                const totals = computeTotals();
-
-                if (summaryFields.unit) {
-                    summaryFields.unit.textContent = unitCard
-                        ? unitCard.querySelector('.booking-unit-title')?.textContent || '-'
-                        : '-';
-                }
-                if (summaryFields.rate) {
-                    summaryFields.rate.textContent = unitCard
-                        ? `${fmtCurrency.format(parseFloat(unitCard.dataset.price || '0'))}${unitCard.dataset.suffix || ''}`
-                        : '-';
-                }
-                if (summaryFields.quantity) {
-                    const qty = parseInt(quantitySelect?.value || '0', 10) || 0;
-                    const unit = totals.unit || 'unit';
-                    summaryFields.quantity.textContent = qty
-                        ? `${qty} ${unit}${qty === 1 ? '' : 's'}`
-                        : '-';
-                }
-                if (summaryFields.extraDays) {
-                    const extra = totals.extraDays || 0;
-                    summaryFields.extraDays.textContent = `${extra} day${extra === 1 ? '' : 's'}`;
-                }
-                if (summaryFields.start) {
-                    summaryFields.start.textContent = niceDate(startDateInput?.value || '');
-                }
-                if (summaryFields.end) {
-                    summaryFields.end.textContent = totals.endDate
-                        ? fmtDate.format(totals.endDate)
-                        : '-';
-                }
-                if (summaryFields.location && locationSelect) {
-                    const option = locationSelect.options[locationSelect.selectedIndex];
-                    summaryFields.location.textContent = option
-                        ? option.dataset.locationName || option.textContent
-                        : '-';
-                }
-                if (summaryFields.stockQty) {
-                    const unitsReserved = totals.unitsReserved || 1;
-                    summaryFields.stockQty.textContent = `${unitsReserved} unit${unitsReserved === 1 ? '' : 's'}`;
-                }
-                if (summaryFields.total) {
-                    summaryFields.total.textContent = fmtCurrency.format(totals.total);
-                }
-                if (summaryFields.name) {
-                    summaryFields.name.textContent = form.elements.name?.value?.trim() || '-';
-                }
-                if (summaryFields.email) {
-                    summaryFields.email.textContent = form.elements.email?.value?.trim() || '-';
-                }
-                if (summaryFields.phone) {
-                    summaryFields.phone.textContent = form.elements.phone?.value?.trim() || '-';
-                }
-            }
-            function validateStep1() {
-                showStepError(0, '');
-                setSummaryError('');
-
-                const unitCard = selectedUnitCard();
-                if (!unitCard) {
-                    showStepError(0, 'Please select a rental duration.');
-                    return false;
-                }
-
-                if (!startDateInput?.value) {
-                    showStepError(0, 'Please choose a start date.');
-                    return false;
-                }
-
-                if (!locationSelect || locationSelect.options.length === 0 || locationSelect.disabled) {
-                    showStepError(0, 'No locations are available for this item at the moment.');
-                    return false;
-                }
-
-                const option = locationSelect.options[locationSelect.selectedIndex];
-                const available = parseInt(option?.dataset.available || '0', 10) || 0;
-
-                if (available <= 0) {
-                    showStepError(0, 'Selected location currently has no stock available.');
-                    return false;
-                }
-
-                return true;
-            }
-
-            function validateStep2() {
-                showStepError(1, '');
-                setSummaryError('');
-                const requiredFields = ['name', 'email', 'phone'];
-                for (const fieldName of requiredFields) {
-                    const field = form.elements[fieldName];
-                    if (!field || !field.value.trim()) {
-                        showStepError(1, 'Please fill in all required contact fields.');
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            function resetPaymentChoices() {
-                paymentMethodInputs.forEach((input) => {
-                    input.checked = false;
+                fromEl.addEventListener('hidden.bs.modal', onHidden, {
+                    once: true
                 });
+                fromModal.hide();
+            } else {
+                showNext();
             }
+        };
 
-            function resetFormState() {
-                showStepError(0, '');
-                showStepError(1, '');
-                setSummaryError('');
+        /* =========================
+           STEP-1 HARD LOCK (Fix)
+           ========================= */
+        const bookingForm = document.getElementById('bookingForm');
+        const isEquipmentBooking = {{ $isEquipmentBooking ? 'true' : 'false' }};
+        const showLocationSelect = {{ $showLocationSelect ? 'true' : 'false' }};
+        const locationRow = document.getElementById('locationRow');
+        const locationSelect = document.getElementById('bookingLocationSelect');
+        const locationHint = document.getElementById('locationAvailabilityHint');
+        const stockSelect = document.getElementById('stockQuantitySelect');
+        const hiddenLocationId = document.getElementById('inputLocationId');
+        const hiddenStockQuantity = document.getElementById('inputStockQuantity');
+        const step1Modal = document.getElementById('multiStepBookingModal');
+        const startDateInput = document.getElementById('rentalStartDate');
+        let startDatePicker = null;
+        let bookingCreationInFlight = false;
 
-                form.reset();
-
-                const firstCard = unitCards[0];
-                unitCards.forEach((card) => card.classList.remove('active'));
-                if (firstCard) {
-                    firstCard.classList.add('active');
-                    rentalUnitInput.value = firstCard.dataset.unit || '';
-                }
-
-                updateQuantityOptions(rentalUnitInput.value || firstCard?.dataset.unit || 'day');
-                updateExtraDays(rentalUnitInput.value || firstCard?.dataset.unit || 'day');
-
-                if (startDateInput && startDateInput.getAttribute('min')) {
-                    startDateInput.value = startDateInput.getAttribute('min');
-                }
-
-                if (locationSelect && locationSelect.options.length) {
-                    locationSelect.selectedIndex = 0;
-                }
-
-                updateStockSelect();
-                updateTotalsAndSummary();
-                setStep(0);
-                resetPaymentChoices();
-
-                if (openPaymentBtn) {
-                    openPaymentBtn.disabled = !!(locationSelect && locationSelect.disabled);
-                    openPaymentBtn.textContent = 'Continue to Payment';
-                }
-
-                if (bookingIdField) {
-                    bookingIdField.value = '';
-                }
-
-                currentBookingReference = null;
-                bookingCreationInFlight = false;
-
-                if (stripePayBtn) {
-                    stripePayBtn.dataset.amount = '0';
-                    stripePayBtn.disabled = !stripeInstance;
-                    stripePayBtn.textContent = 'Pay with Stripe';
-                }
+        const setDefaultStockSelection = () => {
+            if (!stockSelect) return;
+            const optionOne = stockSelect.querySelector('option[value="1"]');
+            if (optionOne) {
+                optionOne.selected = true;
+                stockSelect.value = '1';
+                if (hiddenStockQuantity) hiddenStockQuantity.value = '1';
+                return;
             }
+            if (stockSelect.options.length > 0) {
+                stockSelect.selectedIndex = 0;
+                if (hiddenStockQuantity) hiddenStockQuantity.value = stockSelect.value || '';
+                return;
+            }
+            if (hiddenStockQuantity) hiddenStockQuantity.value = '';
+        };
 
-            unitCards.forEach((card) => {
-                card.addEventListener('click', () => {
-                    unitCards.forEach((c) => c.classList.remove('active'));
-                    card.classList.add('active');
-                    rentalUnitInput.value = card.dataset.unit || '';
-                    updateQuantityOptions(card.dataset.unit || 'day');
-                    updateExtraDays(card.dataset.unit || 'day');
-                    updateTotalsAndSummary();
-                });
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', (e) => {
+                e.preventDefault();
             });
-
-            if (quantitySelect) {
-                quantitySelect.addEventListener('change', updateTotalsAndSummary);
-            }
-
-            if (extraDaysSelect) {
-                extraDaysSelect.addEventListener('change', updateTotalsAndSummary);
-            }
-
-            if (startDateInput) {
-                startDateInput.addEventListener('change', updateTotalsAndSummary);
-            }
-
-            if (locationSelect) {
-                locationSelect.addEventListener('change', () => {
-                    updateStockSelect();
-                    updateTotalsAndSummary();
-                });
-            }
-
-            if (stockSelect) {
-                stockSelect.addEventListener('change', updateSummary);
-            }
-
-            ['name', 'email', 'phone', 'country'].forEach((fieldName) => {
-                const field = form.elements[fieldName];
-                if (field) {
-                    field.addEventListener('input', updateSummary);
+            bookingForm.addEventListener('keydown', (e) => {
+                const step1Open = step1Modal?.classList.contains('show');
+                if (step1Open && e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
             });
+        }
 
-            const step1Next = modalEl.querySelector('#bookingStep1Next');
-            if (step1Next) {
-                step1Next.addEventListener('click', () => {
-                    if (!validateStep1()) {
-                        return;
+        if (startDateInput) {
+            ['change', 'input', 'keydown', 'keypress'].forEach(evt => {
+                startDateInput.addEventListener(evt, (e) => {
+                    const step1Open = step1Modal?.classList.contains('show');
+                    if (!step1Open) return;
+                    if ((evt === 'keydown' || evt === 'keypress') && e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } else {
+                        e.stopPropagation();
                     }
-                    updateSummary();
-                    setStep(1);
                 });
-            }
+            });
+        }
 
-            const step2Back = modalEl.querySelector('#bookingStep2Back');
-            if (step2Back) {
-                step2Back.addEventListener('click', () => setStep(0));
-            }
+        // Only this button can advance Step-1 -> Step-2
+        const step1NextBtn = document.getElementById('continueFromStep1');
+        if (step1NextBtn) {
+            step1NextBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const unit = document.getElementById('inputRentalUnit')?.value;
+                const qty = parseInt(document.getElementById('inputRentalQuantity')?.value || '0', 10);
+                const start = document.getElementById('inputRentalStartDate')?.value;
 
-            const step2Next = modalEl.querySelector('#bookingStep2Next');
-            if (step2Next) {
-                step2Next.addEventListener('click', () => {
-                    if (!validateStep2()) {
-                        return;
+                if (!unit || !qty || !start) {
+                    if (window.Swal?.fire) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Missing info',
+                            text: 'Please select duration, quantity, and start date.'
+                        });
                     }
-                    updateSummary();
-                    setStep(2);
-                });
-            }
-
-            const step3Back = modalEl.querySelector('#bookingStep3Back');
-            if (step3Back) {
-                step3Back.addEventListener('click', () => setStep(1));
-            }
-
-            function setOpenPaymentLoading(isLoading) {
-                if (!openPaymentBtn) {
                     return;
                 }
+
+                // Check location selection
+                if (showLocationSelect && locationSelect && !locationSelect.value) {
+                    if (window.Swal?.fire) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Select location',
+                            text: 'Please choose a location before continuing.'
+                        });
+                    }
+                    return;
+                }
+
+                // Check stock availability
+                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <=
+                    0) {
+                    if (window.Swal?.fire) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'No availability',
+                            text: 'Selected location has no availability for the chosen dates.'
+                        });
+                    }
+                    return;
+                }
+
+                swapModal('multiStepBookingModal', 'customerStep');
+            });
+        }
+
+        // Back & forward controls between modals
+        const customerBackBtn = document.getElementById('customerBackToStep1');
+        const summaryBackBtn = document.getElementById('summaryBackToCustomer');
+        const paymentBackBtn = document.getElementById('paymentBackToSummary');
+        const stripeBackBtn = document.getElementById('stripeBackToPayment');
+
+        customerBackBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            swapModal('customerStep', 'multiStepBookingModal');
+        });
+
+        summaryBackBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            swapModal('summaryStep', 'customerStep');
+        });
+
+        paymentBackBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetPaymentSelection();
+            swapModal('bookingPayment', 'summaryStep');
+        });
+
+        stripeBackBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetPaymentSelection();
+            swapModal('bookingStripeModal', 'bookingPayment');
+        });
+
+        /* =========================
+           DATE / RENTAL HELPERS
+           ========================= */
+        const toYMD = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
+        const fromYMD = (s) => {
+            const [Y, M, D] = (s || '').split('-').map(Number);
+            return (Y && M && D) ? new Date(Y, M - 1, D) : null;
+        };
+
+        const niceDate = (ymd) => {
+            if (!ymd) return '';
+            const dt = fromYMD(ymd);
+            return dt ? dt.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }) : ymd;
+        };
+
+        const addDays = (date, amount) => {
+            const t = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            t.setDate(t.getDate() + amount);
+            return t;
+        };
+
+        const unitDays = (u) => (u === 'week' ? 7 : u === 'month' ? 30 : 1);
+        const money = (v) =>
+            `R${Number(v || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
+        function clearSelect(sel) {
+            while (sel.options.length) sel.remove(0);
+        }
+
+        function fillSelect(sel, from, to, value) {
+            clearSelect(sel);
+            for (let i = from; i <= to; i++) {
+                const o = document.createElement('option');
+                o.value = String(i);
+                o.textContent = String(i);
+                sel.appendChild(o);
+            }
+            sel.value = String(value);
+        }
+
+        /* =========================================================
+           STEP-1: UI wiring (unit cards, quantity, price, period)
+           ========================================================= */
+        const unitCards = document.querySelectorAll('.option-card');
+        const dateSection = document.getElementById('dateSection');
+        const qtySection = document.getElementById('quantitySection');
+        const qtySelect = document.getElementById('rentalQuantity');
+        const qtyLabel = document.getElementById('quantityLabel');
+        const totalBox = document.getElementById('totalPrice');
+        const periodBox = document.getElementById('rentalPeriod');
+        const extraDaysSection = document.getElementById('extraDaysSection');
+        const extraDaysInput = document.getElementById('extraDaysInput');
+        const extraDaysHelp = document.getElementById('extraDaysHelp');
+
+        // Hidden inputs
+        const hidUnit = document.getElementById('inputRentalUnit');
+        const hidQty = document.getElementById('inputRentalQuantity');
+        const hidStart = document.getElementById('inputRentalStartDate');
+        const hidExtra = document.getElementById('inputExtraDays');
+        const hidTotal = document.getElementById('inputTotalPrice');
+
+        let currentUnitMax = 30;
+        let suppressRentalEvent = false;
+        let isUpdatingStep1 = false;
+
+        const applyQuantityLimit = (limit) => {
+            if (!qtySelect) return;
+            const fallback = currentUnitMax;
+            let parsedLimit = typeof limit === 'number' ? Math.floor(limit) : null;
+            if (parsedLimit !== null && parsedLimit < 1) parsedLimit = 1;
+            const targetMax = parsedLimit !== null && parsedLimit > 0 ? Math.min(fallback, parsedLimit) :
+                fallback;
+            const previousValue = parseInt(qtySelect.value || '1', 10) || 1;
+            fillSelect(qtySelect, 1, targetMax, 1);
+            const nextValue = Math.min(previousValue, targetMax);
+            qtySelect.value = String(nextValue);
+            if (hidQty) {
+                hidQty.value = String(nextValue);
+            }
+            suppressRentalEvent = true;
+            try {
+                updateStep1Paint();
+            } finally {
+                suppressRentalEvent = false;
+            }
+        };
+
+        window.updateQuantityLimit = (limit) => applyQuantityLimit(typeof limit === 'number' ? limit : null);
+
+        function activeUnit() {
+            const a = document.querySelector('.option-card.active');
+            return a ? a.getAttribute('data-type') : '';
+        }
+
+        function priceForActiveUnit() {
+            const a = document.querySelector('.option-card.active');
+            const p = parseFloat(a?.getAttribute('data-price') || '0');
+            return isNaN(p) ? 0 : p;
+        }
+
+        function configureQtyForUnit(u) {
+            let max = 30;
+            let label = 'How many day(s)?';
+            currentUnitMax = max;
+            if (u === 'week') {
+                max = 12;
+                label = 'How many week(s)?';
+                currentUnitMax = max;
+            }
+            if (u === 'month') {
+                max = 12;
+                label = 'How many month(s)?';
+                currentUnitMax = max;
+            }
+            qtyLabel.textContent = label;
+            fillSelect(qtySelect, 1, max, 1);
+            applyQuantityLimit(window.latestLocationAvailability ?? null);
+        }
+
+        // Compute + paint Step-1 price & period with extra days and stock quantity
+        function updateStep1Paint() {
+            if (isUpdatingStep1) return;
+            isUpdatingStep1 = true;
+
+            try {
+                const unit = (hidUnit?.value || activeUnit() || '').toLowerCase();
+                const qty = parseInt(hidQty?.value || qtySelect?.value || '0', 10) || 0;
+                const startY = (hidStart?.value || '').trim();
+                const startDt = startY ? fromYMD(startY) : null;
+                const extra = parseInt(hidExtra?.value || '0', 10) || 0;
+                const stockQuantity = parseInt(hiddenStockQuantity?.value || '1', 10);
+
+                // Show sections progressively
+                if (unit) dateSection?.classList.remove('d-none');
+
+                // Guard
+                if (!unit || !qty || !startDt) {
+                    totalBox?.classList.add('d-none');
+                    if (totalBox) totalBox.textContent = '';
+                    periodBox?.classList.add('d-none');
+                    if (periodBox) periodBox.textContent = '';
+                    if (hidTotal) hidTotal.value = '';
+                    if (showLocationSelect && locationRow) locationRow.classList.add('d-none');
+                    if (stockSelect) {
+                        stockSelect.disabled = false;
+                        setDefaultStockSelection();
+                    }
+                    if (!suppressRentalEvent) {
+                        document.dispatchEvent(new CustomEvent('rental:updated'));
+                    }
+                    return;
+                }
+
+                if (showLocationSelect && locationRow) locationRow.classList.remove('d-none');
+
+                const baseDays = qty * unitDays(unit);
+                const days = baseDays + (unit === 'day' ? 0 : extra);
+                const endDt = addDays(startDt, Math.max(0, days - 1));
+                const endY = toYMD(endDt);
+
+                const pricePer = priceForActiveUnit();
+
+                // Calculate base price for the rental period
+                let basePrice = pricePer * qty;
+
+                // Calculate extra days price (using daily rate)
+                let extraDaysPrice = 0;
+                if (extra > 0) {
+                    let dailyRate = 0;
+                    if (unit === 'week') {
+                        dailyRate = pricePer / 7; // Daily rate from weekly price
+                    } else if (unit === 'month') {
+                        dailyRate = pricePer / 30; // Daily rate from monthly price
+                    } else {
+                        dailyRate = pricePer; // For daily rentals, use the same rate
+                    }
+                    extraDaysPrice = dailyRate * extra;
+                }
+
+                // Total vehicle price (base + extra days) multiplied by stock quantity
+                const vehicleTotal = Number((basePrice + extraDaysPrice) * stockQuantity).toFixed(2);
+
+                if (totalBox) {
+                    let priceBreakdown = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small text-muted">Base rental (${qty} ${unit}${qty>1?'s':''})</span>
+                        <span class="fw-bold">${money(basePrice * stockQuantity)}</span>
+                    </div>`;
+
+                    if (extra > 0) {
+                        priceBreakdown += `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small text-muted">Extra days (${extra} day${extra>1?'s':''})</span>
+                        <span class="fw-bold">${money(extraDaysPrice * stockQuantity)}</span>
+                    </div>`;
+                    }
+
+                    priceBreakdown += `
+                    <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                        <span class="fw-semibold">Total (${stockQuantity} unit${stockQuantity>1?'s':''})</span>
+                        <span class="fw-bold text-success">${money(vehicleTotal)}</span>
+                    </div>`;
+
+                    totalBox.innerHTML = priceBreakdown;
+                    totalBox.classList.remove('d-none');
+                }
+
+                if (periodBox) {
+                    periodBox.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="small text-muted">Start date</div>
+                        <div class="fw-semibold">${niceDate(startY)}</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="small text-muted">End date</div>
+                        <div class="fw-semibold">${niceDate(endY)}</div>
+                    </div>
+                </div>
+                <div class="mt-2 text-center small">
+                    ${days} day${days===1?'':'s'}
+                    ${extra > 0 ? `(${baseDays} base + ${extra} extra)` : ''}
+                    × ${stockQuantity} unit${stockQuantity>1?'s':''}
+                </div>`;
+                    periodBox.classList.remove('d-none');
+                }
+
+                if (hidTotal) {
+                    hidTotal.value = String(vehicleTotal);
+                    hidTotal.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
+                }
+
+                // Inform listeners
+                if (!suppressRentalEvent) {
+                    document.dispatchEvent(new CustomEvent('rental:updated'));
+                }
+            } finally {
+                isUpdatingStep1 = false;
+            }
+        }
+
+        // Unit card selection
+        unitCards.forEach(card => {
+            card.addEventListener('click', () => {
+                unitCards.forEach(c => c.classList.remove('bg-light', 'active'));
+                card.classList.add('bg-light', 'active');
+
+                const u = card.getAttribute('data-type') || '';
+                if (hidUnit) {
+                    hidUnit.value = u;
+                    hidUnit.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
+                }
+
+                // show date + qty sections and prepare qty
+                dateSection?.classList.remove('d-none');
+                qtySection?.classList.remove('d-none');
+                configureQtyForUnit(u);
+
+                // sync qty hidden
+                if (hidQty && qtySelect) {
+                    hidQty.value = qtySelect.value;
+                    hidQty.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
+                }
+                updateStep1Paint();
+            });
+        });
+
+        // Qty select -> hidden + repaint
+        if (qtySelect) {
+            qtySelect.addEventListener('change', () => {
+                if (hidQty) {
+                    hidQty.value = qtySelect.value;
+                    hidQty.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
+                }
+                updateStep1Paint();
+            });
+        }
+
+        /* =========================================
+           CALENDAR (lead days + booked ranges lock)
+           ========================================= */
+        const initCalendar = () => {
+            const inp = startDateInput;
+            if (!inp) return;
+
+            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'),
+                10) || 0;
+
+            let blockedRanges = [];
+            try {
+                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window
+                    .vehicleBlockedRanges || []);
+                blockedRanges = (JSON.parse(raw) || []).filter(r => r && r.from && r.to);
+            } catch {
+                blockedRanges = [];
+            }
+
+            // Normalize "today" to local midnight
+            const today = new Date();
+            const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+            // Min selectable date = today + leadDays (local)
+            const minDate = new Date(todayLocal);
+            if (leadDays > 0) minDate.setDate(minDate.getDate() + leadDays);
+
+            const getActiveLocationId = () => {
+                if (locationSelect && locationSelect.value) return locationSelect.value;
+                if (hiddenLocationId && hiddenLocationId.value) return hiddenLocationId.value;
+                return null;
+            };
+
+            const isInRanges = (ranges, ymd) => {
+                if (!Array.isArray(ranges)) return false;
+                return ranges.some(range => {
+                    if (!range?.from || !range?.to) return false;
+                    return ymd >= range.from && ymd <= range.to;
+                });
+            };
+
+            // All checks in LOCAL YYYY-MM-DD
+            function isDisabled(dateObj) {
+                const dLocal = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+                const ymd = toYMD(dLocal);
+
+                // Lead-days lock: disable [today .. today+leadDays-1]
+                if (leadDays > 0) {
+                    const leadStart = new Date(todayLocal);
+                    const leadEnd = new Date(todayLocal);
+                    leadEnd.setDate(leadEnd.getDate() + (leadDays - 1));
+                    const y0 = toYMD(leadStart);
+                    const y1 = toYMD(leadEnd);
+                    if (ymd >= y0 && ymd <= y1) return true;
+                }
+
+                // Blocked ranges: inclusive [from .. to]
+                if (isInRanges(blockedRanges, ymd)) {
+                    return true;
+                }
+
+                // Location-specific fully booked dates
+                const activeLocationId = getActiveLocationId();
+                if (activeLocationId) {
+                    const ranges = locationFullyBookedMap[String(activeLocationId)] || [];
+                    if (isInRanges(ranges, ymd)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Use flatpickr if available; otherwise basic fallback with native <input type="date">
+            if (typeof flatpickr !== 'undefined') {
+                startDatePicker = flatpickr(inp, {
+                    minDate,
+                    disable: [isDisabled],
+                    dateFormat: 'Y-m-d',
+                    clickOpens: true,
+                    allowInput: false,
+                    onChange: function(selectedDates, dateStr) {
+                        if (hidStart) {
+                            hidStart.value = dateStr || '';
+                            hidStart.dispatchEvent(new Event('change', {
+                                bubbles: true
+                            }));
+                        }
+                        qtySection?.classList.remove('d-none');
+                        updateStep1Paint();
+                    }
+                });
+            } else {
+                // Fallback to native date input
+                try {
+                    inp.removeAttribute('readonly');
+                    inp.setAttribute('type', 'date');
+                } catch {}
+                inp.addEventListener('input', () => {
+                    const val = inp.value;
+                    const picked = fromYMD(val);
+                    if (!picked) return;
+                    if (toYMD(picked) < toYMD(minDate) || isDisabled(picked)) {
+                        if (window.Swal?.fire) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Date not available',
+                                text: 'This date is unavailable.'
+                            });
+                        }
+                        inp.value = '';
+                        return;
+                    }
+                });
+                inp.addEventListener('change', () => {
+                    const dateStr = inp.value || '';
+                    if (hidStart) {
+                        hidStart.value = dateStr;
+                        hidStart.dispatchEvent(new Event('change', {
+                            bubbles: true
+                        }));
+                    }
+                    qtySection?.classList.remove('d-none');
+                    updateStep1Paint();
+                });
+            }
+        };
+
+        /* =========================
+           LOCATION & STOCK MANAGEMENT
+           ========================= */
+        const locationInventory = @json($locationInventory);
+        const locationBookingMap = @json($locationBookingMap);
+        const locationFullyBookedMap = @json($locationFullyBooked);
+        let latestLocationAvailability = null;
+        window.latestLocationAvailability = null;
+
+        const parseIntSafe = (value, fallback = 0) => {
+            const parsed = parseInt(value ?? '', 10);
+            return Number.isNaN(parsed) ? fallback : parsed;
+        };
+
+        const rangesOverlap = (startA, endA, startB, endB) => {
+            if (!startA || !endA || !startB || !endB) return false;
+            return !(endA < startB || endB < startA);
+        };
+
+        const ensureHiddenLocation = () => {
+            if (hiddenLocationId && locationSelect && locationSelect.value) {
+                hiddenLocationId.value = locationSelect.value;
+            }
+        };
+
+        const baseStockForLocation = (locationId) => {
+            if (!locationId) return null;
+            const info = locationInventory[String(locationId)];
+            if (info && info.stock !== null && info.stock !== undefined) {
+                const parsed = parseInt(info.stock, 10);
+                return Number.isNaN(parsed) ? null : parsed;
+            }
+            if (!locationSelect) return null;
+            const opt = Array.from(locationSelect.options || []).find(o => o.value === String(locationId));
+            if (!opt) return null;
+            const attr = opt.dataset.baseStock;
+            if (attr === undefined || attr === null || attr === '') return null;
+            const parsed = parseInt(attr, 10);
+            return Number.isNaN(parsed) ? null : parsed;
+        };
+
+        const computeRentalContext = () => {
+            const unit = (document.getElementById('inputRentalUnit')?.value || '').toLowerCase();
+            const quantity = parseIntSafe(document.getElementById('inputRentalQuantity')?.value);
+            const startValue = document.getElementById('inputRentalStartDate')?.value || '';
+            const extra = parseIntSafe(hidExtra?.value);
+            const startDate = fromYMD(startValue);
+            if (!unit || !quantity || !startDate) return null;
+
+            let totalDays = 0;
+            switch (unit) {
+                case 'week':
+                    totalDays = quantity * 7 + extra;
+                    break;
+                case 'month':
+                    totalDays = quantity * 30 + extra;
+                    break;
+                default:
+                    totalDays = quantity + (unit === 'day' ? 0 : extra);
+                    break;
+            }
+            if (totalDays <= 0) return null;
+            const endDate = addDays(startDate, totalDays - 1);
+            return {
+                unit,
+                quantity,
+                extra,
+                start: toYMD(startDate),
+                end: toYMD(endDate),
+                totalDays,
+            };
+        };
+
+        const availableUnitsForLocation = (locationId, context) => {
+            const base = baseStockForLocation(locationId);
+            if (base === null || base === undefined) return null;
+            if (!context) return base;
+            const bookings = locationBookingMap[String(locationId)] || [];
+            let available = base;
+            bookings.forEach(booking => {
+                const units = parseIntSafe(booking.units, 1);
+                if (rangesOverlap(context.start, context.end, booking.from, booking.to)) {
+                    available -= units;
+                }
+            });
+            return available < 0 ? 0 : available;
+        };
+
+        // Populate stock quantity select
+        const populateStockQuantitySelect = (available) => {
+            if (!stockSelect) return;
+
+            stockSelect.innerHTML = '';
+
+            if (available === null || available === undefined) {
+                for (let i = 1; i <= 10; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    stockSelect.appendChild(option);
+                }
+                stockSelect.disabled = false;
+            } else if (available <= 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No stock available';
+                stockSelect.appendChild(option);
+                stockSelect.disabled = true;
+                if (hiddenStockQuantity) hiddenStockQuantity.value = '0';
+            } else {
+                for (let i = 1; i <= available; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    stockSelect.appendChild(option);
+                }
+                stockSelect.disabled = false;
+            }
+
+            setDefaultStockSelection();
+            if (stockSelect.disabled && available !== null && available <= 0 && hiddenStockQuantity) {
+                hiddenStockQuantity.value = '0';
+            }
+        };
+
+        // Handle stock quantity changes
+        const handleStockQuantityChange = () => {
+            if (!stockSelect || !hiddenStockQuantity) return;
+            hiddenStockQuantity.value = stockSelect.value;
+            updateStep1Paint();
+        };
+
+        const updateSummaryLocation = () => {
+            const summaryLocationEl = document.getElementById('summaryLocation');
+            if (!summaryLocationEl) return;
+            let label = 'N/A';
+            let stockInfo = '';
+            if (locationSelect && locationSelect.value) {
+                const selected = locationSelect.selectedOptions[0];
+                if (selected) {
+                    label = selected.dataset.displayName || selected.textContent.trim();
+                    const stockQty = hiddenStockQuantity?.value || '1';
+                    stockInfo = ` × ${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
+                }
+            }
+            summaryLocationEl.textContent = (label + stockInfo) || 'N/A';
+        };
+
+        const setLocationDisplay = (message, danger = false) => {
+            if (locationHint) {
+                locationHint.textContent = message;
+                locationHint.classList.toggle('text-danger', !!danger);
+            }
+        };
+
+        const updateLocationAvailability = () => {
+            if (!locationSelect || !locationHint) return;
+            ensureHiddenLocation();
+            const locationId = locationSelect.value;
+            if (!locationId) {
+                setLocationDisplay('Select a location to view availability.', false);
+                latestLocationAvailability = null;
+                window.latestLocationAvailability = null;
+                populateStockQuantitySelect(null);
+                updateSummaryLocation();
+                return;
+            }
+            const context = computeRentalContext();
+            const base = baseStockForLocation(locationId);
+            if (base === null || base === undefined) {
+                setLocationDisplay('Availability varies for this location.', false);
+                latestLocationAvailability = null;
+                window.latestLocationAvailability = null;
+                populateStockQuantitySelect(null);
+                updateSummaryLocation();
+                return;
+            }
+            if (!context) {
+                const message = `${base} in stock`;
+                setLocationDisplay(message, base <= 0);
+                latestLocationAvailability = base;
+                window.latestLocationAvailability = base;
+                populateStockQuantitySelect(base);
+                updateSummaryLocation();
+                return;
+            }
+            const available = availableUnitsForLocation(locationId, context);
+            latestLocationAvailability = available;
+            window.latestLocationAvailability = available;
+            populateStockQuantitySelect(available);
+            if (available === null || available === undefined) {
+                const message = `${base} in stock`;
+                setLocationDisplay(message, base <= 0);
+            } else if (available <= 0) {
+                setLocationDisplay('Not available for the selected dates.', true);
+            } else {
+                setLocationDisplay(`${available} of ${base} available for the selected dates.`, false);
+            }
+            updateSummaryLocation();
+        };
+
+        const updateExtraDaysVisibility = () => {
+            if (!extraDaysSection || !extraDaysInput || !hidExtra) return;
+            const unit = (document.getElementById('inputRentalUnit')?.value || '').toLowerCase();
+            if (unit === 'week' || unit === 'month') {
+                const limit = unit === 'week' ? 6 : 29;
+                extraDaysSection.classList.remove('d-none');
+                extraDaysInput.setAttribute('max', String(limit));
+                let value = parseIntSafe(extraDaysInput.value);
+                if (value > limit) value = limit;
+                extraDaysInput.value = String(value);
+                hidExtra.value = String(value);
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
+                if (extraDaysHelp) {
+                    extraDaysHelp.textContent = limit === 6 ?
+                        ' 1 to 6 days.' :
+                        '1 to 29 days.';
+                }
+            } else {
+                extraDaysSection.classList.add('d-none');
+                extraDaysInput.value = '0';
+                hidExtra.value = '0';
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
+            }
+        };
+
+        if (hidUnit) {
+            hidUnit.addEventListener('change', () => {
+                updateExtraDaysVisibility();
+                updateLocationAvailability();
+            });
+        }
+
+        // Event Listeners for location and stock
+        if (extraDaysInput) {
+            extraDaysInput.addEventListener('input', () => {
+                const max = parseIntSafe(extraDaysInput.getAttribute('max'), Infinity);
+                let value = parseIntSafe(extraDaysInput.value);
+                if (value < 0) value = 0;
+                if (value > max) value = max;
+                extraDaysInput.value = String(value);
+                hidExtra.value = String(value);
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
+                updateLocationAvailability();
+                updateStep1Paint();
+            });
+        }
+
+        if (locationSelect) {
+            locationSelect.addEventListener('change', () => {
+                ensureHiddenLocation();
+                updateLocationAvailability();
+                updateStep1Paint();
+                if (startDatePicker && typeof startDatePicker.redraw === 'function') {
+                    startDatePicker.redraw();
+                }
+            });
+        }
+
+        if (stockSelect) {
+            stockSelect.addEventListener('change', handleStockQuantityChange);
+        }
+
+        /* =========================
+           SWEETALERT HELPER
+           ========================= */
+        const alertDebounce = new Map();
+
+        function notify(key, {
+            icon = 'warning',
+            title = 'Notice',
+            text = ''
+        }) {
+            const now = Date.now(),
+                last = alertDebounce.get(key) || 0;
+            if (now - last < 600) return;
+
+            const step1ModalEl = document.getElementById('multiStepBookingModal');
+            const step1Visible = step1ModalEl?.classList.contains('show');
+            const suppressForStep1 = typeof key === 'string' && /^overlap|^noqty|^clamped/.test(key);
+            if (step1Visible && suppressForStep1) return;
+
+            alertDebounce.set(key, now);
+            if (window.Swal?.fire) Swal.fire({
+                icon,
+                title,
+                text,
+                confirmButtonText: 'OK'
+            });
+            else alert(`${title}\n\n${text}`);
+        }
+
+        /* =========================
+           BOOKING + PAYMENT FLOW
+           ========================= */
+        const bookingIdField = document.getElementById('bookingId');
+        const openPaymentBtn = document.getElementById('openPayment');
+        const bookingPaymentModalEl = document.getElementById('bookingPayment');
+        const bookingStripeModalEl = document.getElementById('bookingStripeModal');
+        const bookingStripePayButton = document.getElementById('bookingStripePayButton');
+        const bookingThankYouModalEl = document.getElementById('bookingThankYou');
+        const bookingCardErrorsEl = document.getElementById('booking-card-errors');
+
+        const paymentMethodInputs = Array.from(document.querySelectorAll(
+            'input[name="booking_payment_method"]'));
+        const resetPaymentSelection = () => {
+            paymentMethodInputs.forEach((input) => {
+                input.checked = false;
+                input.removeAttribute('checked');
+            });
+        };
+        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal',
+            resetPaymentSelection);
+
+        let currentBookingReference = null;
+
+        const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
+        let stripeInstance = null,
+            stripeElements = null,
+            stripeCardNumber = null,
+            stripeCardExpiry = null,
+            stripeCardCvc = null;
+
+        const showPaymentLoader = (message = 'Processing payment...') => {
+            if (window.Swal) {
+                Swal.fire({
+                    title: message,
+                    text: 'Please wait while we confirm your payment.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => Swal.showLoading()
+                });
+            }
+        };
+
+        const hidePaymentLoader = () => {
+            if (window.Swal && Swal.isVisible()) Swal.close();
+        };
+
+        const computeGrandTotal = () => {
+            const vehicleTotal = parseFloat(document.getElementById('inputTotalPrice')?.value || '0');
+            return Math.round(vehicleTotal * 100) / 100;
+        };
+
+        const populateThankYouModal = (methodLabel) => {
+            if (!bookingThankYouModalEl) return;
+            const tyVehicleNameEl = document.getElementById('tyVehicleName');
+            if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($bookableName) }}";
+
+            const periodText = document.getElementById('summaryPeriod')?.textContent?.trim() || '-';
+            const tyPeriodEl = document.getElementById('tyPeriod');
+            if (tyPeriodEl) tyPeriodEl.textContent = periodText;
+
+            const reference = currentBookingReference || (bookingIdField?.value ?
+                `#${bookingIdField.value}` : '-');
+            const tyReferenceEl = document.getElementById('tyReference');
+            if (tyReferenceEl) tyReferenceEl.textContent = reference;
+
+            const tyAmountEl = document.getElementById('tyAmount');
+            if (tyAmountEl) tyAmountEl.textContent = money(computeGrandTotal());
+
+            const tyMethodEl = document.getElementById('tyMethod');
+            if (tyMethodEl) tyMethodEl.textContent = methodLabel;
+
+            const tyCustomerNameEl = document.getElementById('tyCustomerName');
+            if (tyCustomerNameEl) tyCustomerNameEl.textContent = bookingForm?.name?.value || '-';
+
+            const contactParts = [];
+            if (bookingForm?.email?.value) contactParts.push(bookingForm.email.value);
+            if (bookingForm?.phone?.value) contactParts.push(bookingForm.phone.value);
+            const tyCustomerContactEl = document.getElementById('tyCustomerContact');
+            if (tyCustomerContactEl) tyCustomerContactEl.textContent = contactParts.join(' - ') || '-';
+        };
+
+        if (bookingThankYouModalEl) bookingThankYouModalEl.addEventListener('hidden.bs.modal', () => {
+            window.location.href = "{{ url('/') }}";
+        });
+
+        if (openPaymentBtn) {
+            const openPaymentDefaultLabel = (openPaymentBtn.textContent || '').trim() || 'Continue to Payment';
+            openPaymentBtn.dataset.originalLabel = openPaymentDefaultLabel;
+
+            const setOpenPaymentLoading = (isLoading) => {
                 if (isLoading) {
                     openPaymentBtn.disabled = true;
                     openPaymentBtn.textContent = 'Preparing booking...';
                 } else {
                     openPaymentBtn.disabled = false;
-                    openPaymentBtn.textContent = 'Continue to Payment';
+                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel ||
+                        openPaymentDefaultLabel;
                 }
-            }
+            };
 
-            async function ensureBookingCreated() {
-                if (!bookingIdField) {
-                    return false;
-                }
-                if (bookingIdField.value) {
-                    return true;
-                }
-
+            openPaymentBtn.addEventListener('click', async () => {
                 if (bookingCreationInFlight) {
-                    return false;
-                }
-
-                bookingCreationInFlight = true;
-                setOpenPaymentLoading(true);
-
-                const formData = new FormData(form);
-                if (extraDaysWrap?.classList.contains('d-none')) {
-                    formData.set('extra_days', '0');
-                }
-                if (!stockSelect || stockSelect.disabled) {
-                    formData.delete('stock_quantity');
-                }
-                formData.delete('booking_id');
-
-                try {
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': csrfToken,
-                        },
-                    });
-
-                    const text = await response.text();
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch {
-                        data = {
-                            success: false,
-                            message: text,
-                        };
-                    }
-
-                    if (!response.ok || !data?.success) {
-                        setSummaryError(data?.message || 'Failed to create booking. Please try again.');
-                        return false;
-                    }
-
-                    bookingIdField.value = data.booking_id || data.id || '';
-                    currentBookingReference = data.reference || null;
-
-                    if (stripePayBtn) {
-                        stripePayBtn.dataset.amount = totalInput?.value || '0';
-                    }
-
-                    return Boolean(bookingIdField.value);
-                } catch (error) {
-                    console.error(error);
-                    setSummaryError('Could not create the booking. Please try again.');
-                    return false;
-                } finally {
-                    bookingCreationInFlight = false;
-                    setOpenPaymentLoading(false);
-                }
-            }
-
-            function showPaymentLoader(message = 'Processing payment...') {
-                if (!paymentLoaderEl) {
-                    return;
-                }
-                if (paymentLoaderTextEl) {
-                    paymentLoaderTextEl.textContent = message;
-                }
-                paymentLoaderEl.classList.remove('d-none');
-                paymentLoaderEl.setAttribute('aria-hidden', 'false');
-            }
-
-            function hidePaymentLoader() {
-                if (!paymentLoaderEl) {
-                    return;
-                }
-                paymentLoaderEl.classList.add('d-none');
-                paymentLoaderEl.setAttribute('aria-hidden', 'true');
-            }
-
-            function populateThankYouModal(methodLabel) {
-                if (thankYouReferenceEl) {
-                    const reference = currentBookingReference
-                        || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
-                    thankYouReferenceEl.textContent = reference;
-                }
-
-                if (thankYouPeriodEl) {
-                    const start = summaryFields.start?.textContent || '-';
-                    const end = summaryFields.end?.textContent || '-';
-                    thankYouPeriodEl.textContent = `${start} ? ${end}`;
-                }
-
-                if (thankYouMethodEl) {
-                    thankYouMethodEl.textContent = methodLabel || '-';
-                }
-
-                if (thankYouAmountEl) {
-                    thankYouAmountEl.textContent = summaryFields.total?.textContent || fmtCurrency.format(0);
-                }
-
-                if (thankYouContactEl) {
-                    const contactParts = [];
-                    if (form.elements.email?.value) {
-                        contactParts.push(form.elements.email.value.trim());
-                    }
-                    if (form.elements.phone?.value) {
-                        contactParts.push(form.elements.phone.value.trim());
-                    }
-                    thankYouContactEl.textContent = contactParts.length
-                        ? `We will reach out at ${contactParts.join(' � ')}`
-                        : 'We will email your confirmation shortly.';
-                }
-            }
-
-            function showThankYou(methodLabel) {
-                populateThankYouModal(methodLabel);
-                if (thankYouModalEl) {
-                    bootstrap.Modal.getOrCreateInstance(thankYouModalEl).show();
-                }
-            }
-
-            if (openPaymentBtn) {
-                openPaymentBtn.addEventListener('click', async () => {
-                    setSummaryError('');
-                    if (!validateStep1()) {
-                        setStep(0);
-                        return;
-                    }
-                    if (!validateStep2()) {
-                        setStep(1);
-                        return;
-                    }
-
-                    updateSummary();
-
-                    const created = await ensureBookingCreated();
-                    if (!created) {
-                        return;
-                    }
-
-                    if (paymentModalEl) {
-                        resetPaymentChoices();
-                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
-                    }
-                });
-            }
-
-            if (paymentBackBtn) {
-                paymentBackBtn.addEventListener('click', () => {
-                    if (paymentModalEl) {
-                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).hide();
-                    }
-                });
-            }
-            async function startPayfastFlow() {
-                if (!bookingIdField?.value) {
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'Booking missing',
-                        text: 'Please create the booking first.',
-                    });
-                    if (paymentModalEl) {
-                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
-                    }
                     return;
                 }
 
-                showPaymentLoader('Redirecting to PayFast...');
-                try {
-                    const res = await fetch(
-                        `/payfast/booking/init/${encodeURIComponent(bookingIdField.value)}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken,
-                            },
-                            body: JSON.stringify({
-                                booking_id: bookingIdField.value,
-                            }),
-                        });
+                if (!bookingIdField?.value && bookingForm) {
+                    bookingCreationInFlight = true;
+                    setOpenPaymentLoading(true);
 
-                    const data = await res.json();
-                    if (!res.ok || !data?.success) {
-                        throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
-                    }
-
-                    const formEl = document.createElement('form');
-                    formEl.method = 'POST';
-                    formEl.action = data.action;
-                    formEl.style.display = 'none';
-
-                    Object.entries(data.fields || {}).forEach(([key, value]) => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = value;
-                        formEl.appendChild(input);
-                    });
-
-                    document.body.appendChild(formEl);
-                    formEl.submit();
-                } catch (error) {
-                    console.error(error);
-                    await Swal.fire({
-                        icon: 'error',
-                        title: 'PayFast error',
-                        text: error.message || 'Could not redirect to PayFast.',
-                    });
-                    if (paymentModalEl) {
-                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
-                    }
-                } finally {
-                    hidePaymentLoader();
-                }
-            }
-
-            paymentMethodInputs.forEach((input) => {
-                input.addEventListener('change', async () => {
-                    if (!input.checked) {
-                        return;
-                    }
-
-                    if (paymentModalEl) {
-                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).hide();
-                    }
-
-                    if (input.value === 'stripe') {
-                        if (!stripeInstance) {
-                            await Swal.fire({
-                                icon: 'error',
-                                title: 'Stripe unavailable',
-                                text: 'Card payments are not available at the moment.',
-                            });
-                            if (paymentModalEl) {
-                                bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
-                            }
-                            resetPaymentChoices();
-                            return;
-                        }
-
-                        if (stripePayBtn) {
-                            stripePayBtn.dataset.amount = totalInput?.value || '0';
-                            stripePayBtn.textContent = `Pay ${fmtCurrency.format(parseFloat(stripePayBtn.dataset.amount || '0'))}`;
-                        }
-
-                        bootstrap.Modal.getOrCreateInstance(stripeModalEl).show();
-                        return;
-                    }
-
-                    if (input.value === 'payfast') {
-                        await startPayfastFlow();
-                        resetPaymentChoices();
-                    }
-                });
-            });
-
-            if (stripeBackBtn) {
-                stripeBackBtn.addEventListener('click', () => {
-                    if (stripeModalEl) {
-                        bootstrap.Modal.getOrCreateInstance(stripeModalEl).hide();
-                    }
-                    if (paymentModalEl) {
-                        bootstrap.Modal.getOrCreateInstance(paymentModalEl).show();
-                    }
-                    resetPaymentChoices();
-                });
-            }
-
-            if (typeof Stripe !== 'undefined' && stripePublicKey) {
-                stripeInstance = Stripe(stripePublicKey);
-                stripeElements = stripeInstance.elements();
-                const stripeStyle = {
-                    base: {
-                        color: '#212529',
-                        fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-                        fontSize: '16px',
-                        '::placeholder': { color: '#adb5bd' },
-                    },
-                    invalid: {
-                        color: '#dc3545',
-                    },
-                };
-
-                stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
-                stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
-                stripeCardCvc = stripeElements.create('cardCvc', { style: stripeStyle });
-
-                const cardNumberMount = document.getElementById('booking-card-number');
-                const cardExpiryMount = document.getElementById('booking-card-expiry');
-                const cardCvcMount = document.getElementById('booking-card-cvc');
-
-                if (cardNumberMount) stripeCardNumber.mount(cardNumberMount);
-                if (cardExpiryMount) stripeCardExpiry.mount(cardExpiryMount);
-                if (cardCvcMount) stripeCardCvc.mount(cardCvcMount);
-            } else if (stripePublicKey) {
-                console.warn('Stripe.js not loaded or publishable key missing.');
-            }
-
-            if (stripePayBtn && stripeInstance) {
-                stripePayBtn.addEventListener('click', async function() {
+                    const formData = new FormData(bookingForm);
                     if (!bookingIdField?.value) {
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Booking missing',
-                            text: 'Please create the booking first.',
-                        });
-                        return;
+                        formData.delete('booking_id');
                     }
-
-                    if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
-                        await Swal.fire({
-                            icon: 'error',
-                            title: 'Stripe unavailable',
-                            text: 'Payment form is not ready yet.',
-                        });
-                        return;
-                    }
-
-                    if (stripeCardErrorsEl) {
-                        stripeCardErrorsEl.textContent = '';
-                    }
-
-                    const originalText = this.textContent;
-                    this.disabled = true;
-                    this.textContent = 'Processing...';
-                    showPaymentLoader();
 
                     try {
-                        const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
-                            type: 'card',
-                            card: stripeCardNumber,
-                            billing_details: {
-                                name: form?.name?.value || '',
-                                email: form?.email?.value || '',
-                            },
-                        });
-
-                        if (error) {
-                            if (stripeCardErrorsEl) {
-                                stripeCardErrorsEl.textContent = error.message || 'Payment method error.';
+                        const res = await fetch(bookingForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.getAttribute(
+                                    'content') || ''
                             }
-                            return;
-                        }
-
-                        const res = await fetch(
-                            `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': csrfToken,
-                                },
-                                body: JSON.stringify({
-                                    payment_method_id: paymentMethod.id,
-                                    amount: parseFloat(this.dataset.amount || '0'),
-                                }),
-                            });
+                        });
 
                         const text = await res.text();
                         let data;
@@ -1639,71 +1822,457 @@
                         } catch {
                             data = {
                                 success: false,
-                                message: text,
+                                message: text
                             };
                         }
 
-                        if (!res.ok || !data) {
+                        if (!res.ok || !data?.success) {
                             await Swal.fire({
                                 icon: 'error',
-                                title: 'Payment failed',
-                                text: data?.message || 'Server error while processing payment.',
+                                title: 'Booking not created',
+                                text: data?.message || 'Failed to create booking.'
                             });
                             return;
                         }
 
-                        if (data.success) {
-                            bootstrap.Modal.getInstance(stripeModalEl)?.hide();
-                            showThankYou('Stripe');
-                            return;
-                        }
-
-                        if (data.requires_action && data.payment_intent_client_secret) {
-                            const result = await stripeInstance.confirmCardPayment(
-                                data.payment_intent_client_secret);
-                            if (result.error) {
-                                await Swal.fire({
-                                    icon: 'error',
-                                    title: 'Authentication failed',
-                                    text: result.error.message || 'Unable to confirm your card.',
-                                });
-                            } else {
-                                bootstrap.Modal.getInstance(stripeModalEl)?.hide();
-                                showThankYou('Stripe');
-                            }
-                        } else {
+                        bookingIdField.value = data.booking_id || data.id || '';
+                        currentBookingReference = data.reference || null;
+                        if (!bookingIdField.value) {
                             await Swal.fire({
                                 icon: 'error',
-                                title: 'Payment failed',
-                                text: data.message || 'Unable to charge your card.',
+                                title: 'Missing booking ID',
+                                text: 'Booking was created but no identifier was returned.'
                             });
+                            return;
                         }
                     } catch (error) {
                         console.error(error);
                         await Swal.fire({
                             icon: 'error',
-                            title: 'Payment error',
-                            text: error.message || 'An unexpected error occurred.',
+                            title: 'Network error',
+                            text: 'Unable to create booking, please try again.'
                         });
+                        return;
                     } finally {
-                        hidePaymentLoader();
-                        this.disabled = false;
-                        this.textContent = originalText;
+                        bookingCreationInFlight = false;
+                        setOpenPaymentLoading(false);
                     }
-                });
-            } else if (stripePayBtn) {
-                stripePayBtn.disabled = true;
+                }
+
+                if (!bookingIdField?.value) {
+                    return;
+                }
+
+                const summaryModal = bootstrap.Modal.getInstance(document.getElementById(
+                    'summaryStep'));
+                summaryModal?.hide();
+
+                if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
+
+                const stripeRadio = document.getElementById('bookingStripe');
+                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset
+                    .amount = String(computeGrandTotal());
+            });
+        }
+
+        document.addEventListener('change', async (e) => {
+            if (!(e.target && e.target.name === 'booking_payment_method')) return;
+
+            const method = e.target.value;
+            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(
+                bookingPaymentModalEl) : null;
+            paymentModalInstance?.hide();
+
+            const grandTotal = computeGrandTotal();
+
+            if (method === 'stripe') {
+                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(
+                    grandTotal);
+                if (bookingStripeModalEl) new bootstrap.Modal(bookingStripeModalEl).show();
+                return;
             }
 
-            modalEl.addEventListener('shown.bs.modal', resetFormState);
-            modalEl.addEventListener('hidden.bs.modal', resetFormState);
+            if (method === 'payfast') {
+                const bookingId = bookingIdField?.value;
+                if (!bookingId) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.'
+                    });
+                    if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
+                    e.target.checked = false;
+                    return;
+                }
 
-            updateStockSelect();
-            updateTotalsAndSummary();
-        })();
-    </script>
-@else
-    {{-- Booking modal unavailable because pricing or category data is missing --}}
-@endif
+                try {
+                    showPaymentLoader('Redirecting to PayFast...');
+                    const res = await fetch(
+                        `/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                booking_id: bookingId
+                            })
+                        });
 
+                    const data = await res.json();
+                    if (!res.ok || !data?.success) throw new Error(data?.message ||
+                        'Failed to prepare PayFast checkout.');
 
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = data.action;
+                    form.style.display = 'none';
+                    Object.entries(data.fields || {}).forEach(([key, value]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    });
+                    document.body.appendChild(form);
+                    form.submit();
+                } catch (err) {
+                    console.error(err);
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'PayFast error',
+                        text: err.message || 'Could not redirect to PayFast.'
+                    });
+                    if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
+                    e.target.checked = false;
+                } finally {
+                    hidePaymentLoader();
+                }
+            }
+        });
+
+        // Stripe mount
+        const stripePublicKeyJS = "{{ $stripeConfig->stripe_key ?? '' }}";
+        if (typeof Stripe !== 'undefined' && stripePublicKeyJS) {
+            stripeInstance = Stripe(stripePublicKeyJS);
+            stripeElements = stripeInstance.elements();
+            const stripeStyle = {
+                base: {
+                    fontSize: '16px',
+                    color: '#32325d',
+                    '::placeholder': {
+                        color: '#a0aec0'
+                    }
+                }
+            };
+
+            stripeCardNumber = stripeElements.create('cardNumber', {
+                style: stripeStyle
+            });
+            stripeCardExpiry = stripeElements.create('cardExpiry', {
+                style: stripeStyle
+            });
+            stripeCardCvc = stripeElements.create('cardCvc', {
+                style: stripeStyle
+            });
+
+            const cardNumberMount = document.getElementById('booking-card-number');
+            const cardExpiryMount = document.getElementById('booking-card-expiry');
+            const cardCvcMount = document.getElementById('booking-card-cvc');
+
+            if (cardNumberMount) stripeCardNumber.mount(cardNumberMount);
+            if (cardExpiryMount) stripeCardExpiry.mount(cardExpiryMount);
+            if (cardCvcMount) stripeCardCvc.mount(cardCvcMount);
+        } else if (stripePublicKeyJS) {
+            console.warn('Stripe.js not loaded or public key missing.');
+        }
+
+        if (bookingStripePayButton && !stripeInstance) bookingStripePayButton.disabled = true;
+
+        if (bookingStripePayButton && stripeInstance) {
+            bookingStripePayButton.addEventListener('click', async function() {
+                if (!bookingIdField?.value) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.'
+                    });
+                    return;
+                }
+
+                if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Stripe unavailable',
+                        text: 'Payment form is not ready yet.'
+                    });
+                    return;
+                }
+
+                if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = '';
+
+                const button = this;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Processing...';
+                showPaymentLoader();
+
+                try {
+                    const {
+                        paymentMethod,
+                        error
+                    } = await stripeInstance.createPaymentMethod({
+                        type: 'card',
+                        card: stripeCardNumber,
+                        billing_details: {
+                            name: bookingForm?.name?.value || '',
+                            email: bookingForm?.email?.value || ''
+                        }
+                    });
+
+                    if (error) {
+                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message ||
+                            'Payment method error.';
+                        hidePaymentLoader();
+                        return;
+                    }
+
+                    const res = await fetch(
+                        `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                payment_method_id: paymentMethod.id,
+                                amount: parseFloat(button.dataset.amount || '0')
+                            })
+                        });
+
+                    const text = await res.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch {
+                        data = {
+                            success: false,
+                            message: text
+                        };
+                    }
+
+                    hidePaymentLoader();
+
+                    if (!res.ok || !data) {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment failed',
+                            text: data?.message || 'Server error while processing payment.'
+                        });
+                        return;
+                    }
+
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
+                        populateThankYouModal('Stripe');
+                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
+                            .show();
+                        return;
+                    }
+
+                    if (data.requires_action && data.payment_intent_client_secret) {
+                        const result = await stripeInstance.confirmCardPayment(data
+                            .payment_intent_client_secret);
+                        if (result.error) {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Authentication failed',
+                                text: result.error.message || 'Unable to confirm your card.'
+                            });
+                        } else {
+                            bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
+                            populateThankYouModal('Stripe');
+                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
+                                .show();
+                        }
+                    } else {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment failed',
+                            text: data.message || 'Unable to charge your card.'
+                        });
+                    }
+                } catch (error) {
+                    console.error(error);
+                    hidePaymentLoader();
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Network error',
+                        text: error.message || 'Unable to reach the payment server.'
+                    });
+                } finally {
+                    hidePaymentLoader();
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+        }
+
+        /* =========================
+           SUMMARY
+           ========================= */
+        const goToSummaryBtn = document.getElementById('goToSummary');
+        if (goToSummaryBtn) {
+            goToSummaryBtn.addEventListener('click', function() {
+                const form = document.getElementById('bookingForm');
+                const name = form.querySelector('[name="name"]');
+                const email = form.querySelector('[name="email"]');
+                const phone = form.querySelector('[name="phone"]');
+                const country = form.querySelector('[name="country"]');
+                const emailValue = (email.value || '').trim();
+                const phoneValue = (phone.value || '').trim();
+                email.value = emailValue;
+                phone.value = phoneValue;
+
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+                const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
+
+                if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
+                    notify('cust-missing', {
+                        icon: 'error',
+                        title: 'Missing Information',
+                        text: 'Please fill all required customer details.'
+                    });
+                    return;
+                }
+
+                if (!emailPattern.test(emailValue)) {
+                    notify('cust-invalid', {
+                        icon: 'error',
+                        title: 'Invalid Email',
+                        text: 'Enter a valid email address, e.g. you@example.com.'
+                    });
+                    email.focus();
+                    return;
+                }
+
+                if (!phonePattern.test(phoneValue)) {
+                    notify('cust-invalid', {
+                        icon: 'error',
+                        title: 'Invalid Phone Number',
+                        text: 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.'
+                    });
+                    phone.focus();
+                    return;
+                }
+
+                const unitH = document.getElementById('inputRentalUnit');
+                const startH = document.getElementById('inputRentalStartDate');
+                const extraH = document.getElementById('inputExtraDays');
+                const totalH = document.getElementById('inputTotalPrice');
+                const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
+
+                const typeLabel = ({
+                    day: 'Daily',
+                    week: 'Weekly',
+                    month: 'Monthly'
+                })[unitH.value] || (unitH.value || 'N/A');
+                document.getElementById('summaryType').textContent = typeLabel;
+
+                let vehiclePeriod = '';
+                if (startH && startH.value) {
+                    vehiclePeriod = niceDate(startH.value);
+                    if (extraH && (unitH.value === 'week' || unitH.value === 'month')) {
+                        vehiclePeriod += ` + ${extraH.value || 0} extra day(s)`;
+                    }
+                }
+
+                document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
+                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH
+                    .value : 0);
+                document.getElementById('summaryUnits').textContent =
+                    `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
+
+                const vehicleTotal = parseFloat(totalH?.value || '0');
+                document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
+
+                document.getElementById('summaryCustomerName').textContent = name.value;
+                document.getElementById('summaryCustomerEmail').textContent = email.value;
+                document.getElementById('summaryCustomerPhone').textContent = phone.value;
+                document.getElementById('summaryCustomerCountry').textContent = country.value;
+
+                const custEl = document.getElementById('customerStep');
+                const sumEl = document.getElementById('summaryStep');
+                (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
+                (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
+            });
+        }
+
+        /* =========================
+           THANK YOU MODAL
+           ========================= */
+        window.populateThankYouModal = (methodLabel) => {
+            if (!bookingThankYouModalEl) return;
+            const tyVehicleNameEl = document.getElementById('tyVehicleName');
+            if (tyVehicleNameEl) tyVehicleNameEl.textContent = "{{ addslashes($bookableName) }}";
+
+            const tyVehicleSubEl = document.getElementById('tyVehicleSub');
+            if (tyVehicleSubEl) tyVehicleSubEl.textContent = "{{ addslashes($bookableModel) }}";
+
+            const periodText = document.getElementById('summaryPeriod')?.textContent?.trim() || 'N/A';
+            const tyPeriodEl = document.getElementById('tyPeriod');
+            if (tyPeriodEl) tyPeriodEl.textContent = periodText;
+
+            const reference = currentBookingReference || (bookingIdField?.value ?
+                `#${bookingIdField.value}` : 'N/A');
+            const tyReferenceEl = document.getElementById('tyReference');
+            if (tyReferenceEl) tyReferenceEl.textContent = reference;
+
+            const tyAmountEl = document.getElementById('tyAmount');
+            if (tyAmountEl) tyAmountEl.textContent = money(computeGrandTotal());
+
+            const tyMethodEl = document.getElementById('tyMethod');
+            if (tyMethodEl) tyMethodEl.textContent = methodLabel || 'N/A';
+
+            const tyCustomerNameEl = document.getElementById('tyCustomerName');
+            if (tyCustomerNameEl) tyCustomerNameEl.textContent = bookingForm?.name?.value?.trim() || 'N/A';
+
+            const contactParts = [];
+            if (bookingForm?.email?.value) contactParts.push(bookingForm.email.value.trim());
+            if (bookingForm?.phone?.value) contactParts.push(bookingForm.phone.value.trim());
+            const tyCustomerContactEl = document.getElementById('tyCustomerContact');
+            if (tyCustomerContactEl) tyCustomerContactEl.textContent = contactParts.join(' | ') || 'N/A';
+
+            const wa = document.getElementById('tyWhatsappBtn');
+            if (wa) {
+                const txt =
+                    `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
+                const url = new URL("https://wa.me/27612345678");
+                url.searchParams.set('text', txt);
+                wa.href = url.toString();
+            }
+
+            const cont = document.getElementById('tyContinueVehicles');
+            if (cont) cont.onclick = () => {
+                window.location.href = "{{ $continueBrowseUrl }}";
+            };
+        };
+
+        window.showThankYou = (methodLabel) => {
+            window.populateThankYouModal(methodLabel);
+            const m = bootstrap.Modal.getOrCreateInstance(bookingThankYouModalEl);
+            m.show();
+        };
+
+        /* =========================
+           INITIALIZATION
+           ========================= */
+        initCalendar();
+        updateExtraDaysVisibility();
+        updateLocationAvailability();
+        updateStep1Paint();
+        populateStockQuantitySelect(null);
+    });
+</script>
