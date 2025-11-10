@@ -72,5 +72,17 @@ class UserSeeder extends Seeder
             ]
         );
         $info->assignRole($userRole);
+
+
+
+         $info = User::firstOrCreate(
+            ['email' => 'info@rent2recover.co.za'],
+            [
+                'name' => 'Info Account',
+                'password' => Hash::make('rent2recover@2025'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $info->assignRole($userRole);
     }
 }

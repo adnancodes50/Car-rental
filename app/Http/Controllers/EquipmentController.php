@@ -9,6 +9,8 @@ use App\Models\Location;
 use App\Models\EquipmentStock;
 use Illuminate\Support\Facades\Storage;
 
+use Illuminate\Support\Facades\DB;
+
 class EquipmentController extends Controller
 {
     /**
@@ -123,18 +125,26 @@ public function update(Request $request, Equipment $equipment)
 }
 
 
-    /**
-     * Remove the specified equipment.
-     */
-  public function destroy(Equipment $equipment)
+
+
+public function destroy(Equipment $equipment)
 {
-    if ($equipment->image && Storage::disk('public')->exists($equipment->image)) {
-        Storage::disk('public')->delete($equipment->image);
-    }
+    DB::transaction(function () use ($equipment) {
 
-    $equipment->delete();
+        // Delete related purchases
+        DB::table('equipment_purchase')->where('equipment_id', $equipment->id)->delete();
 
-    return redirect()->route('equipment.index')->with('success', 'Equipment deleted successfully.');
+        // Delete main image if exists
+        if ($equipment->image && Storage::disk('public')->exists($equipment->image)) {
+            Storage::disk('public')->delete($equipment->image);
+        }
+
+        // Delete the equipment row
+        DB::table('equipment')->where('id', $equipment->id)->delete();
+    });
+
+    return redirect()->route('equipment.index')
+        ->with('success', 'Equipment and related purchases deleted successfully.');
 }
 
 }

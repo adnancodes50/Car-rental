@@ -69,7 +69,7 @@ class BookingController extends Controller
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email:rfc,filter', 'max:255'],
             'phone' => ['required', 'regex:/^[0-9]+$/'],
-            'country'  => ['nullable', 'string', 'max:100'],
+            'country' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9\s\-\.,#()]+$/'],
         ]);
 
         $lockKey = sprintf(

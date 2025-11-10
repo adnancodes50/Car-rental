@@ -222,7 +222,7 @@
 
                             {{-- Visible input the user types in --}}
                             <input type="text" id="purchaseCountryInput" class="form-control rounded-3"
-                                placeholder="Start typing your country..." autocomplete="off"
+                                placeholder="Start typing your Address...." autocomplete="off"
                                 {{ $isUnavailable ? 'disabled' : '' }}>
 
                             {{-- Real value posted to Laravel --}}
