@@ -208,13 +208,13 @@
                                 {{ $isUnavailable ? 'disabled' : '' }}>
                         </div>
 
-                       <div class="col-12">
-    <label class="form-label">Phone Number</label>
-    <input type="tel" name="phone" class="form-control rounded-3"
-        placeholder="012 345 6789" inputmode="tel" autocomplete="tel" required
-        pattern="^[0-9 ]+$" title="Digits and spaces only, e.g. 012 345 6789"
-        {{ $isUnavailable ? 'disabled' : '' }}>
-</div>
+                        <div class="col-12">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" name="phone" class="form-control rounded-3"
+                                placeholder="012 345 6789" inputmode="tel" autocomplete="tel" required
+                                pattern="^\+?[0-9\s]+$" title="Digits and spaces only, e.g. 012 345 6789"
+                                {{ $isUnavailable ? 'disabled' : '' }}>
+                        </div>
 
                         <div class="col-12">
                             <label class="form-label">Customer Location</label>
@@ -1031,17 +1031,26 @@
         const visibleModals = () =>
             Array.from(document.querySelectorAll('.modal.show'));
 
+        // Improved modal stacking
         const restack = () => {
-            const open = visibleModals();
-            open.forEach((m, i) => {
-                m.style.zIndex = String(Z_BASE + i * Z_STEP);
+            const openModals = Array.from(document.querySelectorAll('.modal.show'));
+
+            openModals.forEach((modal, index) => {
+                const zIndex = 1050 + (index * 10);
+                modal.style.zIndex = zIndex;
+
+                // Also update the backdrop for this modal
+                const backdrop = document.querySelector('.modal-backdrop.show');
+                if (backdrop) {
+                    backdrop.style.zIndex = zIndex - 10;
+                }
             });
 
-            if (open.length) {
+            if (openModals.length > 0) {
                 document.body.classList.add('modal-open');
+                document.body.style.paddingRight = '0px'; // Prevent layout shift
             } else {
                 document.body.classList.remove('modal-open');
-                document.body.style.removeProperty('padding-right');
             }
         };
 
@@ -1071,6 +1080,94 @@
             updatePricingSummary();
         }
 
+        // Function to clean URL parameters and redirect
+        function cleanUrlAndRedirect() {
+            try {
+                const url = new URL(window.location);
+                // Remove all payment-related parameters
+                const paramsToRemove = ['payment_status', 'purchase_id', 'purchase', 'payfast_success', 'success',
+                    'error'
+                ];
+                paramsToRemove.forEach(param => url.searchParams.delete(param));
+
+                // Use replaceState to clean URL without reloading
+                window.history.replaceState({}, '', url.toString());
+            } catch (e) {
+                console.error('Error cleaning URL:', e);
+                // Fallback: redirect to home without parameters
+                window.location.href = '/';
+            }
+        }
+
+        // Improved URL parameter handling
+        // Improved URL parameter handling
+        function handleUrlParameters() {
+            const params = new URLSearchParams(window.location.search);
+            const paymentStatus = params.get('payment_status');
+            const purchaseId = params.get('purchase_id');
+            const status = params.get('status');
+            const paymentMethod = params.get('payment_method');
+
+            console.log('🎯 Detected URL Parameters:', {
+                paymentStatus,
+                purchaseId,
+                status,
+                paymentMethod,
+                allParams: Object.fromEntries(params)
+            });
+
+            // If we have payment_status parameter
+            if (paymentStatus === 'success' || status === 'paid') {
+                let icon = 'success';
+                let title = 'Payment Successful!';
+                let html = `<div class="text-start">
+            <p class="mb-2">✅ Your deposit payment was successfully processed!</p>
+            ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
+            ${paymentMethod ? `<p class="mb-1"><strong>Payment Method:</strong> ${paymentMethod}</p>` : ''}
+            <p class="mb-1"><strong>Status:</strong> Paid</p>
+            <p class="mb-0"><strong>Click below to open WhatsApp chat for further instructions</strong></p>
+        </div>`;
+                let confirmButtonText = 'Open WhatsApp Chat';
+
+                // Show the success alert
+                Swal.fire({
+                    icon,
+                    title,
+                    html,
+                    confirmButtonText,
+                    allowOutsideClick: false,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        openWhatsAppNewTab();
+                    }
+                    // Clean URL after showing the message
+                    cleanUrlAndRedirect();
+                });
+
+                return true;
+            }
+
+            // Handle pending status
+            if (paymentStatus === 'pending') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Payment Processing',
+                    html: `<div class="text-start">
+                <p class="mb-2">⏳ Your payment is being processed.</p>
+                ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
+                <p class="mb-0 text-muted">You will receive confirmation shortly via email.</p>
+            </div>`,
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false,
+                }).then(() => {
+                    cleanUrlAndRedirect();
+                });
+                return true;
+            }
+
+            return false;
+        }
+
         document.addEventListener('change', (e) => {
             if (e.target?.id === 'locationSelect') {
                 clampQtyByLocation(e.target.value);
@@ -1083,6 +1180,12 @@
             const $ = (id) => document.getElementById(id);
             formRef = $('purchaseForm');
             const form = formRef;
+
+            // ✅ FIX: Handle URL parameters on page load
+            console.log('🕒 Checking for URL parameters on page load...');
+            setTimeout(() => {
+                handleUrlParameters();
+            }, 500);
 
             // Initial stock handling
             if (TYPE === 'equipment') {
@@ -1163,13 +1266,13 @@
                     return;
                 }
                 if (!phonePattern.test(phone)) {
-    notify('phone', {
-        title: 'Invalid Phone Number',
-        text: 'Use numbers with optional + sign and spaces only.',
-    });
-    form.phone?.focus();
-    return;
-}
+                    notify('phone', {
+                        title: 'Invalid Phone Number',
+                        text: 'Use numbers with optional + sign and spaces only.',
+                    });
+                    form.phone?.focus();
+                    return;
+                }
 
                 const payload = {
                     name,
@@ -1298,48 +1401,49 @@
                 }
             }
 
-            document
-                .querySelectorAll('input[name="payment_method"]')
-                .forEach((radio) => {
-                    radio.addEventListener('change', async function() {
-                        const choice = this.value;
+            // PayFast flow - IMPROVED VERSION
+            // PayFast flow - UPDATED VERSION
+            document.querySelectorAll('input[name="payment_method"]').forEach((radio) => {
+                radio.addEventListener('change', async function() {
+                    const choice = this.value;
 
-                        if (IS_UNAVAILABLE) {
-                            this.checked = false;
-                            return notify('unavailable3', {
-                                title: 'Unavailable',
-                                text: `This ${TYPE} is unavailable.`,
-                            });
-                        }
+                    if (IS_UNAVAILABLE) {
+                        this.checked = false;
+                        return notify('unavailable3', {
+                            title: 'Unavailable',
+                            text: `This ${TYPE} is unavailable.`,
+                        });
+                    }
 
-                        const pid = form.querySelector('input[name="purchase_id"]')?.value;
-                        if (!pid) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Missing purchase',
-                                text: 'Please save your details first.',
-                            });
+                    const pid = form.querySelector('input[name="purchase_id"]')?.value;
+                    if (!pid) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Missing purchase',
+                            text: 'Please save your details first.',
+                        });
+                        this.checked = false;
+                        return;
+                    }
+
+                    if (choice === 'stripe') {
+                        const ok = await ensureStripeMounted();
+                        if (!ok) {
                             this.checked = false;
                             return;
                         }
+                        swapModal('purchasePayment', 'stripePaymentModal');
+                        return;
+                    }
 
-                        if (choice === 'stripe') {
-                            const ok = await ensureStripeMounted();
-                            if (!ok) {
-                                this.checked = false;
-                                return;
-                            }
-                            swapModal('purchasePayment', 'stripePaymentModal');
-                            return;
-                        }
-
-                        // PayFast flow
+                    // PayFast flow - UPDATED
+                    if (choice === 'payfast') {
                         const confirmed = await Swal.fire({
                             icon: 'question',
                             title: 'Proceed with PayFast?',
-                            text: 'You will be redirected to PayFast.',
+                            text: 'You will be redirected to PayFast to complete your deposit payment.',
                             showCancelButton: true,
-                            confirmButtonText: 'Continue',
+                            confirmButtonText: 'Continue to PayFast',
                             cancelButtonText: 'Back',
                             reverseButtons: true,
                             buttonsStyling: false,
@@ -1355,10 +1459,16 @@
                         }
 
                         try {
-                            const initUrl = PAYFAST_INIT_TPL.replace(
-                                '{id}',
-                                encodeURIComponent(pid)
-                            );
+                            // Show loading state
+                            Swal.fire({
+                                title: 'Preparing PayFast Payment...',
+                                text: 'Please wait while we initialize your payment.',
+                                allowOutsideClick: false,
+                                didOpen: () => Swal.showLoading(),
+                            });
+
+                            const initUrl = PAYFAST_INIT_TPL.replace('{id}',
+                                encodeURIComponent(pid));
 
                             const res = await fetch(initUrl, {
                                 method: 'POST',
@@ -1373,37 +1483,59 @@
                             });
 
                             const data = await res.json();
+
                             if (!res.ok || !data?.success) {
-                                throw new Error(
-                                    data?.message || 'Failed to initialize PayFast.'
-                                );
+                                throw new Error(data?.message ||
+                                    'Failed to initialize PayFast payment.');
                             }
 
+                            Swal.close();
+
+                            // Create and submit PayFast form
                             const pfForm = document.createElement('form');
                             pfForm.method = 'POST';
                             pfForm.action = data.action;
                             pfForm.style.display = 'none';
 
-                            Object.entries(data.fields || {}).forEach(([k, v]) => {
-                                const inp = document.createElement('input');
-                                inp.type = 'hidden';
-                                inp.name = k;
-                                inp.value = v;
-                                pfForm.appendChild(inp);
+                            // Add all PayFast fields
+                            Object.entries(data.fields || {}).forEach(([key,
+                            value]) => {
+                                const input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = key;
+                                input.value = value;
+                                pfForm.appendChild(input);
                             });
 
                             document.body.appendChild(pfForm);
+
+                            // Log the redirect for debugging
+                            console.log('🔄 Submitting to PayFast:', {
+                                action: data.action,
+                                fields: data.fields,
+                                purchaseId: pid,
+                                return_url: data.fields?.return_url,
+                                notify_url: data.fields?.notify_url
+                            });
+
                             pfForm.submit();
-                        } catch (e) {
+
+                        } catch (error) {
+                            Swal.close();
                             Swal.fire({
                                 icon: 'error',
-                                title: 'PayFast error',
-                                text: e.message || 'Could not redirect to PayFast.',
+                                title: 'PayFast Error',
+                                html: `<div class="text-start">
+                        <p class="mb-2">Unable to initialize PayFast payment:</p>
+                        <p class="text-muted small">${error.message || 'Please try again or use another payment method.'}</p>
+                    </div>`,
+                                confirmButtonText: 'OK',
                             });
                             this.checked = false;
                         }
-                    });
+                    }
                 });
+            });
 
             $('purchaseStripeBackToPayment')?.addEventListener('click', () => {
                 swapModal('stripePaymentModal', 'purchasePayment');
@@ -1557,53 +1689,6 @@
                     });
                 }
             });
-
-            // After redirect back from Stripe/PayFast
-            try {
-                const params = new URLSearchParams(window.location.search);
-                if (
-                    params.get('purchase') === 'success' ||
-                    params.get('payfast_success')
-                ) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Payment Successful!',
-                        html: `<p>Your deposit payment was successful!</p>
-                           <p><strong>Click below to open WhatsApp chat</strong></p>`,
-                        showConfirmButton: true,
-                        confirmButtonText: 'Open WhatsApp Chat',
-                        allowOutsideClick: false,
-                    }).then(() => {
-                        openWhatsAppNewTab();
-                        window.location.href = '/';
-                    });
-
-                    // Clean URL so refresh doesn't retrigger
-                    params.delete('purchase');
-                    params.delete('payfast_success');
-                    const newUrl = `${location.pathname}${
-                    params.toString() ? '?' + params.toString() : ''
-                }${location.hash}`;
-                    window.history.replaceState({}, '', newUrl);
-                }
-            } catch (e) {
-                // silent
-            }
-
-            @if (session('payfast_success'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Payment Successful!',
-                    html: `<p>{{ session('payfast_success') }}</p>
-                       <p><strong>Click below to open WhatsApp chat</strong></p>`,
-                    showConfirmButton: true,
-                    confirmButtonText: 'Open WhatsApp Chat',
-                    allowOutsideClick: false,
-                }).then(() => {
-                    openWhatsAppNewTab();
-                    window.location.href = '/';
-                });
-            @endif
         });
     })();
 </script>

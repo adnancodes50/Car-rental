@@ -300,20 +300,19 @@
                                 title="Enter a valid email address, e.g. you@example.com">
                         </div>
 
-                       <div class="col-12">
-    <label class="form-label">Phone Number</label>
-    <input type="tel" class="form-control rounded-3" name="phone"
-        placeholder="+27 123 456 7890" inputmode="tel" required
-        pattern="^[a-zA-Z0-9\s\-\.,#()+]+$"
-        title="Enter a valid phone number with country code, e.g. +27 123 456 7890">
-</div>
+                        <div class="col-12">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control rounded-3" name="phone"
+                                placeholder="+27 123 456 7890" inputmode="tel" required
+                                pattern="^[a-zA-Z0-9\s\-\.,#()+]+$"
+                                title="Enter a valid phone number with country code, e.g. +27 123 456 7890">
+                        </div>
 
                         <div class="col-12">
                             <label class="form-label">Your Address</label>
                             <input type="text" id="bookingCustomerCountry" name="country"
                                 class="form-control rounded-3" placeholder="Start typing your address..."
-                                autocomplete="street-address" required
-                                pattern="^[a-zA-Z0-9\s\-\.,#()]+$"
+                                autocomplete="street-address" required pattern="^[a-zA-Z0-9\s\-\.,#()]+$"
                                 title="Enter a valid address with letters, numbers, spaces, hyphens, commas, periods, #, and parentheses">
                         </div>
                     </div>
@@ -788,7 +787,7 @@
 
     .option-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
     .option-card.active {
@@ -1019,7 +1018,8 @@
                 }
 
                 // Check stock availability
-                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <= 0) {
+                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <=
+                    0) {
                     if (window.Swal?.fire) {
                         Swal.fire({
                             icon: 'error',
@@ -1282,7 +1282,9 @@
 
                 if (hidTotal) {
                     hidTotal.value = String(vehicleTotal);
-                    hidTotal.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidTotal.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
 
                 // Inform listeners
@@ -1303,7 +1305,9 @@
                 const u = card.getAttribute('data-type') || '';
                 if (hidUnit) {
                     hidUnit.value = u;
-                    hidUnit.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidUnit.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
 
                 // show date + qty sections and prepare qty
@@ -1314,7 +1318,9 @@
                 // sync qty hidden
                 if (hidQty && qtySelect) {
                     hidQty.value = qtySelect.value;
-                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidQty.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
 
                 // AUTO-OPEN CALENDAR
@@ -1337,7 +1343,9 @@
             qtySelect.addEventListener('change', () => {
                 if (hidQty) {
                     hidQty.value = qtySelect.value;
-                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidQty.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
                 updateStep1Paint();
             });
@@ -1350,11 +1358,13 @@
             const inp = startDateInput;
             if (!inp) return;
 
-            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'), 10) || 0;
+            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'),
+                10) || 0;
 
             let blockedRanges = [];
             try {
-                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window.vehicleBlockedRanges || []);
+                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window
+                    .vehicleBlockedRanges || []);
                 blockedRanges = (JSON.parse(raw) || []).filter(r => r && r.from && r.to);
             } catch {
                 blockedRanges = [];
@@ -1473,7 +1483,9 @@
                     onChange: function(selectedDates, dateStr) {
                         if (hidStart) {
                             hidStart.value = dateStr || '';
-                            hidStart.dispatchEvent(new Event('change', { bubbles: true }));
+                            hidStart.dispatchEvent(new Event('change', {
+                                bubbles: true
+                            }));
                         }
                         qtySection?.classList.remove('d-none');
                         updateStep1Paint();
@@ -1535,7 +1547,9 @@
                     const dateStr = inp.value || '';
                     if (hidStart) {
                         hidStart.value = dateStr;
-                        hidStart.dispatchEvent(new Event('change', { bubbles: true }));
+                        hidStart.dispatchEvent(new Event('change', {
+                            bubbles: true
+                        }));
                     }
                     qtySection?.classList.remove('d-none');
                     updateStep1Paint();
@@ -1755,7 +1769,9 @@
                 if (value > limit) value = limit;
                 extraDaysInput.value = String(value);
                 hidExtra.value = String(value);
-                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
                 if (extraDaysHelp) {
                     extraDaysHelp.textContent = limit === 6 ? '1 to 6 days.' : '1 to 29 days.';
                 }
@@ -1763,7 +1779,9 @@
                 extraDaysSection.classList.add('d-none');
                 extraDaysInput.value = '0';
                 hidExtra.value = '0';
-                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
             }
         };
 
@@ -1783,7 +1801,9 @@
                 if (value > max) value = max;
                 extraDaysInput.value = String(value);
                 hidExtra.value = String(value);
-                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
                 updateLocationAvailability();
                 updateStep1Paint();
             });
@@ -1809,8 +1829,13 @@
            ========================= */
         const alertDebounce = new Map();
 
-        function notify(key, { icon = 'warning', title = 'Notice', text = '' }) {
-            const now = Date.now(), last = alertDebounce.get(key) || 0;
+        function notify(key, {
+            icon = 'warning',
+            title = 'Notice',
+            text = ''
+        }) {
+            const now = Date.now(),
+                last = alertDebounce.get(key) || 0;
             if (now - last < 600) return;
 
             const step1ModalEl = document.getElementById('multiStepBookingModal');
@@ -1819,7 +1844,12 @@
             if (step1Visible && suppressForStep1) return;
 
             alertDebounce.set(key, now);
-            if (window.Swal?.fire) Swal.fire({ icon, title, text, confirmButtonText: 'OK' });
+            if (window.Swal?.fire) Swal.fire({
+                icon,
+                title,
+                text,
+                confirmButtonText: 'OK'
+            });
             else alert(`${title}\n\n${text}`);
         }
 
@@ -1834,19 +1864,25 @@
         const bookingThankYouModalEl = document.getElementById('bookingThankYou');
         const bookingCardErrorsEl = document.getElementById('booking-card-errors');
 
-        const paymentMethodInputs = Array.from(document.querySelectorAll('input[name="booking_payment_method"]'));
+        const paymentMethodInputs = Array.from(document.querySelectorAll(
+            'input[name="booking_payment_method"]'));
         const resetPaymentSelection = () => {
             paymentMethodInputs.forEach((input) => {
                 input.checked = false;
                 input.removeAttribute('checked');
             });
         };
-        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal', resetPaymentSelection);
+        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal',
+            resetPaymentSelection);
 
         let currentBookingReference = null;
 
         const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
-        let stripeInstance = null, stripeElements = null, stripeCardNumber = null, stripeCardExpiry = null, stripeCardCvc = null;
+        let stripeInstance = null,
+            stripeElements = null,
+            stripeCardNumber = null,
+            stripeCardExpiry = null,
+            stripeCardCvc = null;
 
         const showPaymentLoader = (message = 'Processing payment...') => {
             if (window.Swal) {
@@ -1879,7 +1915,8 @@
             const tyPeriodEl = document.getElementById('tyPeriod');
             if (tyPeriodEl) tyPeriodEl.textContent = periodText;
 
-            const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
+            const reference = currentBookingReference || (bookingIdField?.value ?
+                `#${bookingIdField.value}` : '-');
             const tyReferenceEl = document.getElementById('tyReference');
             if (tyReferenceEl) tyReferenceEl.textContent = reference;
 
@@ -1913,7 +1950,8 @@
                     openPaymentBtn.textContent = 'Preparing booking...';
                 } else {
                     openPaymentBtn.disabled = false;
-                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel || openPaymentDefaultLabel;
+                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel ||
+                        openPaymentDefaultLabel;
                 }
             };
 
@@ -1933,29 +1971,49 @@
                             body: formData,
                             headers: {
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                                'X-CSRF-TOKEN': document.querySelector(
+                                        'meta[name="csrf-token"]')?.getAttribute(
+                                    'content') || ''
                             }
                         });
 
                         const text = await res.text();
                         let data;
-                        try { data = JSON.parse(text); }
-                        catch { data = { success: false, message: text }; }
+                        try {
+                            data = JSON.parse(text);
+                        } catch {
+                            data = {
+                                success: false,
+                                message: text
+                            };
+                        }
 
                         if (!res.ok || !data?.success) {
-                            await Swal.fire({ icon: 'error', title: 'Booking not created', text: data?.message || 'Failed to create booking.' });
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Booking not created',
+                                text: data?.message || 'Failed to create booking.'
+                            });
                             return;
                         }
 
                         bookingIdField.value = data.booking_id || data.id || '';
                         currentBookingReference = data.reference || null;
                         if (!bookingIdField.value) {
-                            await Swal.fire({ icon: 'error', title: 'Missing booking ID', text: 'Booking was created but no identifier was returned.' });
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Missing booking ID',
+                                text: 'Booking was created but no identifier was returned.'
+                            });
                             return;
                         }
                     } catch (error) {
                         console.error(error);
-                        await Swal.fire({ icon: 'error', title: 'Network error', text: 'Unable to create booking, please try again.' });
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Network error',
+                            text: 'Unable to create booking, please try again.'
+                        });
                         return;
                     } finally {
                         bookingCreationInFlight = false;
@@ -1965,13 +2023,15 @@
 
                 if (!bookingIdField?.value) return;
 
-                const summaryModal = bootstrap.Modal.getInstance(document.getElementById('summaryStep'));
+                const summaryModal = bootstrap.Modal.getInstance(document.getElementById(
+                    'summaryStep'));
                 summaryModal?.hide();
 
                 if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
 
                 const stripeRadio = document.getElementById('bookingStripe');
-                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset.amount = String(computeGrandTotal());
+                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset
+                    .amount = String(computeGrandTotal());
             });
         }
 
@@ -1979,13 +2039,15 @@
             if (!(e.target && e.target.name === 'booking_payment_method')) return;
 
             const method = e.target.value;
-            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(bookingPaymentModalEl) : null;
+            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(
+                bookingPaymentModalEl) : null;
             paymentModalInstance?.hide();
 
             const grandTotal = computeGrandTotal();
 
             if (method === 'stripe') {
-                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(grandTotal);
+                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(
+                    grandTotal);
                 if (bookingStripeModalEl) new bootstrap.Modal(bookingStripeModalEl).show();
                 return;
             }
@@ -1993,7 +2055,11 @@
             if (method === 'payfast') {
                 const bookingId = bookingIdField?.value;
                 if (!bookingId) {
-                    await Swal.fire({ icon: 'error', title: 'Booking missing', text: 'Please create the booking first.' });
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.'
+                    });
                     if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
                     e.target.checked = false;
                     return;
@@ -2001,17 +2067,22 @@
 
                 try {
                     showPaymentLoader('Redirecting to PayFast...');
-                    const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                        },
-                        body: JSON.stringify({ booking_id: bookingId })
-                    });
+                    const res = await fetch(
+                        `/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                booking_id: bookingId
+                            })
+                        });
 
                     const data = await res.json();
-                    if (!res.ok || !data?.success) throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
+                    if (!res.ok || !data?.success) throw new Error(data?.message ||
+                        'Failed to prepare PayFast checkout.');
 
                     const form = document.createElement('form');
                     form.method = 'POST';
@@ -2028,7 +2099,11 @@
                     form.submit();
                 } catch (err) {
                     console.error(err);
-                    await Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'PayFast error',
+                        text: err.message || 'Could not redirect to PayFast.'
+                    });
                     if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
                     e.target.checked = false;
                 } finally {
@@ -2043,12 +2118,24 @@
             stripeInstance = Stripe(stripePublicKeyJS);
             stripeElements = stripeInstance.elements();
             const stripeStyle = {
-                base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } }
+                base: {
+                    fontSize: '16px',
+                    color: '#32325d',
+                    '::placeholder': {
+                        color: '#a0aec0'
+                    }
+                }
             };
 
-            stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
-            stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
-            stripeCardCvc = stripeElements.create('cardCvc', { style: stripeStyle });
+            stripeCardNumber = stripeElements.create('cardNumber', {
+                style: stripeStyle
+            });
+            stripeCardExpiry = stripeElements.create('cardExpiry', {
+                style: stripeStyle
+            });
+            stripeCardCvc = stripeElements.create('cardCvc', {
+                style: stripeStyle
+            });
 
             const cardNumberMount = document.getElementById('booking-card-number');
             const cardExpiryMount = document.getElementById('booking-card-expiry');
@@ -2066,12 +2153,20 @@
         if (bookingStripePayButton && stripeInstance) {
             bookingStripePayButton.addEventListener('click', async function() {
                 if (!bookingIdField?.value) {
-                    Swal.fire({ icon: 'error', title: 'Booking missing', text: 'Please create the booking first.' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.'
+                    });
                     return;
                 }
 
                 if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
-                    Swal.fire({ icon: 'error', title: 'Stripe unavailable', text: 'Payment form is not ready yet.' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Stripe unavailable',
+                        text: 'Payment form is not ready yet.'
+                    });
                     return;
                 }
 
@@ -2084,62 +2179,99 @@
                 showPaymentLoader();
 
                 try {
-                    const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
+                    const {
+                        paymentMethod,
+                        error
+                    } = await stripeInstance.createPaymentMethod({
                         type: 'card',
                         card: stripeCardNumber,
-                        billing_details: { name: bookingForm?.name?.value || '', email: bookingForm?.email?.value || '' }
+                        billing_details: {
+                            name: bookingForm?.name?.value || '',
+                            email: bookingForm?.email?.value || ''
+                        }
                     });
 
                     if (error) {
-                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message || 'Payment method error.';
+                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message ||
+                            'Payment method error.';
                         hidePaymentLoader();
                         return;
                     }
 
-                    const res = await fetch(`/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                        },
-                        body: JSON.stringify({ payment_method_id: paymentMethod.id, amount: parseFloat(button.dataset.amount || '0') })
-                    });
+                    const res = await fetch(
+                        `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                payment_method_id: paymentMethod.id,
+                                amount: parseFloat(button.dataset.amount || '0')
+                            })
+                        });
 
                     const text = await res.text();
                     let data;
-                    try { data = JSON.parse(text); }
-                    catch { data = { success: false, message: text }; }
+                    try {
+                        data = JSON.parse(text);
+                    } catch {
+                        data = {
+                            success: false,
+                            message: text
+                        };
+                    }
 
                     hidePaymentLoader();
 
                     if (!res.ok || !data) {
-                        await Swal.fire({ icon: 'error', title: 'Payment failed', text: data?.message || 'Server error while processing payment.' });
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment failed',
+                            text: data?.message || 'Server error while processing payment.'
+                        });
                         return;
                     }
 
                     if (data.success) {
                         bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
                         populateThankYouModal('Stripe');
-                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
+                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
+                            .show();
                         return;
                     }
 
                     if (data.requires_action && data.payment_intent_client_secret) {
-                        const result = await stripeInstance.confirmCardPayment(data.payment_intent_client_secret);
+                        const result = await stripeInstance.confirmCardPayment(data
+                            .payment_intent_client_secret);
                         if (result.error) {
-                            await Swal.fire({ icon: 'error', title: 'Authentication failed', text: result.error.message || 'Unable to confirm your card.' });
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Authentication failed',
+                                text: result.error.message || 'Unable to confirm your card.'
+                            });
                         } else {
                             bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
                             populateThankYouModal('Stripe');
-                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
+                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
+                                .show();
                         }
                     } else {
-                        await Swal.fire({ icon: 'error', title: 'Payment failed', text: data.message || 'Unable to charge your card.' });
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment failed',
+                            text: data.message || 'Unable to charge your card.'
+                        });
                     }
                 } catch (error) {
                     console.error(error);
                     hidePaymentLoader();
-                    await Swal.fire({ icon: 'error', title: 'Network error', text: error.message || 'Unable to reach the payment server.' });
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Network error',
+                        text: error.message || 'Unable to reach the payment server.'
+                    });
                 } finally {
                     hidePaymentLoader();
                     button.disabled = false;
@@ -2154,93 +2286,112 @@
         /* =========================
    SUMMARY
    ========================= */
-const goToSummaryBtn = document.getElementById('goToSummary');
-if (goToSummaryBtn) {
-    goToSummaryBtn.addEventListener('click', function() {
-        const form = document.getElementById('bookingForm');
-        const name = form.querySelector('[name="name"]');
-        const email = form.querySelector('[name="email"]');
-        const phone = form.querySelector('[name="phone"]');
-        const country = form.querySelector('[name="country"]');
-        const emailValue = (email.value || '').trim();
-        const phoneValue = (phone.value || '').trim();
-        email.value = emailValue;
-        phone.value = phoneValue;
+        const goToSummaryBtn = document.getElementById('goToSummary');
+        if (goToSummaryBtn) {
+            goToSummaryBtn.addEventListener('click', function() {
+                const form = document.getElementById('bookingForm');
+                const name = form.querySelector('[name="name"]');
+                const email = form.querySelector('[name="email"]');
+                const phone = form.querySelector('[name="phone"]');
+                const country = form.querySelector('[name="country"]');
+                const emailValue = (email.value || '').trim();
+                const phoneValue = (phone.value || '').trim();
+                email.value = emailValue;
+                phone.value = phoneValue;
 
-        // Updated patterns to match backend validation
-        const emailPattern = /^([^\s@]+)@([^\s@]+)\.[^\s@]{2,}$/;
-        const phonePattern = /^[a-zA-Z0-9\s\-\.,#()+]+$/; // Matches backend pattern exactly
+                // Updated patterns to match backend validation
+                const emailPattern = /^([^\s@]+)@([^\s@]+)\.[^\s@]{2,}$/;
+                const phonePattern = /^[a-zA-Z0-9\s\-\.,#()+]+$/; // Matches backend pattern exactly
 
-        if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
-            notify('cust-missing', { icon: 'error', title: 'Missing Information', text: 'Please fill all required customer details.' });
-            return;
-        }
-
-        if (!emailPattern.test(emailValue)) {
-            notify('cust-invalid', { icon: 'error', title: 'Invalid Email', text: 'Enter a valid email address, e.g. you@example.com.' });
-            email.focus();
-            return;
-        }
-
-        if (!phonePattern.test(phoneValue)) {
-            notify('cust-invalid', { icon: 'error', title: 'Invalid Phone Number', text: 'Enter a valid phone number with country code, e.g. +27 123 456 7890. Only letters, numbers, spaces, hyphens, commas, periods, #, parentheses, and + are allowed.' });
-            phone.focus();
-            return;
-        }
-
-        // Rest of the summary code remains the same...
-        const unitH = document.getElementById('inputRentalUnit');
-        const startH = document.getElementById('inputRentalStartDate');
-        const extraH = document.getElementById('inputExtraDays');
-        const totalH = document.getElementById('inputTotalPrice');
-        const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
-
-        const typeLabel = ({ day: 'Daily', week: 'Weekly', month: 'Monthly' })[unitH.value] || (unitH.value || 'N/A');
-        document.getElementById('summaryType').textContent = typeLabel;
-
-        // Calculate period with start and end dates
-        let vehiclePeriod = '';
-        if (startH && startH.value) {
-            const startY = startH.value;
-            const unit = unitH.value;
-            const qty = parseInt(document.getElementById('inputRentalQuantity').value);
-            const extra = parseInt(extraH?.value || '0');
-            const startDt = fromYMD(startY);
-
-            if (startDt) {
-                const baseDays = qty * unitDays(unit);
-                const days = baseDays + (unit === 'day' ? 0 : extra);
-                const endDt = addDays(startDt, Math.max(0, days - 1));
-                const endY = toYMD(endDt);
-
-                vehiclePeriod = `${niceDate(startY)} to ${niceDate(endY)}`;
-
-                if (extra > 0) {
-                    vehiclePeriod += ` (${days} days total = ${baseDays} base + ${extra} extra)`;
-                } else {
-                    vehiclePeriod += ` (${days} days)`;
+                if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
+                    notify('cust-missing', {
+                        icon: 'error',
+                        title: 'Missing Information',
+                        text: 'Please fill all required customer details.'
+                    });
+                    return;
                 }
-            }
+
+                if (!emailPattern.test(emailValue)) {
+                    notify('cust-invalid', {
+                        icon: 'error',
+                        title: 'Invalid Email',
+                        text: 'Enter a valid email address, e.g. you@example.com.'
+                    });
+                    email.focus();
+                    return;
+                }
+
+                if (!phonePattern.test(phoneValue)) {
+                    notify('cust-invalid', {
+                        icon: 'error',
+                        title: 'Invalid Phone Number',
+                        text: 'Enter a valid phone number with country code, e.g. +27 123 456 7890. Only letters, numbers, spaces, hyphens, commas, periods, #, parentheses, and + are allowed.'
+                    });
+                    phone.focus();
+                    return;
+                }
+
+                // Rest of the summary code remains the same...
+                const unitH = document.getElementById('inputRentalUnit');
+                const startH = document.getElementById('inputRentalStartDate');
+                const extraH = document.getElementById('inputExtraDays');
+                const totalH = document.getElementById('inputTotalPrice');
+                const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
+
+                const typeLabel = ({
+                    day: 'Daily',
+                    week: 'Weekly',
+                    month: 'Monthly'
+                })[unitH.value] || (unitH.value || 'N/A');
+                document.getElementById('summaryType').textContent = typeLabel;
+
+                // Calculate period with start and end dates
+                let vehiclePeriod = '';
+                if (startH && startH.value) {
+                    const startY = startH.value;
+                    const unit = unitH.value;
+                    const qty = parseInt(document.getElementById('inputRentalQuantity').value);
+                    const extra = parseInt(extraH?.value || '0');
+                    const startDt = fromYMD(startY);
+
+                    if (startDt) {
+                        const baseDays = qty * unitDays(unit);
+                        const days = baseDays + (unit === 'day' ? 0 : extra);
+                        const endDt = addDays(startDt, Math.max(0, days - 1));
+                        const endY = toYMD(endDt);
+
+                        vehiclePeriod = `${niceDate(startY)} to ${niceDate(endY)}`;
+
+                        if (extra > 0) {
+                            vehiclePeriod +=
+                            ` (${days} days total = ${baseDays} base + ${extra} extra)`;
+                        } else {
+                            vehiclePeriod += ` (${days} days)`;
+                        }
+                    }
+                }
+
+                document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
+                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH
+                    .value : 0);
+                document.getElementById('summaryUnits').textContent =
+                    `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
+
+                const vehicleTotal = parseFloat(totalH?.value || '0');
+                document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
+
+                document.getElementById('summaryCustomerName').textContent = name.value;
+                document.getElementById('summaryCustomerEmail').textContent = email.value;
+                document.getElementById('summaryCustomerPhone').textContent = phone.value;
+                document.getElementById('summaryCustomerCountry').textContent = country.value;
+
+                const custEl = document.getElementById('customerStep');
+                const sumEl = document.getElementById('summaryStep');
+                (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
+                (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
+            });
         }
-
-        document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
-        document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH.value : 0);
-        document.getElementById('summaryUnits').textContent = `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
-
-        const vehicleTotal = parseFloat(totalH?.value || '0');
-        document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
-
-        document.getElementById('summaryCustomerName').textContent = name.value;
-        document.getElementById('summaryCustomerEmail').textContent = email.value;
-        document.getElementById('summaryCustomerPhone').textContent = phone.value;
-        document.getElementById('summaryCustomerCountry').textContent = country.value;
-
-        const custEl = document.getElementById('customerStep');
-        const sumEl = document.getElementById('summaryStep');
-        (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
-        (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
-    });
-}
 
         /* =========================
            THANK YOU MODAL
@@ -2257,7 +2408,8 @@ if (goToSummaryBtn) {
             const tyPeriodEl = document.getElementById('tyPeriod');
             if (tyPeriodEl) tyPeriodEl.textContent = periodText;
 
-            const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : 'N/A');
+            const reference = currentBookingReference || (bookingIdField?.value ?
+                `#${bookingIdField.value}` : 'N/A');
             const tyReferenceEl = document.getElementById('tyReference');
             if (tyReferenceEl) tyReferenceEl.textContent = reference;
 
@@ -2278,7 +2430,8 @@ if (goToSummaryBtn) {
 
             const wa = document.getElementById('tyWhatsappBtn');
             if (wa) {
-                const txt = `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
+                const txt =
+                `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
                 const url = new URL("https://wa.me/27612345678");
                 url.searchParams.set('text', txt);
                 wa.href = url.toString();

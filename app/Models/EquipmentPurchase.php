@@ -10,41 +10,44 @@ class EquipmentPurchase extends Model
     protected $table = 'equipment_purchase';
 
     // Allow mass assignment for all columns you create via the controller/migrations
-    protected $fillable = [
-        'equipment_id',
-        'customer_id',
-        'location_id',
-        'quantity',
-        'total_price',
-        'deposit_expected',
-        'deposit_paid',
-        'payment_status',
-        'payment_method',
-        'stripe_payment_intent_id',
-        'stripe_payment_method_id',
-        'stripe_charge_id',
-        'card_brand',
-        'card_last4',
-        'card_exp_month',
-        'card_exp_year',
-        'receipt_url',
-        'payfast_payment_id',
-        'stock_before',
-        'stock_after',
-    ];
+  protected $fillable = [
+    'equipment_id',
+    'customer_id',
+    'location_id',
+    'quantity',
+    'total_price',
+    'deposit_expected',
+    'deposit_paid',
+    'payment_status',
+    'payment_method',
+    'stripe_payment_intent_id',
+    'stripe_payment_method_id',
+    'stripe_charge_id',
+    'card_brand',
+    'card_last4',
+    'card_exp_month',
+    'card_exp_year',
+    'receipt_url',
+    'payfast_payment_id',
+    'stock_before',
+    'stock_after',
+    'paid_at',           // ← added
+    'payment_details',   // ← added
+];
 
-    // Put types here (not in $fillable)
-    protected $casts = [
-        'equipment_id'     => 'integer',
-        'customer_id'      => 'integer',
-        'location_id'      => 'integer',
-        'quantity'         => 'integer',
-        'total_price'      => 'float',
-        'deposit_expected' => 'float',
-        'deposit_paid'     => 'float',
-        'stock_before'     => 'integer',
-        'stock_after'      => 'integer',
-    ];
+protected $casts = [
+    'equipment_id'     => 'integer',
+    'customer_id'      => 'integer',
+    'location_id'      => 'integer',
+    'quantity'         => 'integer',
+    'total_price'      => 'float',
+    'deposit_expected' => 'float',
+    'deposit_paid'     => 'float',
+    'stock_before'     => 'integer',
+    'stock_after'      => 'integer',
+    'paid_at'          => 'datetime',  // ← added
+    'payment_details'  => 'array',     // ← cast JSON to array automatically
+];
 
     /* ---------------- Relations ---------------- */
     public function equipment() { return $this->belongsTo(Equipment::class, 'equipment_id'); }

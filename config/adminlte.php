@@ -375,6 +375,33 @@ return [
         'icon' => 'fas fa-tools fa-lg text-primary', // Big car icon in blue
     ],
 
+
+     [
+        'text'  => 'Bookings',
+        'route' => 'bookings.index',
+        'icon'  => 'fas fa-calendar-plus text-danger', // daily appointments
+    ],
+
+
+    [
+        'text' => 'Customers',
+        'route' => 'customers.index',
+        'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
+    ],
+
+    [
+    'text' => 'Communicator',
+    'route' => 'communication-setting.index',
+    'icon' => 'fas fa-envelope fa-lg text-success', // Email icon in blue
+],
+
+
+[
+    'text'  => 'Email Templates',
+    'route' => 'email.index',
+    'icon'  => 'fas fa-envelope-open-text text-success', // FA clock in light blue
+],
+
     [
         'text' => 'Landing Page',
         'route' => 'admin.landing-settings.index',
@@ -385,29 +412,12 @@ return [
     //     'route' => 'inventry.index',
     //     'icon' => 'fas fa-box-open fa-lg text-warning', // Open box icon in yellow
     // ],
-    [
-        'text' => 'Customers',
-        'route' => 'customers.index',
-        'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
-    ],
-[
-    'text'  => 'Email Templates',
-    'route' => 'email.index',
-    'icon'  => 'fas fa-envelope-open-text text-success', // FA clock in light blue
-],
 
 
- [
-        'text'  => 'Bookings',
-        'route' => 'bookings.index',
-        'icon'  => 'fas fa-calendar-plus text-danger', // daily appointments
-    ],
 
-[
-    'text' => 'Communicator',
-    'route' => 'communication-setting.index',
-    'icon' => 'fas fa-envelope fa-lg text-success', // Email icon in blue
-],
+
+
+
 
 
 

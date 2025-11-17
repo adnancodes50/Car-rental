@@ -26,15 +26,6 @@
                 @error('image') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
 
-            {{-- Status --}}
-            <div class="form-group">
-                <label>Status <span class="text-danger">*</span></label>
-                <select name="status" class="form-control" required>
-                    <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                </select>
-                @error('status') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
 
             {{-- Pricing --}}
             <div class="form-group">
@@ -54,6 +45,17 @@
                 <input type="number" step="0.01" name="monthly_price" class="form-control" value="{{ old('monthly_price') }}">
                 @error('monthly_price') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
+
+            {{-- Status --}}
+            <div class="form-group">
+                <label>Status <span class="text-danger">*</span></label>
+                <select name="status" class="form-control" required>
+                    <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
+                    <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                </select>
+                @error('status') <span class="text-danger">{{ $message }}</span> @enderror
+            </div>
+
 
             {{-- For Sale Checkbox --}}
             @php

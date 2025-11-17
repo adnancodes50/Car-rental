@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -15,6 +14,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\PurchaseReceipt;
 use App\Mail\OwnerPurchaseAlert;
+use Illuminate\Support\Str;
 
 class EquipmentPurchaseController extends Controller
 {
@@ -27,9 +27,9 @@ class EquipmentPurchaseController extends Controller
             'quantity'     => ['required','integer','min:1'],
             'name'         => ['required','string','max:255'],
             'email'        => ['required','email:rfc,filter','max:255'],
-'phone' => ['required', 'regex:/^\+?[0-9\s]+$/'],
+            'phone' => ['required', 'regex:/^\+?[0-9\s]+$/'],
             'country'      => ['required','string','max:100'],
-            'total_price'  => ['nullable','numeric','min:0'], // client-provided but we will override from server
+            'total_price'  => ['nullable','numeric','min:0'],
         ]);
 
         $equipment = Equipment::with('category')->findOrFail($validated['equipment_id']);
@@ -187,8 +187,9 @@ class EquipmentPurchaseController extends Controller
                     }
                 }
 
+                $capturedAmount = (($charge?->amount ?? $pi->amount_received) ?? (int) round($toCharge * 100)) / 100;
                 $purchase->fill([
-                    'deposit_paid'               => $alreadyPaid + $toCharge,
+                    'deposit_paid'               => ($purchase->deposit_paid ?? 0) + $capturedAmount,
                     'payment_status'             => 'paid',
                     'payment_method'             => 'stripe',
                     'stripe_payment_intent_id'   => $pi->id,
@@ -216,159 +217,356 @@ class EquipmentPurchaseController extends Controller
             });
 
             $purchase->refresh();
+            $this->sendPurchaseEmails($purchase, $toCharge);
 
             return response()->json([
                 'success'     => true,
                 'purchase_id' => $purchase->id,
                 'paid'        => $toCharge,
                 'receipt_url' => $charge?->receipt_url,
-                'redirect_to' => url('/'),
             ]);
 
         } catch (\Stripe\Exception\CardException $ce) {
             return response()->json(['success' => false, 'message' => $ce->getMessage()], 402);
         } catch (\Throwable $e) {
+            Log::error('Stripe payment error', ['error' => $e->getMessage(), 'purchase_id' => $purchase->id]);
             return response()->json(['success' => false, 'message' => 'Payment failed. '.$e->getMessage()], 500);
         }
     }
 
-    /** Init PayFast (deposit) — optional, mirrors your vehicle logic */
-    public function initPayfast(Request $request, EquipmentPurchase $purchase)
-    {
-        $purchase->load('equipment','customer','location');
+    /** Init PayFast (deposit) - UPDATED */
+public function initPayfast(Request $request, EquipmentPurchase $purchase)
+{
+    $purchase->load('equipment', 'customer', 'location');
 
-        if ($purchase->location_id) {
-            $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
-                ->where('location_id', $purchase->location_id)
-                ->first();
+    // Validate stock availability
+    if ($purchase->location_id) {
+        $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
+            ->where('location_id', $purchase->location_id)
+            ->first();
 
-            if (! $stockRow) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Selected location has no available stock for this equipment.',
-                ], 422);
-            }
-
-            if ($stockRow->stock < $purchase->quantity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Only {$stockRow->stock} item(s) remain at {$purchase->location?->name}.",
-                ], 422);
-            }
+        if (!$stockRow || $stockRow->stock < $purchase->quantity) {
+            return response()->json([
+                'success' => false,
+                'message' => $stockRow
+                    ? "Only {$stockRow->stock} item(s) remain at {$purchase->location?->name}."
+                    : 'No stock available at selected location.'
+            ], 422);
         }
-        $settings = SystemSetting::first();
-        if (!$settings || !$settings->payfast_enabled) {
-            return response()->json(['success' => false, 'message' => 'PayFast is not configured.'], 422);
-        }
-
-        $requiredDeposit = (float) ($purchase->deposit_expected ?? $purchase->equipment->deposit_amount ?? 0);
-        if ($requiredDeposit <= 0) {
-            return response()->json(['success' => false, 'message' => 'No valid deposit amount found.'], 422);
-        }
-
-        $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
-        $toCharge    = max($requiredDeposit - $alreadyPaid, 0);
-        if ($toCharge <= 0) {
-            return response()->json(['success' => false, 'message' => 'Deposit already paid.'], 422);
-        }
-
-        $action = $settings->payfast_test_mode
-            ? 'https://sandbox.payfast.co.za/eng/process'
-            : ($settings->payfast_live_url ?: 'https://www.payfast.co.za/eng/process');
-
-        $m_payment_id = 'eqp-' . $purchase->id . '-' . \Str::random(6);
-        $amount       = number_format($toCharge, 2, '.', '');
-
-        $fields = [
-            'merchant_id'   => $settings->payfast_merchant_id,
-            'merchant_key'  => $settings->payfast_merchant_key,
-            'return_url'    => url('/?payfast_success=1'),
-            'cancel_url'    => url('/payments/cancel'),
-            'notify_url'    => route('equipment.purchase.payfast.notify', [], true),
-            'm_payment_id'  => $m_payment_id,
-            'amount'        => $amount,
-            'item_name'     => 'Deposit for ' . ($purchase->equipment?->name ?? 'Equipment'),
-            'name_first'    => $request->input('name', ''),
-            'email_address' => $request->input('email', ''),
-            'custom_str1'   => (string) $purchase->id,
-        ];
-
-        $sigData = $fields;
-        if (!empty($settings->payfast_passphrase)) $sigData['passphrase'] = $settings->payfast_passphrase;
-        ksort($sigData);
-        $pairs = [];
-        foreach ($sigData as $k => $v) {
-            if ($v === '' || $v === null) continue;
-            $pairs[] = $k . '=' . urlencode(trim($v));
-        }
-        $fields['signature'] = md5(implode('&', $pairs));
-
-        $purchase->update([
-            'payment_method'     => 'payfast',
-            'payfast_payment_id' => $m_payment_id,
-            'deposit_expected'   => $toCharge,
-            'payment_status'     => $purchase->payment_status ?: 'pending',
-        ]);
-
-        return response()->json(['success' => true, 'action' => $action, 'fields' => $fields]);
     }
 
-    /** PayFast ITN — mark paid & equipment sold */
-    public function payfastNotify(Request $request)
-    {
-        $purchaseId = $request->input('custom_str1');
-        $purchase   = EquipmentPurchase::with(['equipment','customer','location'])->find($purchaseId);
-        if (!$purchase) return response('Purchase not found', 404);
-
-        $paymentStatus = strtolower($request->input('payment_status', ''));
-        $amountPaid    = (float) $request->input('amount_gross', 0);
-
-        if ($paymentStatus === 'complete' && $amountPaid > 0) {
-            DB::transaction(function () use ($purchase, $amountPaid) {
-                $purchase->refresh();
-
-                $stockBefore = null;
-                $stockAfter  = null;
-
-                if ($purchase->location_id) {
-                    $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
-                        ->where('location_id', $purchase->location_id)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if ($stockRow) {
-                        $stockBefore    = (int) $stockRow->stock;
-                        $stockRow->stock = max($stockBefore - (int) $purchase->quantity, 0);
-                        $stockRow->save();
-                        $stockAfter     = (int) $stockRow->stock;
-                    }
-                }
-
-                $purchase->fill([
-                    'payment_status' => 'paid',
-                    'payment_method' => 'payfast',
-                    'deposit_paid'   => ($purchase->deposit_paid ?? 0) + $amountPaid,
-                    'stock_before'   => $stockBefore,
-                    'stock_after'    => $stockAfter,
-                ]);
-                $purchase->save();
-
-                $purchase->loadMissing('equipment');
-
-                if ($purchase->equipment) {
-                    $remaining = EquipmentStock::where('equipment_id', $purchase->equipment_id)->sum('stock');
-                    if ($remaining <= 0 && isset($purchase->equipment->status) && in_array('status', $purchase->equipment->getFillable() ?? [])) {
-                        $purchase->equipment->status = 'inactive';
-                        $purchase->equipment->save();
-                    }
-                }
-            });
-
-            // $this->sendPurchaseEmailsEquipment($purchase, $amountPaid);
-        }
-
-        return response('OK');
+    $settings = SystemSetting::first();
+    if (!$settings || !$settings->payfast_enabled) {
+        return response()->json(['success' => false, 'message' => 'PayFast is not configured.'], 422);
     }
+
+    $requiredDeposit = (float) ($purchase->deposit_expected ?? $purchase->equipment->deposit_amount ?? 0);
+    if ($requiredDeposit <= 0) {
+        return response()->json(['success' => false, 'message' => 'No valid deposit amount found.'], 422);
+    }
+
+    $alreadyPaid = (float) ($purchase->deposit_paid ?? 0);
+    $toCharge = max($requiredDeposit - $alreadyPaid, 0);
+    if ($toCharge <= 0) {
+        return response()->json(['success' => false, 'message' => 'Deposit already paid.'], 422);
+    }
+
+    // PayFast URLs
+    $action = $settings->payfast_test_mode
+        ? 'https://sandbox.payfast.co.za/eng/process'
+        : ($settings->payfast_live_url ?: 'https://www.payfast.co.za/eng/process');
+
+    $m_payment_id = 'eqp-' . $purchase->id . '-' . Str::random(6);
+    $amount = number_format($toCharge, 2, '.', '');
+
+    $returnUrl = route('equipment.purchase.payfast.return', ['purchase_id' => $purchase->id]);
+    $cancelUrl = route('equipment.purchase.payfast.cancel', ['purchase_id' => $purchase->id]);
+$notifyUrl = url('/api/equipment-purchase/payfast/notify');
+    // $notifyUrl = "https://app.rent2recover.co.za/equipment-purchase/payfast/notify";
+
+
+    $fields = [
+        'merchant_id'      => $settings->payfast_merchant_id,
+        'merchant_key'     => $settings->payfast_merchant_key,
+        'return_url'       => $returnUrl,
+        'cancel_url'       => $cancelUrl,
+        'notify_url'       => $notifyUrl,
+        'm_payment_id'     => $m_payment_id,
+        'amount'           => $amount,
+        'item_name'        => 'Deposit for ' . ($purchase->equipment?->name ?? 'Equipment Purchase #' . $purchase->id),
+        'item_description' => 'Equipment deposit payment',
+        'name_first'       => $request->input('name', $purchase->customer->name ?? ''),
+        'email_address'    => $request->input('email', $purchase->customer->email ?? 'customer@example.com'),
+        'custom_str1'      => (string) $purchase->id,
+        'custom_str2'      => 'equipment_purchase',
+    ];
+
+    // Signature
+    $sigData = $fields;
+    if (!empty($settings->payfast_passphrase)) {
+        $sigData['passphrase'] = $settings->payfast_passphrase;
+    }
+    ksort($sigData);
+    $pairs = [];
+    foreach ($sigData as $k => $v) {
+        if ($v === '' || $v === null) continue;
+        $pairs[] = $k . '=' . urlencode(trim($v));
+    }
+    $fields['signature'] = md5(implode('&', $pairs));
+
+    // ✅ Save meta on purchase – mark as initiated
+    $purchase->update([
+        'payment_method'     => 'payfast',
+        'payfast_payment_id' => $m_payment_id,
+        'deposit_expected'   => $toCharge,
+        'payment_status'     => 'initiated', // ← mark immediately
+    ]);
+
+    Log::info('🔄 PAYFAST INITIALIZED', [
+        'purchase_id' => $purchase->id,
+        'action'      => $action,
+        'return_url'  => $returnUrl,
+        'cancel_url'  => $cancelUrl,
+        'notify_url'  => $notifyUrl,
+        'amount'      => $amount,
+        'm_payment_id'=> $m_payment_id
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'action'  => $action,
+        'fields'  => $fields,
+        'debug'   => [
+            'purchase_id' => $purchase->id,
+            'amount'      => $amount
+        ]
+    ]);
 }
 
 
+
+
+public function payfastNotify(Request $request)
+{
+    Log::info('PAYFAST ITN RECEIVED', ['params' => $request->all()]);
+
+    $purchaseId = $request->input('custom_str1');
+    $paymentStatus = strtolower($request->input('payment_status', ''));
+    $amountPaid = (float) ($request->input('amount_gross') ?? 0);
+    $pfPaymentId = $request->input('pf_payment_id');
+    $mPaymentId = $request->input('m_payment_id');
+
+    if (!$purchaseId) {
+        Log::error('PAYFAST ITN: Missing purchase ID');
+        return response('Missing purchase ID', 400);
+    }
+
+    $purchase = EquipmentPurchase::with('equipment')->find($purchaseId);
+    if (!$purchase) {
+        Log::error('PAYFAST ITN: Purchase not found', ['purchase_id' => $purchaseId]);
+        return response('Purchase not found', 404);
+    }
+
+    $successStatuses = ['complete', 'completed', 'success', 'paid'];
+
+    if (in_array($paymentStatus, $successStatuses) && $amountPaid > 0) {
+        DB::transaction(function () use ($purchase, $amountPaid, $pfPaymentId, $mPaymentId, $request) {
+            $purchase->refresh();
+
+            if ($purchase->payment_status === 'paid') return;
+
+            $stockBefore = null;
+            $stockAfter = null;
+
+            if ($purchase->location_id) {
+                $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
+                    ->where('location_id', $purchase->location_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($stockRow) {
+                    $stockBefore = $stockRow->stock;
+                    $stockRow->stock = max($stockBefore - $purchase->quantity, 0);
+                    $stockRow->save();
+                    $stockAfter = $stockRow->stock;
+                }
+            }
+
+            $purchase->update([
+                'deposit_paid' => $amountPaid,
+                'payment_status' => 'paid',
+                'payment_method' => 'payfast',
+                'payfast_payment_id' => $mPaymentId ?: $pfPaymentId,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
+                'paid_at' => now(),
+                'payment_details' => json_encode($request->all())
+            ]);
+
+            if ($purchase->equipment) {
+                $remainingStock = EquipmentStock::where('equipment_id', $purchase->equipment_id)->sum('stock');
+                if ($remainingStock <= 0) {
+                    $purchase->equipment->update(['status' => 'inactive']);
+                }
+            }
+        });
+
+        try {
+            $this->sendPurchaseEmails($purchase, $amountPaid);
+        } catch (\Throwable $emailError) {
+            Log::warning('PAYFAST ITN EMAIL FAILED', ['error' => $emailError->getMessage()]);
+        }
+    } else {
+        Log::warning('PAYFAST ITN: Payment not successful', [
+            'purchase_id' => $purchaseId,
+            'status' => $paymentStatus,
+            'amount' => $amountPaid
+        ]);
+    }
+
+    return response('OK', 200);
+}
+
+
+    /**
+     * PayFast return URL for equipment purchase - UPDATED
+     */
+    public function payfastPurchaseReturn(Request $request)
+    {
+        Log::info('🔙 PAYFAST RETURN URL HIT', [
+            'all_params' => $request->all(),
+            'query_params' => $request->query(),
+            'post_params' => $request->post()
+        ]);
+
+        $purchaseId = $request->query('purchase_id') ?? $request->input('custom_str1');
+        $paymentStatus = $request->input('payment_status', 'pending');
+
+        Log::info('🔍 PAYFAST RETURN: SEARCHING PURCHASE', ['purchase_id' => $purchaseId]);
+
+        if (!$purchaseId) {
+            Log::warning('⚠️ PAYFAST RETURN: NO PURCHASE ID FOUND');
+            return redirect('/?payment_status=error&message=missing_purchase_id');
+        }
+
+        // Find purchase with latest data
+        $purchase = EquipmentPurchase::find($purchaseId);
+
+        if (!$purchase) {
+            Log::error('❌ PAYFAST RETURN: PURCHASE NOT FOUND', ['purchase_id' => $purchaseId]);
+            return redirect('/?payment_status=error&message=purchase_not_found');
+        }
+
+        $dbStatus = strtolower($purchase->payment_status ?? 'pending');
+
+        Log::info('📊 PAYFAST RETURN: DATABASE STATUS', [
+            'purchase_id' => $purchaseId,
+            'db_status' => $dbStatus,
+            'deposit_paid' => $purchase->deposit_paid
+        ]);
+
+        // Determine final status
+        if (in_array($dbStatus, ['paid', 'succeeded', 'complete'])) {
+            $finalStatus = 'success';
+            $message = 'Payment completed successfully!';
+            Log::info('✅ PAYFAST RETURN: PAYMENT SUCCESSFUL IN DATABASE');
+        } else {
+            $finalStatus = 'pending';
+            $message = 'Payment is being processed. You will receive confirmation shortly.';
+            Log::info('🔄 PAYFAST RETURN: PAYMENT STILL PENDING IN DATABASE');
+        }
+
+        // Build redirect URL
+        $baseUrl = url('/');
+        $redirectUrl = $baseUrl . '?payment_status=' . $finalStatus .
+                      '&purchase_id=' . $purchaseId .
+                      '&status=' . $finalStatus .
+                      '&payment_method=payfast';
+
+        Log::info('🔄 PAYFAST RETURN: REDIRECTING', [
+            'redirect_url' => $redirectUrl,
+            'final_status' => $finalStatus,
+            'purchase_id' => $purchaseId
+        ]);
+
+        return redirect($redirectUrl);
+    }
+
+    /**
+     * PayFast cancel URL for equipment purchase
+     */
+    public function payfastPurchaseCancel(Request $request)
+    {
+        $purchaseId = $request->query('purchase_id') ?? $request->input('custom_str1');
+
+        Log::info('❌ PAYFAST CANCEL HIT', [
+            'purchase_id' => $purchaseId,
+            'all_params' => $request->all()
+        ]);
+
+        $baseUrl = url('/');
+        $redirectUrl = $baseUrl . '?payment_status=cancelled&purchase_id=' . ($purchaseId ?? '');
+
+        Log::info('🔄 PAYFAST CANCEL: REDIRECTING', [
+            'redirect_url' => $redirectUrl,
+            'purchase_id' => $purchaseId
+        ]);
+
+        return redirect($redirectUrl);
+    }
+
+    /** Email sending for purchases */
+    private function sendPurchaseEmails(EquipmentPurchase $purchase, float $paidAmount): void
+    {
+        try {
+            $settings = SystemSetting::first();
+            $this->configureMailerFromSettings($settings);
+            $ownerEmail = $this->resolveOwnerEmail($settings);
+
+            if ($purchase->customer?->email) {
+                Log::info('Sending PurchaseReceipt email', ['to' => $purchase->customer->email, 'purchase_id' => $purchase->id]);
+                Mail::to($purchase->customer->email)
+                    ->send(new PurchaseReceipt($purchase, $paidAmount));
+            }
+
+            if ($ownerEmail) {
+                Log::info('Sending OwnerPurchaseAlert email', ['to' => $ownerEmail, 'purchase_id' => $purchase->id]);
+                Mail::to($ownerEmail)
+                    ->send(new OwnerPurchaseAlert($purchase, $paidAmount));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Purchase email failed', ['purchase_id' => $purchase->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /** Configure mailer from system settings */
+    private function configureMailerFromSettings(?SystemSetting $settings = null): bool
+    {
+        $settings = $settings ?: SystemSetting::first();
+        if (!$settings || !$settings->mail_enabled) return false;
+
+        Config::set('mail.default', 'smtp');
+        Config::set('mail.from.address', $settings->mail_from_address ?: config('mail.from.address'));
+        Config::set('mail.from.name', $settings->mail_from_name ?: config('mail.from.name'));
+        Config::set('mail.mailers.smtp', [
+            'transport'  => 'smtp',
+            'host'       => $settings->mail_host,
+            'port'       => (int) $settings->mail_port,
+            'encryption' => $settings->mail_encryption ?: null,
+            'username'   => $settings->mail_username,
+            'password'   => $settings->mail_password,
+        ]);
+
+        return true;
+    }
+
+    /** Resolve owner email address */
+    private function resolveOwnerEmail(?SystemSetting $settings = null): ?string
+    {
+        $settings = $settings ?: SystemSetting::first();
+        return $settings?->mail_owner_address
+            ?? $settings?->mail_from_address
+            ?? config('mail.from.address')
+            ?? null;
+    }
+}

@@ -378,7 +378,7 @@ class BookingController extends Controller
             'merchant_key'  => $settings->payfast_merchant_key,
             'return_url'    => route('payfast.booking.return', [], true),
             'cancel_url'    => route('payfast.booking.cancel', [], true),
-            'notify_url'    => route('payfast.booking.notify', [], true),
+'notify_url' => route('payfast.booking.notify', [], true),
             'm_payment_id'  => $mPaymentId,
             'amount'        => $amount,
             'item_name'     => 'Booking ' . ($booking->reference ?: '#' . $booking->id),
@@ -488,29 +488,41 @@ class BookingController extends Controller
         return response('OK');
     }
 
-    public function payfastBookingReturn(Request $request)
-    {
-        $bookingId = $request->input('custom_str1');
-        $message = 'We have received your payment response. You will receive confirmation shortly.';
+   public function payfastBookingReturn(Request $request)
+{
+    $bookingId = $request->input('custom_str1');
+    $status = 'paid';
 
-        if ($bookingId) {
-            $booking = Booking::find($bookingId);
-            if ($booking) {
-                $status = strtolower($booking->payment_status ?? $booking->status ?? '');
-                if (in_array($status, ['paid', 'succeeded', 'complete', 'confirmed'], true)) {
-                    $message = 'Thank you! Your booking payment was successful.';
-                }
+    $message = 'We have received your payment response. You will receive confirmation shortly.';
+
+    if ($bookingId) {
+        $booking = Booking::find($bookingId);
+        if ($booking) {
+            $status = strtolower($booking->payment_status ?? $booking->status ?? '');
+
+            if (in_array($status, ['paid', 'succeeded', 'complete', 'confirmed'], true)) {
+                $status  = 'success';
+                $message = 'Thank you! Your booking payment was successful.';
+            } else {
+                $status = 'failed';
+                $message = 'Payment was processed but not completed.';
             }
         }
-
-        return redirect('/')->with('payfast_success', $message);
     }
 
-    public function payfastBookingCancel(Request $request)
-    {
-        return redirect('/')->with(
-            'payfast_cancelled',
+    return redirect('/?booking=' . $bookingId . '&status=' . $status)
+        ->with('payfast_message', $message);
+}
+
+
+   public function payfastBookingCancel(Request $request)
+{
+    $bookingId = $request->input('custom_str1');
+
+    return redirect('/?booking=' . $bookingId . '&status=cancelled')
+        ->with('payfast_message',
             'You cancelled the payment. Your booking remains pending until payment is completed.'
         );
-    }
+}
+
 }

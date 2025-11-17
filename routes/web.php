@@ -11,7 +11,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\PayfastController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PurchaseController;
+// use App\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\PaymentSettingsController;
@@ -25,6 +25,7 @@ use App\Http\Controllers\ForgetPasswordController;
 use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\HomeController;
+use Illuminate\Http\Request;
 
 use App\Http\Controllers\EquipmentPurchaseController;
 
@@ -56,13 +57,30 @@ Route::group(['middleware' => ['auth']], function () {
 
 // routes/web.php
 
-
 Route::prefix('equipment-purchase')->group(function () {
     Route::post('/store', [EquipmentPurchaseController::class, 'store'])->name('equipment.purchase.store');
     Route::post('/{purchaseId}/pay-with-stripe', [EquipmentPurchaseController::class, 'payWithStripe'])->name('equipment.purchase.stripe');
     Route::post('/{purchase}/payfast/init', [EquipmentPurchaseController::class, 'initPayfast'])->name('equipment.purchase.payfast.init');
+
+// Route::post('/payfast/notify', [EquipmentPurchaseController::class, 'payfastNotify'])
+//     ->name('equipment.purchase.payfast.notify');
+    // Return and cancel can be GET since PayFast redirects users here
+    Route::get('/payfast/return', [EquipmentPurchaseController::class, 'payfastPurchaseReturn'])->name('equipment.purchase.payfast.return');
+    Route::get('/payfast/cancel', [EquipmentPurchaseController::class, 'payfastPurchaseCancel'])->name('equipment.purchase.payfast.cancel');
+
+
+
 });
-Route::post('/equipment-purchase/payfast/notify', [EquipmentPurchaseController::class, 'payfastNotify'])->name('equipment.purchase.payfast.notify');
+
+
+
+
+
+
+// Exclude CSRF for ITN
+// Route::post('/equipment-purchase/payfast/notify', [EquipmentPurchaseController::class, 'payfastNotify'])
+//      ->name('equipment.purchase.payfast.notify')
+//      ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 
 
@@ -251,31 +269,49 @@ Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.st
 Route::post('/bookings/{booking}/pay-with-stripe', [BookingController::class, 'payWithStripe'])
     ->name('bookings.pay.stripe');
 
-Route::post('/purchase', [PurchaseController::class, 'store'])->name('purchase.store');
-Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 'payWithStripe'])
-    ->name('purchase.pay.stripe');
+// Route::post('/purchase', [PurchaseController::class, 'store'])->name('purchase.store');
+// Route::post('/purchase/{purchase}/pay-with-stripe', [PurchaseController::class, 'payWithStripe'])
+//     ->name('purchase.pay.stripe');
 
 
-Route::post('/purchase/{purchase}/payfast/init', [PurchaseController::class, 'initPayfast'])
-    ->name('purchase.payfast.init');
+// Route::post('/purchase/{purchase}/payfast/init', [PurchaseController::class, 'initPayfast'])
+//     ->name('purchase.payfast.init');
 
 
-Route::match(['GET', 'POST'], '/payment/success', [PurchaseController::class, 'payfastReturn'])
-    ->name('payfast.return');
+// Route::match(['GET', 'POST'], '/payment/success', [PurchaseController::class, 'payfastReturn'])
+//     ->name('payfast.return');
 
 
-Route::match(['GET', 'POST'], '/payment/cancel', [PurchaseController::class, 'payfastCancel'])
-    ->name('payfast.cancel');
+// Route::match(['GET', 'POST'], '/payment/cancel', [PurchaseController::class, 'payfastCancel'])
+//     ->name('payfast.cancel');
 
-Route::post('/purchase/payfast/notify', [PurchaseController::class, 'payfastNotify'])
-    ->name('purchase.payfast.notify');
 
 
 
 Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
-Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
+// Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
 Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])->name('payfast.booking.return');
 Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 require __DIR__ . '/auth.php';
 

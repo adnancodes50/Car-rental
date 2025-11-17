@@ -29,6 +29,22 @@
                     'color' => '#c7a014',
                     'link' => route('equipment.index'),
                 ],
+
+                 [
+                    'title' => 'Total Bookings',
+                    'value' => $totalBookings,
+                    'icon' => 'fa-list',
+                    'color' => '#343a40',
+                    'link' => route('bookings.index'),
+                ],
+
+                [
+                    'title' => 'Active Bookings',
+                    'value' => $activeBookings,
+                    'icon' => 'fa-calendar-check',
+                    'color' => '#dc3545',
+                    'link' => route('bookings.index'),
+                ],
                 [
                     'title' => 'Total Booking Amount',
                     'value' => 'R' . number_format($totalBookingAmount, 2),
@@ -41,21 +57,6 @@
                 //     'icon' => 'fa-car',
                 //     'color' => '#ffc107',
                 // ],
-                [
-                    'title' => 'Total Customers',
-                    'value' => $totalCustomers,
-                    'icon' => 'fa-users',
-                    'color' => '#17a2b8',
-                    'link' => route('customers.index'),
-                ],
-
-                [
-                    'title' => 'Total Purchases Amount',
-                    'value' =>  'R' . number_format($totalPurchases, 2),
-                    'icon' => 'fa-money-bill',
-                    'color' => '#00C851',
-                    // 'link' => route('customers.index'),
-                ],
 
                  [
                     'title' => 'Total Purchase Quantity',
@@ -66,21 +67,28 @@
                 ],
 
 
+                [
+                    'title' => 'Total Purchases Amount',
+                    'value' =>  'R' . number_format($totalPurchases, 2),
+                    'icon' => 'fa-money-bill',
+                    'color' => '#00C851',
+                    // 'link' => route('customers.index'),
+                ],
+                [
+                    'title' => 'Total Customers',
+                    'value' => $totalCustomers,
+                    'icon' => 'fa-users',
+                    'color' => '#17a2b8',
+                    'link' => route('customers.index'),
+                ],
 
-                [
-                    'title' => 'Active Bookings',
-                    'value' => $activeBookings,
-                    'icon' => 'fa-calendar-check',
-                    'color' => '#dc3545',
-                    'link' => route('bookings.index'),
-                ],
-                [
-                    'title' => 'Total Bookings',
-                    'value' => $totalBookings,
-                    'icon' => 'fa-list',
-                    'color' => '#343a40',
-                    'link' => route('bookings.index'),
-                ],
+
+
+
+
+
+
+
                 // [
                 //     'title' => 'Sale Count',
                 //     'value' => $totalPurchases,

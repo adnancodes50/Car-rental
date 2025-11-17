@@ -16,13 +16,27 @@ class EquipmentController extends Controller
     /**
      * Display a listing of the equipment.
      */
-  public function index()
+public function index(Request $request)
 {
-    $equipment = \App\Models\Equipment::with(['category', 'stocks.location'])->get();
-    $locations = \App\Models\Location::all();
+    $query = Equipment::with([
+        'category',
+        'stocks',
+        'bookings.customer',   // 👈 load booking customer
+        'purchases.customer',  // 👈 load purchase customer
+    ]);
 
-    return view('admin.equipment.index', compact('equipment', 'locations'));
+    if ($request->filled('category_id')) {
+        $query->where('category_id', $request->category_id);
+    }
+
+    $equipment = $query->get();
+
+    $categories = Category::all();
+    $locations  = Location::all();
+
+    return view('admin.equipment.index', compact('equipment', 'categories', 'locations'));
 }
+
 
 
     /**
