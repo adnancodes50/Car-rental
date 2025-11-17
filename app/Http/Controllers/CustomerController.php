@@ -366,12 +366,18 @@ public function updateBookingDates(Request $request, Booking $booking)
             ], 422);
         }
 
+        // Calculate total price
+        $days = $start->diffInDays($end) + 1;
+        $dailyPrice = optional($booking->equipment)->daily_price ?? 0;
+        $totalPrice = $days * $dailyPrice * $requested;
+
         $booking->update([
             'start_date'   => $start->toDateString(),
             'end_date'     => $end->toDateString(),
             'admin_note'   => $validated['admin_note'] ?? $booking->admin_note,
             'booked_stock' => $requested,
             'location_id'  => $locationId,
+            'total_price'  => $totalPrice,
         ]);
 
         return response()->json([
@@ -379,9 +385,11 @@ public function updateBookingDates(Request $request, Booking $booking)
             'message'     => 'Booking updated successfully.',
             'available'   => $available - $requested,
             'location_id' => $locationId,
+            'total_price' => $totalPrice,
         ]);
     });
 }
+
 // helper JSON error
 protected function errorResponse($msg, $code = 422)
 {

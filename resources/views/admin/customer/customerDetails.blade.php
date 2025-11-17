@@ -246,7 +246,7 @@
                                                 </div>
                                             </div>
 
-                                            <div class="col-md-1">
+                                            <div class="col-md-2">
                                                 <div class="form-group">
                                                     <label class="form-label text-dark fw-semibold">Available</label>
                                                     <input type="text"

@@ -41,9 +41,7 @@ class BookingController extends Controller
 }
 
 
-    /* -------------------------------------------------
-     |  Show booking details
-     |--------------------------------------------------*/
+
     public function show(Booking $booking)
     {
         $booking->load(['customer', 'location', 'category', 'equipment']);
@@ -51,9 +49,7 @@ class BookingController extends Controller
     }
 
 
-    /* -------------------------------------------------
-     |  Store a new booking
-     |--------------------------------------------------*/
+
     public function store(Request $request)
     {
         $validated = $request->validate([

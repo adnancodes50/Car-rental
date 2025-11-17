@@ -351,13 +351,13 @@ return [
        [
     'text' => 'Dashboard',
     'url'  => '/home', // Use named route
-    'icon' => 'fas fa-tachometer-alt fa-lg text-success', // Big blue car icon
+    'icon' => 'fas fa-tachometer-alt fa-lg text-white', // Big blue car icon
 ],
 
 [
         'text' => 'Locations',
         'url'  => '/locations',
-        'icon' => 'fas fa-map-marker-alt fa-lg text-danger',
+        'icon' => 'fas fa-map-marker-alt fa-lg text-white',
           'can'  => 'is-super-admin',
     ],
 
@@ -366,52 +366,53 @@ return [
    [
     'text' => 'Categories',
     'url'  => '/categories', // Use named route
-    'icon' => 'fas fa-circle-notch fa-2x text-success', // Big blue car icon
+    'icon' => 'fas fa-circle-notch fa-2x text-white', // Big blue car icon
 ],
 
         [
         'text' => 'Equipment',
         'url'  => '/equipment',
-        'icon' => 'fas fa-tools fa-lg text-primary', // Big car icon in blue
+        'icon' => 'fas fa-tools fa-lg text-white', // Big car icon in blue
     ],
 
 
      [
         'text'  => 'Bookings',
         'route' => 'bookings.index',
-        'icon'  => 'fas fa-calendar-plus text-danger', // daily appointments
+        'icon'  => 'fas fa-calendar-plus text-white', // daily appointments
     ],
+
+     [
+        'text'  => 'Purchases',
+        'route' => 'purchases.index',
+   'icon'  => 'fas fa-shopping-cart text-white',     ],
 
 
     [
         'text' => 'Customers',
         'route' => 'customers.index',
-        'icon' => 'fas fa-users fa-lg text-info', // Users icon in light blue
+        'icon' => 'fas fa-users fa-lg text-white', // Users icon in light blue
     ],
 
     [
     'text' => 'Communicator',
     'route' => 'communication-setting.index',
-    'icon' => 'fas fa-envelope fa-lg text-success', // Email icon in blue
+    'icon' => 'fas fa-envelope fa-lg text-white', // Email icon in blue
 ],
 
 
 [
     'text'  => 'Email Templates',
     'route' => 'email.index',
-    'icon'  => 'fas fa-envelope-open-text text-success', // FA clock in light blue
+    'icon'  => 'fas fa-envelope-open-text text-white', // FA clock in light blue
 ],
 
     [
         'text' => 'Landing Page',
         'route' => 'admin.landing-settings.index',
-        'icon' => 'fas fa-image fa-lg text-success', // Large image icon in green
+        'icon' => 'fas fa-image fa-lg text-white', // Large image icon in green
     ],
-    // [
-    //     'text' => 'Add-On Inventory',
-    //     'route' => 'inventry.index',
-    //     'icon' => 'fas fa-box-open fa-lg text-warning', // Open box icon in yellow
-    // ],
+
 
 
 
@@ -431,12 +432,12 @@ return [
 
         [
             'text' => 'Settings',
-            'icon' => 'fas fa-fw fa-cogs text-warning',
+            'icon' => 'fas fa-fw fa-cogs text-white',
             'submenu' => [
                    [
     'text' => 'System Settings',
     'route'  => 'systemsetting.edit',
-    'icon' => 'fas fa-tools text-danger',
+    'icon' => 'fas fa-tools text-white',
 ],
 
 
@@ -444,13 +445,13 @@ return [
 [
     'text' => 'Forgot Password',
     'route'  => 'forget-password.edit',
-    'icon' => 'fas fa-key text-warning',
+    'icon' => 'fas fa-key text-white',
 ],
 
 [
     'text' => 'Company Setting',
     'route'  => 'company-setting.edit',
-    'icon' => 'fas fa-landmark text-info',
+    'icon' => 'fas fa-landmark text-white',
        'can'  => 'is-super-admin',
 ],
 

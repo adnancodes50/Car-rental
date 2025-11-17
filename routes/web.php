@@ -3,6 +3,7 @@
 // use App\Http\Controllers\AddOnInventryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\AdminPurchaseController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmailTempleteController;
 use App\Http\Controllers\LandingSettingController;
@@ -180,6 +181,17 @@ Route::group([
     Route::get('bookings/{booking}', [BookingController::class, 'show'])->name('show');
 
 });
+
+
+Route::group([
+    'middleware' => ['auth'],
+    'prefix' => 'purchase',
+    'as' => 'purchases.'
+], function () {
+    Route::get('/', [AdminPurchaseController::class, 'index'])->name('index');
+    Route::get('{purchase}', [AdminPurchaseController::class, 'show'])->name('show');
+});
+
 
 
 Route::group([
