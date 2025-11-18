@@ -34,8 +34,9 @@
                     <thead>
                         <tr>
                             <th style="width: 80px;">Image</th>
-                            <th>Name</th>
                             <th>Category</th>
+                            <th>Name</th>
+
                             @foreach ($locations as $location)
                                 <th>{{ $location->name }} Stock</th>
                             @endforeach
@@ -52,8 +53,9 @@
                                         <img src="{{ asset('storage/' . $item->image) }}" alt="{{ $item->name }}" width="50">
                                     @endif
                                 </td>
-                                <td>{{ $item->name }}</td>
                                 <td>{{ $item->category->name ?? '-' }}</td>
+                                <td>{{ $item->name }}</td>
+
 
                                 {{-- Stock per location --}}
                                 @foreach ($locations as $location)

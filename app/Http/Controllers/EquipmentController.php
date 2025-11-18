@@ -21,8 +21,11 @@ public function index(Request $request)
     $query = Equipment::with([
         'category',
         'stocks',
-        'bookings.customer',   // 👈 load booking customer
-        'purchases.customer',  // 👈 load purchase customer
+        'bookings' => function ($q) {
+            $q->whereDate('end_date', '>=', now()); // ⬅️ only future or active bookings
+        },
+        'bookings.customer',
+        'purchases.customer',
     ]);
 
     if ($request->filled('category_id')) {
@@ -36,6 +39,7 @@ public function index(Request $request)
 
     return view('admin.equipment.index', compact('equipment', 'categories', 'locations'));
 }
+
 
 
 
