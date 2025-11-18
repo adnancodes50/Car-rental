@@ -32,6 +32,7 @@ public function getCustomerDetails($id)
     $customer = Customer::withCount(['bookings', 'equipmentPurchases'])
         ->withSum('equipmentPurchases as total_purchase_deposit', 'deposit_paid')
         ->withSum('equipmentPurchases as total_purchase_price', 'total_price')
+        ->withSum('equipmentPurchases as total_purchase_quantity', 'quantity')
         ->findOrFail($id);
 
     $bookings = $customer->bookings()
@@ -390,11 +391,11 @@ public function updateBookingDates(Request $request, Booking $booking)
     });
 }
 
-// helper JSON error
-protected function errorResponse($msg, $code = 422)
-{
-    return response()->json(['success' => false, 'message' => $msg], $code);
-}
+// // helper JSON error
+// protected function errorResponse($msg, $code = 422)
+// {
+//     return response()->json(['success' => false, 'message' => $msg], $code);
+// }
 
 
 

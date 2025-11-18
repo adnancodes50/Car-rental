@@ -98,6 +98,13 @@
                                     <h4 class="fw-bold">R{{ number_format($customer->total_booking_price ?? 0, 2) }}</h4>
                                 </div>
                             </div>
+
+                            <div class="col-6 mt-">
+                                <div class="p-3 text-center mb-2 py-4 text-white rounded" style="background-color:#998a93">
+                                    <h6 class="mb-1">Total Purchase</h6>
+                                    <h4 class="fw-bold">{{ $customer->total_purchase_quantity ?? 0 }}</h4>
+                                </div>
+                            </div>
                             <div class="col-6">
                                 <div class="p-3 text-center py-4 bg-warning text-dark rounded">
                                     <h6 class="mb-1">Total Deposits</h6>
@@ -105,12 +112,14 @@
                                     </h4>
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-12">
                                 <div class="p-3 text-center py-4 bg-success text-white rounded">
                                     <h6 class="mb-1">Total Payable (Purchases)</h6>
                                     <h4 class="fw-bold">R{{ number_format($customer->total_purchase_price ?? 0, 2) }}</h4>
                                 </div>
                             </div>
+
+
                         </div>
                     </div>
                 </div> {{-- row --}}
