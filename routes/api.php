@@ -21,17 +21,14 @@ Route::get('/cron/booking-complete-next-7-days', [ReminderController::class, 'se
 // Optional: Send email for all bookings (testing)
 Route::get('/cron/send-all-bookings-email', [ReminderController::class, 'sendEmailForAllBookings']);
 
-
-
-
+// PayFast notification endpoints - MUST disable CSRF and authentication
 Route::post('/equipment-purchase/payfast/notify', [EquipmentPurchaseController::class, 'payfastNotify'])
+    ->withoutMiddleware(['auth:sanctum', 'csrf']) // CRITICAL: Remove auth and CSRF
     ->name('equipment.purchase.payfast.notify');
 
-    Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
-
-
-
-
+Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])
+    ->withoutMiddleware(['auth:sanctum', 'csrf']) // CRITICAL: Remove auth and CSRF
+    ->name('payfast.booking.notify');
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

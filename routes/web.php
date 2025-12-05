@@ -311,14 +311,27 @@ Route::post('/bookings/{booking}/pay-with-stripe', [BookingController::class, 'p
 
 
 
+// PayFast routes
+Route::post('/payfast/booking/init/{bookingId}', [BookingController::class, 'initPayfastBooking'])
+    ->name('payfast.booking.init')
+    ->where('bookingId', '[0-9]+');
 
-Route::post('/payfast/booking/init/{booking}', [BookingController::class, 'initPayfastBooking'])->name('payfast.booking.init');
-// Route::post('/payfast/booking/notify', [BookingController::class, 'payfastBookingNotify'])->name('payfast.booking.notify');
-Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])->name('payfast.booking.return');
-Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])->name('payfast.booking.cancel');
+Route::get('/payfast/booking/return', [BookingController::class, 'payfastBookingReturn'])
+    ->name('payfast.booking.return')
+    ->withoutMiddleware(['auth']);
 
+Route::get('/payfast/booking/cancel', [BookingController::class, 'payfastBookingCancel'])
+    ->name('payfast.booking.cancel');
 
+// Booking confirmation routes
+Route::get('/booking/confirmation/{id}', [BookingController::class, 'showConfirmation'])
+    ->name('booking.confirmation');  // ✅ ADD THIS NAME
 
+Route::post('/clear-booking-session', [BookingController::class, 'clearBookingSession'])
+    ->name('booking.clear-session');
+
+Route::get('/booking/{id}/restore', [BookingController::class, 'restoreBookingData'])
+    ->name('booking.restore');
 
 
 
