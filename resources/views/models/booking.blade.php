@@ -140,20 +140,18 @@
     <input type="hidden" name="booking_id" id="bookingId">
 
     <!-- Step 1: Multi-Step Booking Modal -->
-    <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
+    <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book {{ $bookableName }}
-                    </h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book {{ $bookableName }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <h5 class="mb-3 text-center">Select Rental Duration</h5>
                     <div class="row text-center g-3 text-muted">
                         @if ($pricingDay)
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
                                     data-price="{{ $pricingDay }}">
                                     <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
@@ -165,7 +163,7 @@
                         @endif
 
                         @if ($pricingWeek)
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <div class="option-card p-3 border rounded-4 h-100" data-type="week"
                                     data-price="{{ $pricingWeek }}">
                                     <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
@@ -177,7 +175,7 @@
                         @endif
 
                         @if ($pricingMonth)
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <div class="option-card p-3 border rounded-4 h-100" data-type="month"
                                     data-price="{{ $pricingMonth }}">
                                     <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
@@ -191,9 +189,10 @@
 
                     <!-- Date Section -->
                     <div id="dateSection" class="mb-3 mt-3 d-none">
-                        <div class="position-relative w-100">
-                            <input type="text" id="rentalStartDate" class="form-control ps-5 w-100"
-                                placeholder="Select a start date" readonly data-lead="{{ $bookingLeadDays }}"
+                        <label class="form-label fw-semibold">Select Start Date</label>
+                        <div class="position-relative w-40">
+                            <input type="text" id="rentalStartDate" class="form-control ps-5"
+                                placeholder="Click to select a start date" readonly data-lead="{{ $bookingLeadDays }}"
                                 data-blocked='@json($bookedRanges)'>
                             <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
                                 <i class="bi bi-calendar-event"></i>
@@ -202,21 +201,21 @@
                     </div>
 
                     <!-- Quantity & Extra Days -->
-                    <div class="row">
+                    <div class="row g-2">
                         <!-- Quantity -->
-                        <div class="col-md-6 mb-3 d-none" id="quantitySection">
-                            <label for="rentalQuantity" class="form-label" id="quantityLabel"></label>
+                        <div class="col-12 col-md-6 mb-3 d-none" id="quantitySection">
+                            <label for="rentalQuantity" class="form-label fw-semibold" id="quantityLabel"></label>
                             <select id="rentalQuantity" class="form-select rounded-3"></select>
                         </div>
 
                         <!-- Extra Days -->
-                        <div class="col-md-6 mb-3 d-none" id="extraDaysSection">
-                            <label for="extraDaysInput" class="form-label">Extra day(s)</label>
+                        {{-- <div class="col-12 col-md-6 mb-3 d-none" id="extraDaysSection">
+                            <label for="extraDaysInput" class="form-label fw-semibold">Extra day(s)</label>
                             <input type="number" min="0" step="1" value="0" class="form-control"
                                 id="extraDaysInput" inputmode="numeric">
                             <div class="form-text" id="extraDaysHelp">Add additional day(s) on top of the selected
                                 duration.</div>
-                        </div>
+                        </div> --}}
                     </div>
 
                     @if ($showLocationSelect)
@@ -228,10 +227,9 @@
                                     : 'Location selected')
                                 : 'Select a location to view availability.';
                         @endphp
-                        <div class="row g-3" id="locationRow">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold" for="bookingLocationSelect">Select
-                                    Location</label>
+                        <div class="row g-2" id="locationRow">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold" for="bookingLocationSelect">Select Location</label>
                                 <select class="form-select" id="bookingLocationSelect"
                                     {{ $locationOptions->count() === 1 ? 'data-single="true"' : '' }}>
                                     @if (!$locationId)
@@ -250,7 +248,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold" for="stockQuantitySelect">Stock Quantity</label>
                                 <select class="form-select" id="stockQuantitySelect">
                                     <option value="" selected>Select quantity</option>
@@ -261,22 +259,23 @@
                     @endif
 
                     <!-- Total Price -->
-                    <div class="alert alert-info fw-bold d-none" id="totalPrice"></div>
+                    <div class="alert alert-info fw-bold d-none mt-3" id="totalPrice"></div>
 
                     <!-- Rental Period -->
-                    <div class="alert alert-secondary fw-bold d-none" id="rentalPeriod"></div>
+                    <div class="alert alert-secondary fw-bold d-none mt-2" id="rentalPeriod"></div>
                 </div>
 
-                <div class="modal-footer d-block">
-                    <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100">Continue to
-                        Details</button>
+                <div class="modal-footer bg-light border-top py-3">
+                    <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100 py-2">
+                        Continue to Details
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Step 2: Customer Details Modal -->
-    <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true" style="margin-bottom: 10rem">
+    <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
@@ -318,19 +317,21 @@
                     </div>
                 </div>
 
-                <div class="modal-footer border-0 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary rounded-3"
-                        id="customerBackToStep1">Back</button>
-                    <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">Review
-                        Booking</button>
+                <div class="modal-footer border-0 py-3">
+                    <div class="w-100 d-flex justify-content-between gap-2">
+                        <button type="button" class="btn btn-md btn-outline-secondary rounded-3"
+                            id="customerBackToStep1">Back</button>
+                        <button type="button" id="goToSummary" class="btn btn-md  btn-dark rounded-3 ">
+                            Review Booking
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Step 3: Booking Summary -->
-    <div class="modal fade mt-5" id="summaryStep" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
+    <div class="modal fade" id="summaryStep" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content rounded-4 shadow-lg">
                 <div class="modal-header">
@@ -339,8 +340,7 @@
                 </div>
                 <div class="modal-body">
                     <h4 class="fw-bold mb-3 text-center">Review Your Booking</h4>
-                    <p class="text-center text-muted">Please review your booking details before proceeding to payment
-                    </p>
+                    <p class="text-center text-muted">Please review your booking details before proceeding to payment</p>
 
                     <div class="border rounded p-3 mb-3 bg-light">
                         <h6 class="fw-semibold">{{ $bookableLabel }}</h6>
@@ -380,9 +380,12 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-semibold mb-0">Price Breakdown</h6>
                         </div>
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>{{ $bookableLabel }} rental</span>
-                            <span id="summaryVehicleTotal">R0.00</span>
+                        <!-- Detailed breakdown will be inserted here -->
+                        <div id="summaryPriceBreakdown">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>{{ $bookableLabel }} rental</span>
+                                <span id="summaryVehicleTotal">R0.00</span>
+                            </div>
                         </div>
                         <div class="d-flex justify-content-between fw-semibold border-top pt-2">
                             <span>Grand total</span>
@@ -413,12 +416,13 @@
                     </div>
                 </div>
 
-                <div class="modal-footer">
-                    <div class="d-flex justify-content-between w-100">
-                        <button type="button" class="btn btn-outline-secondary"
+                <div class="modal-footer py-3">
+                    <div class="w-100 d-flex justify-content-between gap-2">
+                        <button type="button" class="btn btn-md btn-outline-secondary rounded-3 "
                             id="summaryBackToCustomer">Back</button>
-                        <button type="button" id="openPayment" class="btn btn-dark rounded-3">Continue to
-                            Payment</button>
+                        <button type="button" id="openPayment" class="btn btn-dark rounded-3 btn-md">
+                            Continue to Payment
+                        </button>
                     </div>
                 </div>
             </div>
@@ -446,7 +450,7 @@
 
 <!-- Payment Method Selection -->
 <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content rounded-4 shadow">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold"><i class="bi bi-credit-card-fill me-2"></i> Select Payment Method</h5>
@@ -498,16 +502,19 @@
                 </div>
             </div>
 
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-secondary" id="paymentBackToSummary">Back</button>
+            <div class="modal-footer py-3">
+                <div class="w-100 d-flex justify-content-between gap-2">
+                    <button type="button" class="btn btn-outline-secondary rounded-3 btn-md"
+                        id="paymentBackToSummary">Back</button>
+                    <div class="flex-fill"></div> <!-- Empty spacer for alignment -->
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Stripe Payment Modal -->
-<div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
-    style="margin-top: 4rem; height:90vh;">
+<div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content rounded-4 shadow">
             <div class="modal-header">
@@ -518,20 +525,24 @@
                 <div id="booking-card-element" class="mt-3">
                     <div id="booking-card-number" class="form-control mb-3"></div>
                     <div class="row g-2">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div id="booking-card-expiry" class="form-control"></div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div id="booking-card-cvc" class="form-control"></div>
                         </div>
                     </div>
                     <div id="booking-card-errors" class="text-danger mt-2"></div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary me-auto"
-                    id="stripeBackToPayment">Back</button>
-                <button type="button" id="bookingStripePayButton" class="btn btn-dark">Pay with Stripe</button>
+            <div class="modal-footer py-3">
+                <div class="w-100 d-flex justify-content-between gap-2">
+                    <button type="button" class="btn btn-outline-secondary rounded-3 flex-fill"
+                        id="stripeBackToPayment">Back</button>
+                    <button type="button" id="bookingStripePayButton" class="btn btn-dark rounded-3 flex-fill">
+                        Pay with Stripe
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -539,7 +550,7 @@
 
 <!-- Thank You Modal -->
 <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
-    <div class="container modal-dialog modal-fullscreen-md-down custom-modal-dialog " style="margin-top: 7rem">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content rounded-4 shadow border-0">
             <div class="modal-body p-4 p-md-5">
                 <div class="d-flex align-items-center gap-3 mb-3">
@@ -559,7 +570,7 @@
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="d-flex align-items-start gap-2">
                                 <i class="bi bi-box-seam mt-1"></i>
                                 <div>
@@ -570,7 +581,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="d-flex align-items-start gap-2">
                                 <i class="bi bi-person mt-1"></i>
                                 <div>
@@ -581,7 +592,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="d-flex align-items-start gap-2">
                                 <i class="bi bi-calendar-event mt-1"></i>
                                 <div>
@@ -591,7 +602,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="d-flex align-items-start gap-2">
                                 <i class="bi bi-credit-card mt-1"></i>
                                 <div>
@@ -616,37 +627,183 @@
                 </div>
             </div>
 
-            <div class="modal-footer border-0 pt-0 px-4 px-md-5 pb-4 d-flex flex-wrap gap-2 justify-content-between">
-                <a href="/" class="btn btn-outline-secondary rounded-3" id="tyContinueVehicles">
-                    Continue to Categories
-                </a>
+            <div class="modal-footer border-0 pt-0 px-4 px-md-5 pb-4">
+                <div class="w-100 d-flex flex-wrap gap-2 justify-content-between">
+                    <a href="/" class="btn btn-outline-secondary rounded-3 flex-fill" id="tyContinueVehicles">
+                        Continue to Categories
+                    </a>
 
-                <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
-                    class="btn btn-success fw-bold rounded-3 d-flex align-items-center gap-2" target="_blank"
-                    id="tyWhatsappBtn" rel="noopener">
-                    <i class="bi bi-whatsapp fs-5"></i>Chat with Us
-                </a>
+                    <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
+                        class="btn btn-success fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2 flex-fill"
+                        target="_blank" id="tyWhatsappBtn" rel="noopener">
+                        <i class="bi bi-whatsapp fs-5"></i>Chat with Us
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    #bookingThankYou .custom-modal-dialog {
-        max-width: none;
-        width: calc(100vw - 2rem);
-        margin: 1rem auto;
+    /* ===========================================
+       RESPONSIVE MODAL STYLES - MOBILE FIRST
+       =========================================== */
+    .modal {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
-    @media (min-width: 1200px) {
-        #bookingThankYou .custom-modal-dialog {
-            width: calc(100vw - 4rem);
-            margin: 2rem auto;
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-content {
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        flex-shrink: 0;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem 1.25rem;
+    }
+
+    .modal-body {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1.25rem;
+    }
+
+    .modal-footer {
+        flex-shrink: 0;
+        border-top: 1px solid #dee2e6;
+        padding: 1rem 1.25rem;
+        background: #f8f9fa;
+    }
+
+    /* Mobile footer buttons - always visible and properly spaced */
+    .modal-footer .btn {
+        min-height: 44px;
+        font-weight: 600;
+    }
+
+    .modal-footer .flex-fill {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Small devices (phones, 576px and down) */
+    @media (max-width: 576px) {
+        .modal-dialog {
+            margin: 0;
+            max-width: 100%;
+            min-height: 100vh;
+        }
+
+        .modal-content {
+            border-radius: 0;
+            min-height: 100vh;
+            max-height: 100vh;
+        }
+
+        .modal-header {
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 1rem;
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            z-index: 10;
+        }
+
+        /* Ensure buttons are properly sized on mobile */
+        .btn {
+            padding: 12px 16px;
+            font-size: 16px;
+            min-height: 44px;
+        }
+
+        /* Form elements full width on mobile */
+        .form-control,
+        .form-select {
+            font-size: 16px;
+            padding: 12px 16px;
+            min-height: 44px;
+        }
+
+        /* Better spacing for mobile */
+        .row.g-3 {
+            margin: -0.5rem;
+        }
+
+        .row.g-3>[class*="col-"] {
+            padding: 0.5rem;
+        }
+
+        /* Stack columns vertically on mobile */
+        .row>[class*="col-"] {
+            margin-bottom: 0.75rem;
         }
     }
 
+    /* Medium devices (tablets, 768px and up) */
+    @media (min-width: 768px) {
+        .modal-dialog {
+            margin: 1.75rem auto;
+            max-width: 90%;
+        }
+
+        .modal-content {
+            border-radius: 0.5rem;
+            min-height: auto;
+            max-height: 90vh;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+        }
+    }
+
+    /* Large devices (desktops, 992px and up) */
+    @media (min-width: 992px) {
+        .modal-dialog.modal-lg {
+            max-width: 800px;
+        }
+
+        .modal-dialog.modal-md {
+            max-width: 600px;
+        }
+    }
+
+    /* ===========================================
+       PAYMENT METHOD SELECTION
+       =========================================== */
     #bookingPayment .booking-pay-option {
-        min-height: 160px;
+        min-height: 140px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -656,6 +813,7 @@
         padding: 20px;
         text-align: left;
         transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+        cursor: pointer;
     }
 
     #bookingPayment .booking-pay-option:hover {
@@ -668,38 +826,26 @@
         box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .2);
     }
 
-    #stockQuantitySelect:disabled {
-        background-color: #f8f9fa;
-        opacity: 0.6;
-    }
-
-    #locationAvailabilityHint.text-danger {
-        font-weight: 600;
-    }
-
-    #summaryUnits {
-        color: #198754;
-        font-weight: 600;
-    }
-
-    @media (min-width: 768px) {
-        #bookingPayment .col-md-6 {
-            display: flex;
-        }
-
+    @media (max-width: 576px) {
         #bookingPayment .booking-pay-option {
-            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            flex-direction: column;
+            text-align: center;
+            gap: 8px;
+        }
+
+        #bookingPayment .booking-pay-text .fw-bold {
+            font-size: 1rem;
         }
     }
 
-    /* Make Google Places dropdown visible above all modals */
-    .pac-container {
-        z-index: 9999 !important;
-    }
-
-    /* FULL WIDTH CALENDAR STYLES */
+    /* ===========================================
+       CALENDAR STYLES - FULLY RESPONSIVE
+       =========================================== */
     #dateSection {
         width: 100%;
+        margin-bottom: 1rem;
     }
 
     #rentalStartDate {
@@ -712,6 +858,7 @@
         background-color: white;
         cursor: pointer;
         transition: all 0.2s ease;
+        min-height: 48px;
     }
 
     #rentalStartDate:focus {
@@ -722,6 +869,7 @@
 
     #dateSection .position-relative {
         width: 100%;
+        margin-bottom: 1rem;
     }
 
     #dateSection .position-absolute {
@@ -732,18 +880,16 @@
         color: #6c757d;
     }
 
-    /* Ensure calendar opens above modals and has proper width */
+    /* Flatpickr Calendar Responsive Styles */
     .flatpickr-calendar {
         z-index: 99999 !important;
-        width: 100% !important;
-        max-width: 42% !important;
     }
 
     .flatpickr-wrapper {
         width: 100% !important;
     }
 
-    /* Mobile responsiveness */
+    /* Mobile calendar styles */
     @media (max-width: 768px) {
         #rentalStartDate {
             padding: 14px 16px 14px 45px;
@@ -753,53 +899,130 @@
         #dateSection .position-absolute {
             left: 16px;
         }
+
+        .flatpickr-calendar {
+            width: 90% !important;
+            max-width: 400px !important;
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+        }
     }
 
-    /* Make the calendar input container full width */
-    #dateSection .form-control {
-        width: 100% !important;
+    /* Desktop calendar styles - fixed for larger screens */
+    @media (min-width: 769px) {
+        .flatpickr-calendar {
+            width: 320px !important;
+            position: absolute !important;
+            top: 100% !important;
+            left: 0 !important;
+            transform: none !important;
+        }
+
+        .flatpickr-calendar.open {
+            top: 100% !important;
+            left: 0 !important;
+        }
+
+        .flatpickr-calendar.arrowTop:before,
+        .flatpickr-calendar.arrowTop:after {
+            display: none !important;
+        }
     }
 
-    /* Remove any max-width constraints */
-    #multiStepBookingModal .modal-dialog {
-        max-width: 800px;
-    }
-
-    #multiStepBookingModal .modal-body {
-        padding: 20px;
-    }
-
-    /* Ensure the date section takes full width */
-    #dateSection .row {
-        width: 100%;
-        margin: 0;
-    }
-
-    #dateSection .col-12 {
-        padding: 0;
-    }
-
-    /* Make option cards more interactive */
+    /* ===========================================
+       OPTION CARDS
+       =========================================== */
     .option-card {
         cursor: pointer;
         transition: all 0.3s ease;
+        border: 2px solid transparent;
+        margin-bottom: 0.75rem;
     }
 
     .option-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .option-card.active {
         border-color: #CF9B4D !important;
         background-color: #fff9f0 !important;
+        box-shadow: 0 4px 12px rgba(207, 155, 77, 0.2);
+    }
+
+    @media (max-width: 576px) {
+        .option-card {
+            margin-bottom: 0.5rem;
+            padding: 1rem !important;
+        }
+    }
+
+    /* ===========================================
+       SUMMARY PRICING BREAKDOWN
+       =========================================== */
+    #summaryPriceBreakdown .price-line {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    #summaryPriceBreakdown .price-line:last-child {
+        border-bottom: none;
+    }
+
+    #summaryPriceBreakdown .price-details {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    #summaryPriceBreakdown .price-amount {
+        font-weight: 600;
+        color: #000;
+    }
+
+    /* ===========================================
+       UTILITY CLASSES
+       =========================================== */
+    .text-break-word {
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        top: 50%;
+        left: 50%;
+        margin-left: -10px;
+        margin-top: -10px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-right-color: transparent;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
-
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-{{-- GOOGLE PLACES AUTOCOMPLETE CALLBACK (GLOBAL, BEFORE MAPS SCRIPT) --}}
+{{-- GOOGLE PLACES AUTOCOMPLETE CALLBACK --}}
 <script>
     window.initCustomerAutocomplete = function() {
         var input = document.getElementById('bookingCustomerCountry');
@@ -1137,9 +1360,6 @@
         let suppressRentalEvent = false;
         let isUpdatingStep1 = false;
 
-        // REMOVED: applyQuantityLimit function completely
-        // REMOVED: window.updateQuantityLimit
-
         function activeUnit() {
             const a = document.querySelector('.option-card.active');
             return a ? a.getAttribute('data-type') : '';
@@ -1431,17 +1651,20 @@
                     dateFormat: 'Y-m-d',
                     clickOpens: true,
                     allowInput: false,
-                    // Add these options for better UX and full width
                     static: true,
                     monthSelectorType: 'static',
-                    // Ensure full width for calendar
+                    // Mobile-friendly options
+                    disableMobile: false,
+                    time_24hr: true,
+                    // Responsive positioning
+                    position: 'auto',
                     onReady: function(selectedDates, dateStr, instance) {
                         const calendar = instance.calendarContainer;
                         const input = instance._input;
 
                         if (calendar) {
                             calendar.style.zIndex = '99999';
-                            // Set calendar to full width
+                            // Make calendar responsive
                             calendar.style.width = '100%';
                             calendar.style.maxWidth = '100%';
                         }
@@ -1449,7 +1672,6 @@
                         // Ensure input takes full width
                         if (input) {
                             input.style.width = '100%';
-                            input.style.maxWidth = '100%';
                         }
                     },
                     onOpen: function(selectedDates, dateStr, instance) {
@@ -1459,25 +1681,15 @@
                             calendar.style.width = '100%';
                             calendar.style.maxWidth = '100%';
 
-                            // Force recalculation of position for full width
-                            setTimeout(() => {
-                                instance.redraw();
-                            }, 10);
-                        }
-
-                        // Close any other open flatpickr instances
-                        document.querySelectorAll('.flatpickr-calendar').forEach(cal => {
-                            if (cal !== calendar && cal.style.display !== 'none') {
-                                cal.style.display = 'none';
+                            // Mobile-specific adjustments
+                            if (window.innerWidth < 768) {
+                                calendar.style.position = 'fixed';
+                                calendar.style.top = '50%';
+                                calendar.style.left = '50%';
+                                calendar.style.transform = 'translate(-50%, -50%)';
+                                calendar.style.width = '90%';
+                                calendar.style.maxWidth = '400px';
                             }
-                        });
-                    },
-                    onMonthChange: function(selectedDates, dateStr, instance) {
-                        // Ensure calendar maintains full width on month change
-                        const calendar = instance.calendarContainer;
-                        if (calendar) {
-                            calendar.style.width = '100%';
-                            calendar.style.maxWidth = '100%';
                         }
                     },
                     onChange: function(selectedDates, dateStr) {
@@ -1503,30 +1715,17 @@
                 setTimeout(() => {
                     if (inp) {
                         inp.style.width = '100%';
-                        inp.style.maxWidth = '100%';
                         inp.style.boxSizing = 'border-box';
-
-                        // Also set parent elements to full width
-                        const parentRelative = inp.closest('.position-relative');
-                        if (parentRelative) {
-                            parentRelative.style.width = '100%';
-                        }
-
-                        const dateSection = document.getElementById('dateSection');
-                        if (dateSection) {
-                            dateSection.style.width = '100%';
-                        }
                     }
                 }, 100);
             } else {
-                // Fallback to native date input
+                // Fallback to native date input for mobile
                 try {
                     inp.removeAttribute('readonly');
                     inp.setAttribute('type', 'date');
-                    // Set full width for native date input
                     inp.style.width = '100%';
-                    inp.style.maxWidth = '100%';
                 } catch {}
+
                 inp.addEventListener('input', () => {
                     const val = inp.value;
                     const picked = fromYMD(val);
@@ -1543,6 +1742,7 @@
                         return;
                     }
                 });
+
                 inp.addEventListener('change', () => {
                     const dateStr = inp.value || '';
                     if (hidStart) {
@@ -2281,11 +2481,8 @@
         }
 
         /* =========================
-           SUMMARY
+           SUMMARY WITH DETAILED PRICING
            ========================= */
-        /* =========================
-   SUMMARY
-   ========================= */
         const goToSummaryBtn = document.getElementById('goToSummary');
         if (goToSummaryBtn) {
             goToSummaryBtn.addEventListener('click', function() {
@@ -2332,12 +2529,13 @@
                     return;
                 }
 
-                // Rest of the summary code remains the same...
+                // Get all the necessary values
                 const unitH = document.getElementById('inputRentalUnit');
                 const startH = document.getElementById('inputRentalStartDate');
                 const extraH = document.getElementById('inputExtraDays');
                 const totalH = document.getElementById('inputTotalPrice');
                 const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
+                const rentalQty = document.getElementById('inputRentalQuantity')?.value || '1';
 
                 const typeLabel = ({
                     day: 'Daily',
@@ -2351,7 +2549,7 @@
                 if (startH && startH.value) {
                     const startY = startH.value;
                     const unit = unitH.value;
-                    const qty = parseInt(document.getElementById('inputRentalQuantity').value);
+                    const qty = parseInt(rentalQty);
                     const extra = parseInt(extraH?.value || '0');
                     const startDt = fromYMD(startY);
 
@@ -2365,7 +2563,7 @@
 
                         if (extra > 0) {
                             vehiclePeriod +=
-                            ` (${days} days total = ${baseDays} base + ${extra} extra)`;
+                                ` (${days} days total = ${baseDays} base + ${extra} extra)`;
                         } else {
                             vehiclePeriod += ` (${days} days)`;
                         }
@@ -2373,13 +2571,18 @@
                 }
 
                 document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
-                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH
-                    .value : 0);
                 document.getElementById('summaryUnits').textContent =
                     `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
 
                 const vehicleTotal = parseFloat(totalH?.value || '0');
                 document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
+
+                // Generate and display detailed price breakdown
+                const breakdownHTML = generatePriceBreakdown();
+                const summaryBreakdownEl = document.getElementById('summaryPriceBreakdown');
+                if (summaryBreakdownEl) {
+                    summaryBreakdownEl.innerHTML = breakdownHTML;
+                }
 
                 document.getElementById('summaryCustomerName').textContent = name.value;
                 document.getElementById('summaryCustomerEmail').textContent = email.value;
@@ -2391,6 +2594,84 @@
                 (bootstrap.Modal.getInstance(custEl) || new bootstrap.Modal(custEl)).hide();
                 (bootstrap.Modal.getInstance(sumEl) || new bootstrap.Modal(sumEl)).show();
             });
+        }
+
+        // Add the generatePriceBreakdown function
+        function generatePriceBreakdown() {
+            const unit = document.getElementById('inputRentalUnit')?.value;
+            const qty = parseInt(document.getElementById('inputRentalQuantity')?.value || '0', 10);
+            const extra = parseInt(document.getElementById('inputExtraDays')?.value || '0', 10);
+            const stockQty = parseInt(document.getElementById('inputStockQuantity')?.value || '1', 10);
+            const pricePer = priceForActiveUnit();
+
+            if (!unit || !qty || !pricePer) return '';
+
+            let baseDays = 0;
+            let unitLabel = '';
+            let dailyRate = 0;
+            let basePrice = 0;
+
+            switch (unit) {
+                case 'day':
+                    baseDays = qty;
+                    unitLabel = 'day(s)';
+                    dailyRate = pricePer;
+                    basePrice = pricePer * qty;
+                    break;
+                case 'week':
+                    baseDays = qty * 7;
+                    unitLabel = 'week(s)';
+                    dailyRate = pricePer / 7;
+                    basePrice = pricePer * qty;
+                    break;
+                case 'month':
+                    baseDays = qty * 30;
+                    unitLabel = 'month(s)';
+                    dailyRate = pricePer / 30;
+                    basePrice = pricePer * qty;
+                    break;
+            }
+
+            const extraDaysPrice = dailyRate * extra;
+            const totalBasePrice = (basePrice + extraDaysPrice) * stockQty;
+
+            let html = `
+        <div class="d-flex justify-content-between small mb-2">
+            <span>
+                ${stockQty} unit${stockQty > 1 ? 's' : ''} × ${qty} ${unit}${qty > 1 ? 's' : ''}
+                @ R${pricePer.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}/${unit}
+            </span>
+            <span class="fw-semibold">R${(basePrice * stockQty).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        </div>`;
+
+            if (extra > 0) {
+                html += `
+        <div class="d-flex justify-content-between small mb-2">
+            <span>
+                ${stockQty} unit${stockQty > 1 ? 's' : ''} × ${extra} extra day${extra > 1 ? 's' : ''}
+                @ R${dailyRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}/day
+            </span>
+            <span class="fw-semibold">R${(extraDaysPrice * stockQty).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        </div>`;
+            }
+
+            // Add subtotal if multiple items
+            if (stockQty > 1 || extra > 0) {
+                html += `
+        <div class="d-flex justify-content-between small mb-2 border-top pt-2">
+            <span class="fw-semibold">Subtotal</span>
+            <span class="fw-semibold">R${totalBasePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        </div>`;
+            }
+
+            return html;
+        }
+
+        // Make sure priceForActiveUnit function is available
+        function priceForActiveUnit() {
+            const a = document.querySelector('.option-card.active');
+            const p = parseFloat(a?.getAttribute('data-price') || '0');
+            return isNaN(p) ? 0 : p;
         }
 
         /* =========================
@@ -2431,7 +2712,7 @@
             const wa = document.getElementById('tyWhatsappBtn');
             if (wa) {
                 const txt =
-                `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
+                    `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
                 const url = new URL("https://wa.me/27612345678");
                 url.searchParams.set('text', txt);
                 wa.href = url.toString();

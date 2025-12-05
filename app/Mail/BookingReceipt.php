@@ -22,14 +22,15 @@ class BookingReceipt extends Mailable
      */
     public function __construct(Booking $booking, float $paidNow = 0.0)
     {
-        $this->booking = $booking->loadMissing('vehicle', 'customer');
+        // load equipment instead of vehicle
+        $this->booking = $booking->loadMissing('equipment', 'customer');
         $this->paidNow = $paidNow;
     }
 
     public function build(): self
     {
         $booking = $this->booking;
-        $v       = $booking->vehicle;
+        $e       = $booking->equipment;
         $cust    = $booking->customer;
 
         // --- Plain-text placeholders (escaped) ---
@@ -39,8 +40,8 @@ class BookingReceipt extends Mailable
             'booking_id'             => (string) $booking->id,
             'booking_reference'      => $booking->reference ?: ('BK-' . $booking->id),
             'booking_reference_paren'=> $booking->reference ? '(' . $booking->reference . ')' : '',
-            'vehicle_name'           => $v?->name
-                                        ? ($v->name . (($v->year || $v->model) ? " ({$v->year} {$v->model})" : ''))
+            'equipment_name'         => $e?->name
+                                        ? ($e->name . (($e->year || $e->model) ? " ({$e->year} {$e->model})" : ''))
                                         : '',
             'start_date'             => Carbon::parse($booking->start_date)->toFormattedDateString(),
             'end_date'               => Carbon::parse($booking->end_date)->toFormattedDateString(),
@@ -52,14 +53,12 @@ class BookingReceipt extends Mailable
         ];
 
         // --- HTML fragments (raw) you might want to inline into the template body ---
-        // If you don't reference {{vehicle_row}} or {{receipt_button}} in the DB template body,
-        // these simply won't be used.
         $raw = [
-            'vehicle_row' => $v ? (
+            'equipment_row' => $e ? (
                 '<tr>
-                    <td style="padding:6px 0;color:#555;">Vehicle</td>
+                    <td style="padding:6px 0;color:#555;">Equipment</td>
                     <td style="padding:6px 0;text-align:right;color:#111;">'
-                    . e($v->name . (($v->year || $v->model) ? " ({$v->year} {$v->model})" : '')) .
+                    . e($e->name . (($e->year || $e->model) ? " ({$e->year} {$e->model})" : '')) .
                 '</td></tr>'
             ) : '',
             'receipt_button' => $booking->receipt_url

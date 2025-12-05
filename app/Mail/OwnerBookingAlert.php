@@ -18,14 +18,15 @@ class OwnerBookingAlert extends Mailable
 
     public function __construct(Booking $booking, float $paidNow = 0.0)
     {
-        $this->booking = $booking->loadMissing('vehicle', 'customer');
+        // load equipment instead of vehicle
+        $this->booking = $booking->loadMissing('equipment', 'customer');
         $this->paidNow = $paidNow;
     }
 
     public function build(): self
     {
         $booking = $this->booking;
-        $v       = $booking->vehicle;
+        $e       = $booking->equipment;
         $cust    = $booking->customer;
 
         // -------- Escaped placeholders (plain text values) ----------
@@ -53,11 +54,11 @@ class OwnerBookingAlert extends Mailable
 
         // -------- Raw HTML fragments you control (inserted unescaped) ----------
         $raw = [
-            'vehicle_row' => $v ? (
+            'equipment_row' => $e ? (
                 '<tr>
-                    <td style="padding:6px 0;color:#555;">Vehicle</td>
+                    <td style="padding:6px 0;color:#555;">Equipment</td>
                     <td style="padding:6px 0;text-align:right;color:#111;">'
-                    . e($v->name . (($v->year || $v->model) ? " ({$v->year} {$v->model})" : '')) .
+                    . e($e->name . (($e->year || $e->model) ? " ({$e->year} {$e->model})" : '')) .
                 '</td></tr>'
             ) : '',
             'receipt_button' => $booking->receipt_url
@@ -83,7 +84,7 @@ class OwnerBookingAlert extends Mailable
             // Subject: simple key replace (escaped)
             $subject = $this->replacePlaceholders($tpl->subject, $data, []);
 
-            // Body: first inject escaped keys, then inject raw fragments (vehicle_row, receipt_button)
+            // Body: first inject escaped keys, then inject raw fragments (equipment_row, receipt_button)
             $body = $this->replacePlaceholders($tpl->body, $data, []);
             $body = $this->replacePlaceholders($body, $raw, [], $escapeAll = false);
 

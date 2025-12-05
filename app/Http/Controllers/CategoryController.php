@@ -12,17 +12,20 @@ use Illuminate\Support\Facades\Storage;
 class CategoryController extends Controller
 {
     public function index()
-    {
-        try {
-            $locations = Location::all();
-            $categories = Category::withCount('equipment')->get();
+{
+    try {
+        $locations = Location::all();
+        $categories = Category::withCount('equipment')
+            ->orderBy('name', 'asc')     // 🔥 Sort categories A–Z
+            ->get();
 
-            return view('admin.categories.index', compact('categories', 'locations'));
-        } catch (\Throwable $e) {
-            Log::error('Category index error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Something went wrong while loading categories.');
-        }
+        return view('admin.categories.index', compact('categories', 'locations'));
+    } catch (\Throwable $e) {
+        Log::error('Category index error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+        return back()->with('error', 'Something went wrong while loading categories.');
     }
+}
+
 
     public function create()
     {

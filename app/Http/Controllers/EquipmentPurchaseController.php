@@ -379,18 +379,19 @@ public function payfastNotify(Request $request)
             $stockAfter = null;
 
             if ($purchase->location_id) {
-                $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
-                    ->where('location_id', $purchase->location_id)
-                    ->lockForUpdate()
-                    ->first();
+    $stockRow = EquipmentStock::where('equipment_id', $purchase->equipment_id)
+        ->where('location_id', $purchase->location_id)
+        ->lockForUpdate()
+        ->first();
 
-                if ($stockRow) {
-                    $stockBefore = $stockRow->stock;
-                    $stockRow->stock = max($stockBefore - $purchase->quantity, 0);
-                    $stockRow->save();
-                    $stockAfter = $stockRow->stock;
-                }
-            }
+    if ($stockRow) {
+        $stockBefore = (int) $stockRow->stock;
+        $stockRow->stock = max($stockBefore - (int) $purchase->quantity, 0);
+        $stockRow->save();
+        $stockAfter = (int) $stockRow->stock;
+    }
+}
+
 
             $purchase->update([
                 'deposit_paid' => $amountPaid,

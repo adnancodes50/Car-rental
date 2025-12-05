@@ -265,6 +265,14 @@ Route::group([
 
 
 
+// use App\Http\Controllers\reminderController;
+
+// Route::get('/test-reminder', [reminderController::class, 'sendTestReminder']);
+
+
+
+
+
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
 
     Route::get('/landing-settings', [LandingSettingController::class, 'index'])

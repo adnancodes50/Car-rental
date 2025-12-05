@@ -22,11 +22,15 @@ public function index(Request $request)
         'category',
         'stocks',
         'bookings' => function ($q) {
-            $q->whereDate('end_date', '>=', now()); // ⬅️ only future or active bookings
+            $q->whereDate('end_date', '>=', now()); // only future or active bookings
         },
         'bookings.customer',
         'purchases.customer',
-    ]);
+    ])
+    ->join('categories', 'categories.id', '=', 'equipment.category_id')  // 🔥 join to sort by category
+    ->orderBy('categories.name', 'asc')                                  // 🔥 category alphabetically
+    ->orderBy('equipment.name', 'asc')                                   // 🔥 equipment alphabetically
+    ->select('equipment.*');                                             // important: avoid replacing columns
 
     if ($request->filled('category_id')) {
         $query->where('category_id', $request->category_id);
@@ -39,6 +43,7 @@ public function index(Request $request)
 
     return view('admin.equipment.index', compact('equipment', 'categories', 'locations'));
 }
+
 
 
 

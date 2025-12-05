@@ -273,26 +273,63 @@ class BookingController extends Controller
         }
     }
 
-    private function sendBookingEmails(Booking $booking, float $paidNow): void
-    {
-        try {
-            $settings = SystemSetting::first();
-            $this->configureMailerFromSettings($settings);
-            $ownerEmail = $this->resolveOwnerEmail($settings);
+   private function sendBookingEmails(Booking $booking, float $paidNow): void
+{
+    try {
+        $settings = SystemSetting::first();
+        $ok = $this->configureMailerFromSettings($settings);
 
-            if ($booking->customer?->email) {
-                Mail::to($booking->customer->email)
-                    ->send(new BookingReceipt($booking->loadMissing('customer', 'category', 'location'), $paidNow));
-            }
-
-            if ($ownerEmail) {
-                Mail::to($ownerEmail)
-                    ->send(new OwnerBookingAlert($booking->loadMissing('customer', 'category', 'location'), $paidNow));
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Booking emails failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+        if (!$ok) {
+            Log::warning('Mailer not configured - skipping booking emails', ['booking_id' => $booking->id]);
+            return;
         }
+
+        $ownerEmail = $this->resolveOwnerEmail($settings);
+
+        // ensure relationships once
+        $booking->loadMissing('customer', 'category', 'location', 'equipment');
+
+        // Customer email (queued)
+        if ($to = $booking->customer?->email) {
+            try {
+                Mail::to($to)->queue(new BookingReceipt($booking, $paidNow));
+                Log::info('Queued booking receipt to customer', ['booking_id' => $booking->id, 'to' => $to]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to queue booking receipt to customer', [
+                    'booking_id' => $booking->id,
+                    'to' => $to,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+            }
+        } else {
+            Log::warning('No customer email for booking - skipping customer mail', ['booking_id' => $booking->id]);
+        }
+
+        // Owner email (queued)
+        if ($ownerEmail) {
+            try {
+                Mail::to($ownerEmail)->queue(new OwnerBookingAlert($booking, $paidNow));
+                Log::info('Queued owner booking alert', ['booking_id' => $booking->id, 'to' => $ownerEmail]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to queue owner booking alert', [
+                    'booking_id' => $booking->id,
+                    'to' => $ownerEmail,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+            }
+        }
+
+    } catch (\Throwable $e) {
+        Log::warning('Booking emails failed (unexpected)', [
+            'booking_id' => $booking->id ?? null,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
     }
+}
+
 
     /* -------------------------------------------------
      |  Stripe payment (updated to new model)
@@ -431,28 +468,68 @@ class BookingController extends Controller
         ]);
     }
 
-    public function payfastBookingNotify(Request $request)
-    {
-        Log::info('PayFast booking ITN received', $request->all());
+  public function payfastBookingNotify(Request $request)
+{
+    $payload = $request->all();
+    Log::info('PayFast booking ITN received', $payload);
 
-        $bookingId = $request->input('custom_str1');
-        if (!$bookingId) {
-            Log::warning('PayFast booking ITN missing booking ID.');
-            return response('Missing booking reference', 400);
+    // Basic booking id guard
+    $bookingId = $request->input('custom_str1');
+    if (!$bookingId) {
+        Log::warning('PayFast booking ITN missing booking ID.');
+        return response('Missing booking reference', 400);
+    }
+
+    // 1) Optional: verify PayFast signature (passphrase/md5)
+    // If you have a passphrase, compute signature server-side and compare.
+    $settings = SystemSetting::first();
+    if (!empty($settings->payfast_passphrase)) {
+        $signatureFields = $payload;
+        // remove keys not used in signature if present (like signature itself)
+        unset($signatureFields['signature']);
+        if (!empty($settings->payfast_passphrase)) {
+            $signatureFields['passphrase'] = $settings->payfast_passphrase;
         }
-
-        $booking = Booking::with(['customer', 'category', 'location', 'equipment'])->find($bookingId);
-        if (!$booking) {
-            Log::warning('PayFast booking ITN: booking not found', ['booking_id' => $bookingId]);
-            return response('Booking not found', 404);
+        ksort($signatureFields);
+        $pairs = [];
+        foreach ($signatureFields as $k => $v) {
+            if ($v === null || $v === '') continue;
+            $pairs[] = $k . '=' . urlencode(trim((string) $v));
         }
+        $calc = md5(implode('&', $pairs));
+        if (isset($payload['signature']) && $payload['signature'] !== $calc) {
+            Log::warning('PayFast signature mismatch', ['booking_id' => $bookingId, 'expected' => $calc, 'got' => $payload['signature'] ?? null]);
+            return response('Invalid signature', 400);
+        }
+    }
 
-        $paymentStatus = strtolower($request->input('payment_status', ''));
-        $amountPaid    = (float) $request->input('amount_gross', 0);
-        $pfPaymentId   = $request->input('pf_payment_id');
-        $mPaymentId    = $request->input('m_payment_id');
+    // 2) Fetch booking (with lock if you plan to update DB)
+    $booking = Booking::with(['customer', 'category', 'location', 'equipment'])->find($bookingId);
+    if (!$booking) {
+        Log::warning('PayFast booking ITN: booking not found', ['booking_id' => $bookingId]);
+        return response('Booking not found', 404);
+    }
 
+    $mPaymentId  = $request->input('m_payment_id');
+    $pfPaymentId = $request->input('pf_payment_id');
+
+    // 3) Idempotency: skip if we've already processed this PayFast payment id
+    // Prefer checking a column like `payfast_payment_id` or `payfast_processed_at`.
+    if (!empty($pfPaymentId) && $booking->payfast_payment_id && in_array($pfPaymentId, [$booking->payfast_payment_id, $booking->payfast_payment_id], true)) {
+        Log::info('Duplicate PayFast ITN ignored (pf_payment_id already recorded)', ['booking_id' => $booking->id, 'pf_payment_id' => $pfPaymentId]);
+        return response('OK'); // already handled
+    }
+    if (!empty($mPaymentId) && $booking->payfast_payment_id && str_starts_with($booking->payfast_payment_id, (string)$mPaymentId)) {
+        Log::info('Duplicate PayFast ITN ignored (m_payment_id already recorded)', ['booking_id' => $booking->id, 'm_payment_id' => $mPaymentId]);
+        return response('OK');
+    }
+
+    $paymentStatus = strtolower($request->input('payment_status', ''));
+    $amountPaid    = (float) $request->input('amount_gross', 0);
+
+    try {
         if ($paymentStatus === 'complete' && $amountPaid > 0) {
+            // Atomic update - using forceFill to avoid guarded issues
             $updates = ['status' => 'confirmed'];
             if (Schema::hasColumn('bookings', 'payment_status')) {
                 $updates['payment_status'] = 'paid';
@@ -466,23 +543,58 @@ class BookingController extends Controller
             if (Schema::hasColumn('bookings', 'payfast_payment_id')) {
                 $updates['payfast_payment_id'] = $mPaymentId ?: $pfPaymentId;
             }
+            if (!empty($updates)) {
+                $booking->forceFill($updates)->save();
+            }
 
-            $booking->forceFill($updates)->save();
+            // Log success with context before sending email
+            Log::info('PayFast payment recorded', [
+                'booking_id' => $booking->id,
+                'm_payment_id' => $mPaymentId,
+                'pf_payment_id' => $pfPaymentId,
+                'amount' => $amountPaid,
+            ]);
+
+            // Send emails (this method now queues the mails)
             $booking->loadMissing('customer', 'category', 'location', 'equipment');
-
             $this->sendBookingEmails($booking, $amountPaid);
         } elseif ($paymentStatus === 'failed') {
             if (Schema::hasColumn('bookings', 'payment_status')) {
                 $booking->forceFill(['payment_status' => 'failed'])->save();
             }
+            Log::warning('PayFast payment marked failed', ['booking_id' => $booking->id, 'm_payment_id' => $mPaymentId, 'amount' => $amountPaid]);
         } elseif ($paymentStatus !== '') {
             if (Schema::hasColumn('bookings', 'payment_status')) {
                 $booking->forceFill(['payment_status' => $paymentStatus])->save();
             }
+            Log::info('PayFast payment status updated (non-complete)', ['booking_id' => $booking->id, 'status' => $paymentStatus]);
         }
-
-        return response('OK');
+    } catch (\Throwable $e) {
+        Log::error('Exception processing PayFast ITN', [
+            'booking_id' => $booking->id,
+            'm_payment_id' => $mPaymentId,
+            'pf_payment_id' => $pfPaymentId,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        // do not return 500 — PayFast expects a simple OK/accepted; returning 500 may cause retries
+        return response('Error', 200);
     }
+
+    return response('OK');
+}
+
+
+// public function payfastBookingNotify(Request $request)
+// {
+//     $payload = $request->all();
+//     dispatch(function () use ($payload) {
+//         app(BookingController::class)->processPayfastNotification($payload);
+//     });
+//     return response('OK', 200);
+// }
+
+
 
    public function payfastBookingReturn(Request $request)
 {

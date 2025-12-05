@@ -139,10 +139,9 @@
     <input type="hidden" name="total_price" id="inputTotalPrice">
     <input type="hidden" name="booking_id" id="bookingId">
 
-    <!-- Step 1: Multi-Step Booking Modal -->
-    <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
+    <!-- Step 1: Multi-Step Booking Modal - LG SIZE -->
+    <div class="modal fade" id="multiStepBookingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content rounded-4 shadow-lg">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Book {{ $bookableName }}
@@ -153,7 +152,7 @@
                     <h5 class="mb-3 text-center">Select Rental Duration</h5>
                     <div class="row text-center g-3 text-muted">
                         @if ($pricingDay)
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <div class="option-card p-3 border rounded-4 bg-light h-100" data-type="day"
                                     data-price="{{ $pricingDay }}">
                                     <i class="bi bi-clock display-6" style="color: #CF9B4D"></i>
@@ -165,7 +164,7 @@
                         @endif
 
                         @if ($pricingWeek)
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <div class="option-card p-3 border rounded-4 h-100" data-type="week"
                                     data-price="{{ $pricingWeek }}">
                                     <i class="bi bi-calendar-event display-6" style="color: #CF9B4D"></i>
@@ -177,7 +176,7 @@
                         @endif
 
                         @if ($pricingMonth)
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <div class="option-card p-3 border rounded-4 h-100" data-type="month"
                                     data-price="{{ $pricingMonth }}">
                                     <i class="bi bi-box display-6" style="color: #CF9B4D"></i>
@@ -191,9 +190,10 @@
 
                     <!-- Date Section -->
                     <div id="dateSection" class="mb-3 mt-3 d-none">
+                        <label class="form-label fw-semibold">Select Start Date</label>
                         <div class="position-relative w-100">
-                            <input type="text" id="rentalStartDate" class="form-control ps-5 w-100"
-                                placeholder="Select a start date" readonly data-lead="{{ $bookingLeadDays }}"
+                            <input type="text" id="rentalStartDate" class="form-control ps-5"
+                                placeholder="Click to select a start date" readonly data-lead="{{ $bookingLeadDays }}"
                                 data-blocked='@json($bookedRanges)'>
                             <span class="position-absolute top-50 start-0 translate-middle-y ps-3">
                                 <i class="bi bi-calendar-event"></i>
@@ -202,16 +202,16 @@
                     </div>
 
                     <!-- Quantity & Extra Days -->
-                    <div class="row">
+                    <div class="row g-2">
                         <!-- Quantity -->
-                        <div class="col-md-6 mb-3 d-none" id="quantitySection">
-                            <label for="rentalQuantity" class="form-label" id="quantityLabel"></label>
+                        <div class="col-12 col-md-6 mb-3 d-none" id="quantitySection">
+                            <label for="rentalQuantity" class="form-label fw-semibold" id="quantityLabel"></label>
                             <select id="rentalQuantity" class="form-select rounded-3"></select>
                         </div>
 
                         <!-- Extra Days -->
-                        <div class="col-md-6 mb-3 d-none" id="extraDaysSection">
-                            <label for="extraDaysInput" class="form-label">Extra day(s)</label>
+                        <div class="col-12 col-md-6 mb-3 d-none" id="extraDaysSection">
+                            <label for="extraDaysInput" class="form-label fw-semibold">Extra day(s)</label>
                             <input type="number" min="0" step="1" value="0" class="form-control"
                                 id="extraDaysInput" inputmode="numeric">
                             <div class="form-text" id="extraDaysHelp">Add additional day(s) on top of the selected
@@ -228,8 +228,8 @@
                                     : 'Location selected')
                                 : 'Select a location to view availability.';
                         @endphp
-                        <div class="row g-3" id="locationRow">
-                            <div class="col-md-6">
+                        <div class="row g-2" id="locationRow">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold" for="bookingLocationSelect">Select
                                     Location</label>
                                 <select class="form-select" id="bookingLocationSelect"
@@ -250,7 +250,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold" for="stockQuantitySelect">Stock Quantity</label>
                                 <select class="form-select" id="stockQuantitySelect">
                                     <option value="" selected>Select quantity</option>
@@ -261,22 +261,22 @@
                     @endif
 
                     <!-- Total Price -->
-                    <div class="alert alert-info fw-bold d-none" id="totalPrice"></div>
+                    <div class="alert alert-info fw-bold d-none mt-3" id="totalPrice"></div>
 
                     <!-- Rental Period -->
-                    <div class="alert alert-secondary fw-bold d-none" id="rentalPeriod"></div>
+                    <div class="alert alert-secondary fw-bold d-none mt-2" id="rentalPeriod"></div>
                 </div>
 
-                <div class="modal-footer d-block">
-                    <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100">Continue to
-                        Details</button>
+                <div class="modal-footer bg-light border-top">
+                    <button type="button" id="continueFromStep1" class="btn btn-dark rounded-3 w-100 py-2">Continue
+                        to Details</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Step 2: Customer Details Modal -->
-    <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true" style="margin-bottom: 10rem">
+    <!-- Step 2: Customer Details Modal - MD SIZE -->
+    <div class="modal fade" id="customerStep" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md modal-dialog-centered">
             <div class="modal-content rounded-4 shadow">
                 <div class="modal-header">
@@ -304,33 +304,34 @@
                             <label class="form-label">Phone Number</label>
                             <input type="tel" class="form-control rounded-3" name="phone"
                                 placeholder="+27 123 456 7890" inputmode="tel" required
-                                pattern="^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$"
-                                title="Use digits, optional spaces or dashes, e.g. +27 123 456 7890">
+                                pattern="^[a-zA-Z0-9\s\-\.,#()+]+$"
+                                title="Enter a valid phone number with country code, e.g. +27 123 456 7890">
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Address</label>
+                            <label class="form-label">Your Address</label>
                             <input type="text" id="bookingCustomerCountry" name="country"
                                 class="form-control rounded-3" placeholder="Start typing your address..."
-                                autocomplete="street-address" required>
-                            <small class="text-muted">Use the suggestions to pick your full address.</small>
+                                autocomplete="street-address" required pattern="^[a-zA-Z0-9\s\-\.,#()]+$"
+                                title="Enter a valid address with letters, numbers, spaces, hyphens, commas, periods, #, and parentheses">
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer border-0 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary rounded-3"
-                        id="customerBackToStep1">Back</button>
-                    <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">Review
-                        Booking</button>
+                <div class="modal-footer border-0">
+                    <div class="w-100 d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary rounded-3 px-4"
+                            id="customerBackToStep1">Back</button>
+                        <button type="button" id="goToSummary" class="btn btn-dark rounded-3 px-4">Review
+                            Booking</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Step 3: Booking Summary -->
-    <div class="modal fade mt-5" id="summaryStep" tabindex="-1" aria-hidden="true"
-        style="height: 90vh; margin-top: 4rem;">
+    <!-- Step 3: Booking Summary - LG SIZE -->
+    <div class="modal fade" id="summaryStep" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content rounded-4 shadow-lg">
                 <div class="modal-header">
@@ -380,9 +381,12 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="fw-semibold mb-0">Price Breakdown</h6>
                         </div>
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>{{ $bookableLabel }} rental</span>
-                            <span id="summaryVehicleTotal">R0.00</span>
+                        <!-- Detailed breakdown will be inserted here -->
+                        <div id="summaryPriceBreakdown">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>{{ $bookableLabel }} rental</span>
+                                <span id="summaryVehicleTotal">R0.00</span>
+                            </div>
                         </div>
                         <div class="d-flex justify-content-between fw-semibold border-top pt-2">
                             <span>Grand total</span>
@@ -413,15 +417,19 @@
                     </div>
                 </div>
 
-                <div class="modal-footer">
-                    <div class="d-flex justify-content-between w-100">
-                        <button type="button" class="btn btn-outline-secondary"
-                            id="summaryBackToCustomer">Back</button>
-                        <button type="button" id="openPayment" class="btn btn-dark rounded-3">Continue to
-                            Payment</button>
-                    </div>
-                </div>
-            </div>
+               <div class="modal-footer border-0">
+    <div class="w-100 d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary btn-sm rounded-3 "
+            id="summaryBackToCustomer">
+            Back
+        </button>
+
+        <button type="button" id="openPayment" class="btn btn-dark rounded-3 btn-sm">
+            Continue to Payment
+        </button>
+    </div>
+</div>
+
         </div>
     </div>
 </form>
@@ -444,9 +452,9 @@
     $enabledCount = ($settings->stripe_enabled ? 1 : 0) + ($settings->payfast_enabled ? 1 : 0);
 @endphp
 
-<!-- Payment Method Selection -->
+<!-- Payment Method Selection - MD SIZE -->
 <div class="modal fade" id="bookingPayment" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content rounded-4 shadow">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold"><i class="bi bi-credit-card-fill me-2"></i> Select Payment Method</h5>
@@ -498,16 +506,19 @@
                 </div>
             </div>
 
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-secondary" id="paymentBackToSummary">Back</button>
+            <div class="modal-footer">
+                <div class="w-100 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary px-4"
+                        id="paymentBackToSummary">Back</button>
+                    <div></div> <!-- Empty spacer for alignment -->
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Stripe Payment Modal -->
-<div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true"
-    style="margin-top: 4rem; height:90vh;">
+<!-- Stripe Payment Modal - MD SIZE -->
+<div class="modal fade" id="bookingStripeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content rounded-4 shadow">
             <div class="modal-header">
@@ -529,17 +540,20 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary me-auto"
-                    id="stripeBackToPayment">Back</button>
-                <button type="button" id="bookingStripePayButton" class="btn btn-dark">Pay with Stripe</button>
+                <div class="w-100 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary px-4"
+                        id="stripeBackToPayment">Back</button>
+                    <button type="button" id="bookingStripePayButton" class="btn btn-dark px-4">Pay with
+                        Stripe</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Thank You Modal -->
+<!-- Thank You Modal - LG SIZE -->
 <div class="modal fade" id="bookingThankYou" tabindex="-1" aria-hidden="true">
-    <div class="container modal-dialog modal-fullscreen-md-down custom-modal-dialog " style="margin-top: 7rem">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content rounded-4 shadow border-0">
             <div class="modal-body p-4 p-md-5">
                 <div class="d-flex align-items-center gap-3 mb-3">
@@ -616,37 +630,190 @@
                 </div>
             </div>
 
-            <div class="modal-footer border-0 pt-0 px-4 px-md-5 pb-4 d-flex flex-wrap gap-2 justify-content-between">
-                <a href="/" class="btn btn-outline-secondary rounded-3" id="tyContinueVehicles">
-                    Continue to Categories
-                </a>
+            <div class="modal-footer border-0 pt-0 px-4 px-md-5 pb-4">
+                <div class="w-100 d-flex justify-content-between flex-wrap gap-2">
+                    <a href="/" class="btn btn-outline-secondary rounded-3" id="tyContinueVehicles">
+                        Continue to Categories
+                    </a>
 
-                <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
-                    class="btn btn-success fw-bold rounded-3 d-flex align-items-center gap-2" target="_blank"
-                    id="tyWhatsappBtn" rel="noopener">
-                    <i class="bi bi-whatsapp fs-5"></i>Chat with Us
-                </a>
+                    <a href="https://api.whatsapp.com/send?phone=27673285525&text=Hi%20Wayne%2C%20I%27m%20contacting%20your%20from%20your%20Rent2Recover%20website"
+                        class="btn btn-success fw-bold rounded-3 d-flex align-items-center gap-2" target="_blank"
+                        id="tyWhatsappBtn" rel="noopener">
+                        <i class="bi bi-whatsapp fs-5"></i>Chat with Us
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    #bookingThankYou .custom-modal-dialog {
-        max-width: none;
-        width: calc(100vw - 2rem);
-        margin: 1rem auto;
+    /* ===========================================
+       BASE MODAL RESPONSIVENESS - MOBILE FIRST
+       =========================================== */
+    .modal {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
-    @media (min-width: 1200px) {
-        #bookingThankYou .custom-modal-dialog {
-            width: calc(100vw - 4rem);
-            margin: 2rem auto;
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-content {
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        flex-shrink: 0;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem 1.25rem;
+    }
+
+    .modal-body {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1.25rem;
+    }
+
+    .modal-footer {
+        flex-shrink: 0;
+        border-top: 1px solid #dee2e6;
+        padding: 1rem 1.25rem;
+        background: #f8f9fa;
+    }
+
+    /* Small devices (phones, 576px and down) */
+    @media (max-width: 576px) {
+        .modal-dialog {
+            margin: 0;
+            max-width: 100%;
+            min-height: 100vh;
+        }
+
+        .modal-content {
+            border-radius: 0;
+            min-height: 100vh;
+            max-height: 100vh;
+        }
+
+        .modal-header {
+            padding: 1rem;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 1rem;
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+
+        /* Ensure buttons are properly sized on mobile */
+        .btn {
+            padding: 12px 16px;
+            font-size: 16px;
+            /* Prevents zoom on iOS */
+            min-height: 44px;
+            /* Better touch targets */
+        }
+
+        /* Form elements full width on mobile */
+        .form-control,
+        .form-select {
+            font-size: 16px;
+            /* Prevents zoom on iOS */
+            padding: 12px 16px;
+            min-height: 44px;
+        }
+
+        /* Better spacing for mobile */
+        .row.g-3 {
+            margin: -0.5rem;
+        }
+
+        .row.g-3>[class*="col-"] {
+            padding: 0.5rem;
+        }
+
+        /* Stack columns vertically on mobile */
+        .row>[class*="col-"] {
+            margin-bottom: 0.75rem;
         }
     }
 
+    /* Medium devices (tablets, 768px and up) */
+    @media (min-width: 768px) {
+        .modal-dialog {
+            margin: 1.75rem auto;
+            max-width: 90%;
+        }
+
+        .modal-content {
+            border-radius: 0.5rem;
+            min-height: auto;
+            max-height: 90vh;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+        }
+    }
+
+    /* Large devices (desktops, 992px and up) */
+    @media (min-width: 992px) {
+        .modal-dialog.modal-lg {
+            max-width: 800px;
+        }
+
+        .modal-dialog.modal-md {
+            max-width: 600px;
+        }
+    }
+
+    /* ===========================================
+       BUTTON ALIGNMENT IN FOOTERS
+       =========================================== */
+    /* .modal-footer .d-flex.justify-content-between {
+    width: 100%;
+}
+
+.modal-footer .btn {
+    min-width: 120px;
+    flex-shrink: 0;
+} */
+
+    @media (max-width: 576px) {
+        .modal-footer .btn {
+            min-width: auto;
+            flex: 1;
+            margin: 0 0.25rem;
+        }
+    }
+
+    /* ===========================================
+       PAYMENT METHOD SELECTION
+       =========================================== */
     #bookingPayment .booking-pay-option {
-        min-height: 160px;
+        min-height: 140px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -656,6 +823,7 @@
         padding: 20px;
         text-align: left;
         transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+        cursor: pointer;
     }
 
     #bookingPayment .booking-pay-option:hover {
@@ -668,6 +836,33 @@
         box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .2);
     }
 
+    @media (max-width: 576px) {
+        #bookingPayment .booking-pay-option {
+            min-height: 120px;
+            padding: 15px;
+            flex-direction: column;
+            text-align: center;
+            gap: 8px;
+        }
+
+        #bookingPayment .booking-pay-text .fw-bold {
+            font-size: 1rem;
+        }
+    }
+
+    @media (min-width: 768px) {
+        #bookingPayment .col-md-6 {
+            display: flex;
+        }
+
+        #bookingPayment .booking-pay-option {
+            width: 100%;
+        }
+    }
+
+    /* ===========================================
+       FORM ELEMENTS
+       =========================================== */
     #stockQuantitySelect:disabled {
         background-color: #f8f9fa;
         opacity: 0.6;
@@ -682,24 +877,12 @@
         font-weight: 600;
     }
 
-    @media (min-width: 768px) {
-        #bookingPayment .col-md-6 {
-            display: flex;
-        }
-
-        #bookingPayment .booking-pay-option {
-            width: 100%;
-        }
-    }
-
-    /* Make Google Places dropdown visible above all modals */
-    .pac-container {
-        z-index: 9999 !important;
-    }
-
-    /* FULL WIDTH CALENDAR STYLES */
+    /* ===========================================
+       CALENDAR STYLES - FULLY RESPONSIVE
+       =========================================== */
     #dateSection {
         width: 100%;
+        margin-bottom: 1rem;
     }
 
     #rentalStartDate {
@@ -712,6 +895,7 @@
         background-color: white;
         cursor: pointer;
         transition: all 0.2s ease;
+        min-height: 48px;
     }
 
     #rentalStartDate:focus {
@@ -732,18 +916,16 @@
         color: #6c757d;
     }
 
-    /* Ensure calendar opens above modals and has proper width */
+    /* Flatpickr Calendar Responsive Styles */
     .flatpickr-calendar {
         z-index: 99999 !important;
-        width: 100% !important;
-        max-width: 42% !important;
     }
 
     .flatpickr-wrapper {
         width: 100% !important;
     }
 
-    /* Mobile responsiveness */
+    /* Mobile calendar styles */
     @media (max-width: 768px) {
         #rentalStartDate {
             padding: 14px 16px 14px 45px;
@@ -753,20 +935,51 @@
         #dateSection .position-absolute {
             left: 16px;
         }
+
+        .flatpickr-calendar {
+            width: 90% !important;
+            max-width: 400px !important;
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+        }
+
+        .flatpickr-months {
+            padding: 10px;
+        }
+
+        .flatpickr-weekdays {
+            padding: 0 10px;
+        }
+
+        .flatpickr-days {
+            padding: 10px;
+        }
+
+        .dayContainer {
+            min-width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .flatpickr-day {
+            height: 40px;
+            line-height: 40px;
+            margin: 2px;
+        }
+    }
+
+    /* Desktop calendar styles */
+    @media (min-width: 769px) {
+        .flatpickr-calendar {
+            width: 100% !important;
+            max-width: 42% !important;
+        }
     }
 
     /* Make the calendar input container full width */
     #dateSection .form-control {
         width: 100% !important;
-    }
-
-    /* Remove any max-width constraints */
-    #multiStepBookingModal .modal-dialog {
-        max-width: 800px;
-    }
-
-    #multiStepBookingModal .modal-body {
-        padding: 20px;
     }
 
     /* Ensure the date section takes full width */
@@ -779,23 +992,213 @@
         padding: 0;
     }
 
-    /* Make option cards more interactive */
+    /* ===========================================
+       OPTION CARDS
+       =========================================== */
     .option-card {
         cursor: pointer;
         transition: all 0.3s ease;
+        border: 2px solid transparent;
+        margin-bottom: 0.75rem;
     }
 
     .option-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .option-card.active {
         border-color: #CF9B4D !important;
         background-color: #fff9f0 !important;
+        box-shadow: 0 4px 12px rgba(207, 155, 77, 0.2);
+    }
+
+    @media (max-width: 576px) {
+        .option-card {
+            margin-bottom: 0.5rem;
+            padding: 1rem !important;
+        }
+    }
+
+    /* ===========================================
+       BUTTON STYLES
+       =========================================== */
+    #continueFromStep1,
+    #openPayment {
+        min-height: 50px;
+        font-weight: 600;
+        width: 100%;
+    }
+
+    @media (max-width: 576px) {
+
+        #continueFromStep1,
+        #openPayment {
+            min-height: 44px;
+            font-size: 16px;
+        }
+
+        .modal-footer .btn {
+            flex: 1;
+            min-height: 44px;
+        }
+    }
+
+    /* ===========================================
+       GOOGLE PLACES AUTOCOMPLETE
+       =========================================== */
+    .pac-container {
+        z-index: 99999 !important;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ===========================================
+       UTILITY CLASSES
+       =========================================== */
+    .flex-fill {
+        flex: 1 1 auto;
+    }
+
+    .text-break-word {
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+
+    /* Loading State */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        top: 50%;
+        left: 50%;
+        margin-left: -10px;
+        margin-top: -10px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-right-color: transparent;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* ===========================================
+       ACCESSIBILITY & TOUCH IMPROVEMENTS
+       =========================================== */
+    @media (hover: none) and (pointer: coarse) {
+
+        /* Improve touch experience on mobile */
+        .option-card:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .option-card:active {
+            transform: scale(0.98);
+            background-color: #f8f9fa;
+        }
+
+        #bookingPayment .booking-pay-option:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        #bookingPayment .booking-pay-option:active {
+            transform: scale(0.98);
+        }
+    }
+
+    /* High contrast support */
+    @media (prefers-contrast: high) {
+        .option-card.active {
+            border-color: #000 !important;
+            background-color: #fff !important;
+        }
+
+        #rentalStartDate:focus {
+            border-color: #000;
+            box-shadow: 0 0 0 2px #000;
+        }
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+
+        .option-card,
+        #bookingPayment .booking-pay-option,
+        #rentalStartDate {
+            transition: none;
+        }
+
+        .btn-loading::after {
+            animation: none;
+        }
+    }
+
+
+
+    /* Fix for Summary Step Button Alignment */
+    #summaryStep .modal-footer {
+        padding: 1rem 1.25rem;
+        border-top: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    #summaryStep .modal-footer .d-flex {
+        width: 100%;
+        margin: 0;
+    }
+
+    #summaryStep .modal-footer .btn {
+        min-height: 44px;
+        font-weight: 600;
+        flex: 1;
+        min-width: 140px;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 576px) {
+        #summaryStep .modal-footer {
+            padding: 1rem;
+        }
+
+        #summaryStep .modal-footer .d-flex {
+            flex-direction: row;
+            gap: 0.75rem;
+        }
+
+        #summaryStep .modal-footer .btn {
+            flex: 1;
+            margin: 0;
+            font-size: 16px;
+            /* Prevents zoom on iOS */
+        }
+    }
+
+    /* Desktop optimization */
+    @media (min-width: 768px) {
+        #summaryStep .modal-footer .btn {
+            flex: 0 0 auto;
+            width: 160px;
+        }
+
+        #summaryStep .modal-footer .d-flex {
+            justify-content: space-between;
+            gap: 1rem;
+        }
     }
 </style>
-
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -1018,7 +1421,8 @@
                 }
 
                 // Check stock availability
-                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <= 0) {
+                if (window.latestLocationAvailability !== null && window.latestLocationAvailability <=
+                    0) {
                     if (window.Swal?.fire) {
                         Swal.fire({
                             icon: 'error',
@@ -1132,32 +1536,12 @@
         const hidExtra = document.getElementById('inputExtraDays');
         const hidTotal = document.getElementById('inputTotalPrice');
 
-        let currentUnitMax = 30;
+        let currentUnitMax = 6; // Fixed for daily
         let suppressRentalEvent = false;
         let isUpdatingStep1 = false;
 
-        const applyQuantityLimit = (limit) => {
-            if (!qtySelect) return;
-            const fallback = currentUnitMax;
-            let parsedLimit = typeof limit === 'number' ? Math.floor(limit) : null;
-            if (parsedLimit !== null && parsedLimit < 1) parsedLimit = 1;
-            const targetMax = parsedLimit !== null && parsedLimit > 0 ? Math.min(fallback, parsedLimit) : fallback;
-            const previousValue = parseInt(qtySelect.value || '1', 10) || 1;
-            fillSelect(qtySelect, 1, targetMax, 1);
-            const nextValue = Math.min(previousValue, targetMax);
-            qtySelect.value = String(nextValue);
-            if (hidQty) {
-                hidQty.value = String(nextValue);
-            }
-            suppressRentalEvent = true;
-            try {
-                updateStep1Paint();
-            } finally {
-                suppressRentalEvent = false;
-            }
-        };
-
-        window.updateQuantityLimit = (limit) => applyQuantityLimit(typeof limit === 'number' ? limit : null);
+        // REMOVED: applyQuantityLimit function completely
+        // REMOVED: window.updateQuantityLimit
 
         function activeUnit() {
             const a = document.querySelector('.option-card.active');
@@ -1171,24 +1555,24 @@
         }
 
         function configureQtyForUnit(u) {
-            let max = 30;
+            let max = 6; // Daily: ALWAYS 1-6 days
             let label = 'How many day(s)?';
             currentUnitMax = max;
 
             if (u === 'week') {
-                max = 4; // Changed from 12 to 4
+                max = 4; // Weekly: ALWAYS 1-4 weeks
                 label = 'How many week(s)?';
                 currentUnitMax = max;
             }
             if (u === 'month') {
-                max = 12; // Keep 12 for months
+                max = 12; // Monthly: ALWAYS 1-12 months
                 label = 'How many month(s)?';
                 currentUnitMax = max;
             }
 
             qtyLabel.textContent = label;
+            // FIXED: Always show the fixed range, never limit by stock for rental duration
             fillSelect(qtySelect, 1, max, 1);
-            applyQuantityLimit(window.latestLocationAvailability ?? null);
         }
 
         // Compute + paint Step-1 price & period with extra days and stock quantity
@@ -1301,7 +1685,9 @@
 
                 if (hidTotal) {
                     hidTotal.value = String(vehicleTotal);
-                    hidTotal.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidTotal.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
 
                 // Inform listeners
@@ -1322,7 +1708,9 @@
                 const u = card.getAttribute('data-type') || '';
                 if (hidUnit) {
                     hidUnit.value = u;
-                    hidUnit.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidUnit.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
 
                 // show date + qty sections and prepare qty
@@ -1333,7 +1721,9 @@
                 // sync qty hidden
                 if (hidQty && qtySelect) {
                     hidQty.value = qtySelect.value;
-                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidQty.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
 
                 // AUTO-OPEN CALENDAR
@@ -1356,7 +1746,9 @@
             qtySelect.addEventListener('change', () => {
                 if (hidQty) {
                     hidQty.value = qtySelect.value;
-                    hidQty.dispatchEvent(new Event('change', { bubbles: true }));
+                    hidQty.dispatchEvent(new Event('change', {
+                        bubbles: true
+                    }));
                 }
                 updateStep1Paint();
             });
@@ -1365,15 +1757,20 @@
         /* =========================================
            CALENDAR (lead days + booked ranges lock)
            ========================================= */
+        /* =========================================
+   CALENDAR (lead days + booked ranges lock) - FIXED FOR MOBILE
+   ========================================= */
         const initCalendar = () => {
             const inp = startDateInput;
             if (!inp) return;
 
-            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'), 10) || 0;
+            const leadDays = parseInt(inp.getAttribute('data-lead') || (window.bookingLeadDays ?? '0'),
+                10) || 0;
 
             let blockedRanges = [];
             try {
-                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window.vehicleBlockedRanges || []);
+                const raw = inp.getAttribute('data-blocked') || JSON.stringify(window
+                    .vehicleBlockedRanges || []);
                 blockedRanges = (JSON.parse(raw) || []).filter(r => r && r.from && r.to);
             } catch {
                 blockedRanges = [];
@@ -1440,25 +1837,29 @@
                     dateFormat: 'Y-m-d',
                     clickOpens: true,
                     allowInput: false,
-                    // Add these options for better UX and full width
                     static: true,
                     monthSelectorType: 'static',
-                    // Ensure full width for calendar
+                    // Mobile-friendly options
+                    disableMobile: false,
+                    time_24hr: true,
+                    // Responsive positioning
+                    position: 'auto',
                     onReady: function(selectedDates, dateStr, instance) {
                         const calendar = instance.calendarContainer;
                         const input = instance._input;
 
                         if (calendar) {
                             calendar.style.zIndex = '99999';
-                            // Set calendar to full width
+                            // Make calendar responsive
                             calendar.style.width = '100%';
                             calendar.style.maxWidth = '100%';
+                            calendar.style.left = '0px !important';
+                            calendar.style.right = '0px !important';
                         }
 
                         // Ensure input takes full width
                         if (input) {
                             input.style.width = '100%';
-                            input.style.maxWidth = '100%';
                         }
                     },
                     onOpen: function(selectedDates, dateStr, instance) {
@@ -1468,7 +1869,17 @@
                             calendar.style.width = '100%';
                             calendar.style.maxWidth = '100%';
 
-                            // Force recalculation of position for full width
+                            // Mobile-specific adjustments
+                            if (window.innerWidth < 768) {
+                                calendar.style.position = 'fixed';
+                                calendar.style.top = '50%';
+                                calendar.style.left = '50%';
+                                calendar.style.transform = 'translate(-50%, -50%)';
+                                calendar.style.width = '90%';
+                                calendar.style.maxWidth = '400px';
+                            }
+
+                            // Force recalculation of position
                             setTimeout(() => {
                                 instance.redraw();
                             }, 10);
@@ -1482,17 +1893,24 @@
                         });
                     },
                     onMonthChange: function(selectedDates, dateStr, instance) {
-                        // Ensure calendar maintains full width on month change
+                        // Ensure calendar maintains proper width on month change
                         const calendar = instance.calendarContainer;
                         if (calendar) {
-                            calendar.style.width = '100%';
-                            calendar.style.maxWidth = '100%';
+                            if (window.innerWidth < 768) {
+                                calendar.style.width = '90%';
+                                calendar.style.maxWidth = '400px';
+                            } else {
+                                calendar.style.width = '100%';
+                                calendar.style.maxWidth = '100%';
+                            }
                         }
                     },
                     onChange: function(selectedDates, dateStr) {
                         if (hidStart) {
                             hidStart.value = dateStr || '';
-                            hidStart.dispatchEvent(new Event('change', { bubbles: true }));
+                            hidStart.dispatchEvent(new Event('change', {
+                                bubbles: true
+                            }));
                         }
                         qtySection?.classList.remove('d-none');
                         updateStep1Paint();
@@ -1510,30 +1928,17 @@
                 setTimeout(() => {
                     if (inp) {
                         inp.style.width = '100%';
-                        inp.style.maxWidth = '100%';
                         inp.style.boxSizing = 'border-box';
-
-                        // Also set parent elements to full width
-                        const parentRelative = inp.closest('.position-relative');
-                        if (parentRelative) {
-                            parentRelative.style.width = '100%';
-                        }
-
-                        const dateSection = document.getElementById('dateSection');
-                        if (dateSection) {
-                            dateSection.style.width = '100%';
-                        }
                     }
                 }, 100);
             } else {
-                // Fallback to native date input
+                // Fallback to native date input for mobile
                 try {
                     inp.removeAttribute('readonly');
                     inp.setAttribute('type', 'date');
-                    // Set full width for native date input
                     inp.style.width = '100%';
-                    inp.style.maxWidth = '100%';
                 } catch {}
+
                 inp.addEventListener('input', () => {
                     const val = inp.value;
                     const picked = fromYMD(val);
@@ -1550,11 +1955,14 @@
                         return;
                     }
                 });
+
                 inp.addEventListener('change', () => {
                     const dateStr = inp.value || '';
                     if (hidStart) {
                         hidStart.value = dateStr;
-                        hidStart.dispatchEvent(new Event('change', { bubbles: true }));
+                        hidStart.dispatchEvent(new Event('change', {
+                            bubbles: true
+                        }));
                     }
                     qtySection?.classList.remove('d-none');
                     updateStep1Paint();
@@ -1774,7 +2182,9 @@
                 if (value > limit) value = limit;
                 extraDaysInput.value = String(value);
                 hidExtra.value = String(value);
-                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
                 if (extraDaysHelp) {
                     extraDaysHelp.textContent = limit === 6 ? '1 to 6 days.' : '1 to 29 days.';
                 }
@@ -1782,7 +2192,9 @@
                 extraDaysSection.classList.add('d-none');
                 extraDaysInput.value = '0';
                 hidExtra.value = '0';
-                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
             }
         };
 
@@ -1802,7 +2214,9 @@
                 if (value > max) value = max;
                 extraDaysInput.value = String(value);
                 hidExtra.value = String(value);
-                hidExtra.dispatchEvent(new Event('change', { bubbles: true }));
+                hidExtra.dispatchEvent(new Event('change', {
+                    bubbles: true
+                }));
                 updateLocationAvailability();
                 updateStep1Paint();
             });
@@ -1828,8 +2242,13 @@
            ========================= */
         const alertDebounce = new Map();
 
-        function notify(key, { icon = 'warning', title = 'Notice', text = '' }) {
-            const now = Date.now(), last = alertDebounce.get(key) || 0;
+        function notify(key, {
+            icon = 'warning',
+            title = 'Notice',
+            text = ''
+        }) {
+            const now = Date.now(),
+                last = alertDebounce.get(key) || 0;
             if (now - last < 600) return;
 
             const step1ModalEl = document.getElementById('multiStepBookingModal');
@@ -1838,7 +2257,12 @@
             if (step1Visible && suppressForStep1) return;
 
             alertDebounce.set(key, now);
-            if (window.Swal?.fire) Swal.fire({ icon, title, text, confirmButtonText: 'OK' });
+            if (window.Swal?.fire) Swal.fire({
+                icon,
+                title,
+                text,
+                confirmButtonText: 'OK'
+            });
             else alert(`${title}\n\n${text}`);
         }
 
@@ -1853,19 +2277,25 @@
         const bookingThankYouModalEl = document.getElementById('bookingThankYou');
         const bookingCardErrorsEl = document.getElementById('booking-card-errors');
 
-        const paymentMethodInputs = Array.from(document.querySelectorAll('input[name="booking_payment_method"]'));
+        const paymentMethodInputs = Array.from(document.querySelectorAll(
+            'input[name="booking_payment_method"]'));
         const resetPaymentSelection = () => {
             paymentMethodInputs.forEach((input) => {
                 input.checked = false;
                 input.removeAttribute('checked');
             });
         };
-        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal', resetPaymentSelection);
+        if (bookingPaymentModalEl) bookingPaymentModalEl.addEventListener('hidden.bs.modal',
+            resetPaymentSelection);
 
         let currentBookingReference = null;
 
         const stripePublicKey = "{{ $stripeConfig->stripe_key ?? '' }}";
-        let stripeInstance = null, stripeElements = null, stripeCardNumber = null, stripeCardExpiry = null, stripeCardCvc = null;
+        let stripeInstance = null,
+            stripeElements = null,
+            stripeCardNumber = null,
+            stripeCardExpiry = null,
+            stripeCardCvc = null;
 
         const showPaymentLoader = (message = 'Processing payment...') => {
             if (window.Swal) {
@@ -1898,7 +2328,8 @@
             const tyPeriodEl = document.getElementById('tyPeriod');
             if (tyPeriodEl) tyPeriodEl.textContent = periodText;
 
-            const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : '-');
+            const reference = currentBookingReference || (bookingIdField?.value ?
+                `#${bookingIdField.value}` : '-');
             const tyReferenceEl = document.getElementById('tyReference');
             if (tyReferenceEl) tyReferenceEl.textContent = reference;
 
@@ -1932,7 +2363,8 @@
                     openPaymentBtn.textContent = 'Preparing booking...';
                 } else {
                     openPaymentBtn.disabled = false;
-                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel || openPaymentDefaultLabel;
+                    openPaymentBtn.textContent = openPaymentBtn.dataset.originalLabel ||
+                        openPaymentDefaultLabel;
                 }
             };
 
@@ -1952,29 +2384,49 @@
                             body: formData,
                             headers: {
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.getAttribute(
+                                    'content') || ''
                             }
                         });
 
                         const text = await res.text();
                         let data;
-                        try { data = JSON.parse(text); }
-                        catch { data = { success: false, message: text }; }
+                        try {
+                            data = JSON.parse(text);
+                        } catch {
+                            data = {
+                                success: false,
+                                message: text
+                            };
+                        }
 
                         if (!res.ok || !data?.success) {
-                            await Swal.fire({ icon: 'error', title: 'Booking not created', text: data?.message || 'Failed to create booking.' });
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Booking not created',
+                                text: data?.message || 'Failed to create booking.'
+                            });
                             return;
                         }
 
                         bookingIdField.value = data.booking_id || data.id || '';
                         currentBookingReference = data.reference || null;
                         if (!bookingIdField.value) {
-                            await Swal.fire({ icon: 'error', title: 'Missing booking ID', text: 'Booking was created but no identifier was returned.' });
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Missing booking ID',
+                                text: 'Booking was created but no identifier was returned.'
+                            });
                             return;
                         }
                     } catch (error) {
                         console.error(error);
-                        await Swal.fire({ icon: 'error', title: 'Network error', text: 'Unable to create booking, please try again.' });
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Network error',
+                            text: 'Unable to create booking, please try again.'
+                        });
                         return;
                     } finally {
                         bookingCreationInFlight = false;
@@ -1984,13 +2436,15 @@
 
                 if (!bookingIdField?.value) return;
 
-                const summaryModal = bootstrap.Modal.getInstance(document.getElementById('summaryStep'));
+                const summaryModal = bootstrap.Modal.getInstance(document.getElementById(
+                    'summaryStep'));
                 summaryModal?.hide();
 
                 if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
 
                 const stripeRadio = document.getElementById('bookingStripe');
-                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset.amount = String(computeGrandTotal());
+                if (stripeRadio?.checked && bookingStripePayButton) bookingStripePayButton.dataset
+                    .amount = String(computeGrandTotal());
             });
         }
 
@@ -1998,13 +2452,15 @@
             if (!(e.target && e.target.name === 'booking_payment_method')) return;
 
             const method = e.target.value;
-            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(bookingPaymentModalEl) : null;
+            const paymentModalInstance = bookingPaymentModalEl ? bootstrap.Modal.getInstance(
+                bookingPaymentModalEl) : null;
             paymentModalInstance?.hide();
 
             const grandTotal = computeGrandTotal();
 
             if (method === 'stripe') {
-                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(grandTotal);
+                if (bookingStripePayButton) bookingStripePayButton.dataset.amount = String(
+                    grandTotal);
                 if (bookingStripeModalEl) new bootstrap.Modal(bookingStripeModalEl).show();
                 return;
             }
@@ -2012,7 +2468,11 @@
             if (method === 'payfast') {
                 const bookingId = bookingIdField?.value;
                 if (!bookingId) {
-                    await Swal.fire({ icon: 'error', title: 'Booking missing', text: 'Please create the booking first.' });
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.'
+                    });
                     if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
                     e.target.checked = false;
                     return;
@@ -2020,17 +2480,22 @@
 
                 try {
                     showPaymentLoader('Redirecting to PayFast...');
-                    const res = await fetch(`/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                        },
-                        body: JSON.stringify({ booking_id: bookingId })
-                    });
+                    const res = await fetch(
+                        `/payfast/booking/init/${encodeURIComponent(bookingId)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                booking_id: bookingId
+                            })
+                        });
 
                     const data = await res.json();
-                    if (!res.ok || !data?.success) throw new Error(data?.message || 'Failed to prepare PayFast checkout.');
+                    if (!res.ok || !data?.success) throw new Error(data?.message ||
+                        'Failed to prepare PayFast checkout.');
 
                     const form = document.createElement('form');
                     form.method = 'POST';
@@ -2047,7 +2512,11 @@
                     form.submit();
                 } catch (err) {
                     console.error(err);
-                    await Swal.fire({ icon: 'error', title: 'PayFast error', text: err.message || 'Could not redirect to PayFast.' });
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'PayFast error',
+                        text: err.message || 'Could not redirect to PayFast.'
+                    });
                     if (bookingPaymentModalEl) new bootstrap.Modal(bookingPaymentModalEl).show();
                     e.target.checked = false;
                 } finally {
@@ -2062,12 +2531,24 @@
             stripeInstance = Stripe(stripePublicKeyJS);
             stripeElements = stripeInstance.elements();
             const stripeStyle = {
-                base: { fontSize: '16px', color: '#32325d', '::placeholder': { color: '#a0aec0' } }
+                base: {
+                    fontSize: '16px',
+                    color: '#32325d',
+                    '::placeholder': {
+                        color: '#a0aec0'
+                    }
+                }
             };
 
-            stripeCardNumber = stripeElements.create('cardNumber', { style: stripeStyle });
-            stripeCardExpiry = stripeElements.create('cardExpiry', { style: stripeStyle });
-            stripeCardCvc = stripeElements.create('cardCvc', { style: stripeStyle });
+            stripeCardNumber = stripeElements.create('cardNumber', {
+                style: stripeStyle
+            });
+            stripeCardExpiry = stripeElements.create('cardExpiry', {
+                style: stripeStyle
+            });
+            stripeCardCvc = stripeElements.create('cardCvc', {
+                style: stripeStyle
+            });
 
             const cardNumberMount = document.getElementById('booking-card-number');
             const cardExpiryMount = document.getElementById('booking-card-expiry');
@@ -2085,12 +2566,20 @@
         if (bookingStripePayButton && stripeInstance) {
             bookingStripePayButton.addEventListener('click', async function() {
                 if (!bookingIdField?.value) {
-                    Swal.fire({ icon: 'error', title: 'Booking missing', text: 'Please create the booking first.' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Booking missing',
+                        text: 'Please create the booking first.'
+                    });
                     return;
                 }
 
                 if (!stripeCardNumber || !stripeCardExpiry || !stripeCardCvc) {
-                    Swal.fire({ icon: 'error', title: 'Stripe unavailable', text: 'Payment form is not ready yet.' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Stripe unavailable',
+                        text: 'Payment form is not ready yet.'
+                    });
                     return;
                 }
 
@@ -2103,62 +2592,99 @@
                 showPaymentLoader();
 
                 try {
-                    const { paymentMethod, error } = await stripeInstance.createPaymentMethod({
+                    const {
+                        paymentMethod,
+                        error
+                    } = await stripeInstance.createPaymentMethod({
                         type: 'card',
                         card: stripeCardNumber,
-                        billing_details: { name: bookingForm?.name?.value || '', email: bookingForm?.email?.value || '' }
+                        billing_details: {
+                            name: bookingForm?.name?.value || '',
+                            email: bookingForm?.email?.value || ''
+                        }
                     });
 
                     if (error) {
-                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message || 'Payment method error.';
+                        if (bookingCardErrorsEl) bookingCardErrorsEl.textContent = error.message ||
+                            'Payment method error.';
                         hidePaymentLoader();
                         return;
                     }
 
-                    const res = await fetch(`/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                        },
-                        body: JSON.stringify({ payment_method_id: paymentMethod.id, amount: parseFloat(button.dataset.amount || '0') })
-                    });
+                    const res = await fetch(
+                        `/bookings/${encodeURIComponent(bookingIdField.value)}/pay-with-stripe`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                payment_method_id: paymentMethod.id,
+                                amount: parseFloat(button.dataset.amount || '0')
+                            })
+                        });
 
                     const text = await res.text();
                     let data;
-                    try { data = JSON.parse(text); }
-                    catch { data = { success: false, message: text }; }
+                    try {
+                        data = JSON.parse(text);
+                    } catch {
+                        data = {
+                            success: false,
+                            message: text
+                        };
+                    }
 
                     hidePaymentLoader();
 
                     if (!res.ok || !data) {
-                        await Swal.fire({ icon: 'error', title: 'Payment failed', text: data?.message || 'Server error while processing payment.' });
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment failed',
+                            text: data?.message || 'Server error while processing payment.'
+                        });
                         return;
                     }
 
                     if (data.success) {
                         bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
                         populateThankYouModal('Stripe');
-                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
+                        if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
+                            .show();
                         return;
                     }
 
                     if (data.requires_action && data.payment_intent_client_secret) {
-                        const result = await stripeInstance.confirmCardPayment(data.payment_intent_client_secret);
+                        const result = await stripeInstance.confirmCardPayment(data
+                            .payment_intent_client_secret);
                         if (result.error) {
-                            await Swal.fire({ icon: 'error', title: 'Authentication failed', text: result.error.message || 'Unable to confirm your card.' });
+                            await Swal.fire({
+                                icon: 'error',
+                                title: 'Authentication failed',
+                                text: result.error.message || 'Unable to confirm your card.'
+                            });
                         } else {
                             bootstrap.Modal.getInstance(bookingStripeModalEl)?.hide();
                             populateThankYouModal('Stripe');
-                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl).show();
+                            if (bookingThankYouModalEl) new bootstrap.Modal(bookingThankYouModalEl)
+                                .show();
                         }
                     } else {
-                        await Swal.fire({ icon: 'error', title: 'Payment failed', text: data.message || 'Unable to charge your card.' });
+                        await Swal.fire({
+                            icon: 'error',
+                            title: 'Payment failed',
+                            text: data.message || 'Unable to charge your card.'
+                        });
                     }
                 } catch (error) {
                     console.error(error);
                     hidePaymentLoader();
-                    await Swal.fire({ icon: 'error', title: 'Network error', text: error.message || 'Unable to reach the payment server.' });
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Network error',
+                        text: error.message || 'Unable to reach the payment server.'
+                    });
                 } finally {
                     hidePaymentLoader();
                     button.disabled = false;
@@ -2183,33 +2709,52 @@
                 email.value = emailValue;
                 phone.value = phoneValue;
 
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-                const phonePattern = /^\+?[0-9]{1,4}(?:[\s-]?[0-9]{2,4}){2,4}$/;
+                // Updated patterns to match backend validation
+                const emailPattern = /^([^\s@]+)@([^\s@]+)\.[^\s@]{2,}$/;
+                const phonePattern = /^[a-zA-Z0-9\s\-\.,#()+]+$/; // Matches backend pattern exactly
 
                 if (!name.value.trim() || !emailValue || !phoneValue || !country.value) {
-                    notify('cust-missing', { icon: 'error', title: 'Missing Information', text: 'Please fill all required customer details.' });
+                    notify('cust-missing', {
+                        icon: 'error',
+                        title: 'Missing Information',
+                        text: 'Please fill all required customer details.'
+                    });
                     return;
                 }
 
                 if (!emailPattern.test(emailValue)) {
-                    notify('cust-invalid', { icon: 'error', title: 'Invalid Email', text: 'Enter a valid email address, e.g. you@example.com.' });
+                    notify('cust-invalid', {
+                        icon: 'error',
+                        title: 'Invalid Email',
+                        text: 'Enter a valid email address, e.g. you@example.com.'
+                    });
                     email.focus();
                     return;
                 }
 
                 if (!phonePattern.test(phoneValue)) {
-                    notify('cust-invalid', { icon: 'error', title: 'Invalid Phone Number', text: 'Use digits with optional spaces or dashes, e.g. +27 123 456 7890.' });
+                    notify('cust-invalid', {
+                        icon: 'error',
+                        title: 'Invalid Phone Number',
+                        text: 'Enter a valid phone number with country code, e.g. +27 123 456 7890. Only letters, numbers, spaces, hyphens, commas, periods, #, parentheses, and + are allowed.'
+                    });
                     phone.focus();
                     return;
                 }
 
+                // Get all the necessary values
                 const unitH = document.getElementById('inputRentalUnit');
                 const startH = document.getElementById('inputRentalStartDate');
                 const extraH = document.getElementById('inputExtraDays');
                 const totalH = document.getElementById('inputTotalPrice');
                 const stockQty = document.getElementById('inputStockQuantity')?.value || '1';
+                const rentalQty = document.getElementById('inputRentalQuantity')?.value || '1';
 
-                const typeLabel = ({ day: 'Daily', week: 'Weekly', month: 'Monthly' })[unitH.value] || (unitH.value || 'N/A');
+                const typeLabel = ({
+                    day: 'Daily',
+                    week: 'Weekly',
+                    month: 'Monthly'
+                })[unitH.value] || (unitH.value || 'N/A');
                 document.getElementById('summaryType').textContent = typeLabel;
 
                 // Calculate period with start and end dates
@@ -2217,7 +2762,7 @@
                 if (startH && startH.value) {
                     const startY = startH.value;
                     const unit = unitH.value;
-                    const qty = parseInt(document.getElementById('inputRentalQuantity').value);
+                    const qty = parseInt(rentalQty);
                     const extra = parseInt(extraH?.value || '0');
                     const startDt = fromYMD(startY);
 
@@ -2230,7 +2775,8 @@
                         vehiclePeriod = `${niceDate(startY)} to ${niceDate(endY)}`;
 
                         if (extra > 0) {
-                            vehiclePeriod += ` (${days} days total = ${baseDays} base + ${extra} extra)`;
+                            vehiclePeriod +=
+                                ` (${days} days total = ${baseDays} base + ${extra} extra)`;
                         } else {
                             vehiclePeriod += ` (${days} days)`;
                         }
@@ -2238,11 +2784,18 @@
                 }
 
                 document.getElementById('summaryPeriod').textContent = vehiclePeriod || 'N/A';
-                document.getElementById('summaryVehicleTotal').textContent = money(totalH ? totalH.value : 0);
-                document.getElementById('summaryUnits').textContent = `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
+                document.getElementById('summaryUnits').textContent =
+                    `${stockQty} unit${stockQty !== '1' ? 's' : ''}`;
 
                 const vehicleTotal = parseFloat(totalH?.value || '0');
                 document.getElementById('summaryGrandTotal').textContent = money(vehicleTotal);
+
+                // Generate and display detailed price breakdown
+                const breakdownHTML = generatePriceBreakdown();
+                const summaryBreakdownEl = document.getElementById('summaryPriceBreakdown');
+                if (summaryBreakdownEl) {
+                    summaryBreakdownEl.innerHTML = breakdownHTML;
+                }
 
                 document.getElementById('summaryCustomerName').textContent = name.value;
                 document.getElementById('summaryCustomerEmail').textContent = email.value;
@@ -2256,6 +2809,83 @@
             });
         }
 
+        // Add the generatePriceBreakdown function
+        function generatePriceBreakdown() {
+            const unit = document.getElementById('inputRentalUnit')?.value;
+            const qty = parseInt(document.getElementById('inputRentalQuantity')?.value || '0', 10);
+            const extra = parseInt(document.getElementById('inputExtraDays')?.value || '0', 10);
+            const stockQty = parseInt(document.getElementById('inputStockQuantity')?.value || '1', 10);
+            const pricePer = priceForActiveUnit();
+
+            if (!unit || !qty || !pricePer) return '';
+
+            let baseDays = 0;
+            let unitLabel = '';
+            let dailyRate = 0;
+            let basePrice = 0;
+
+            switch (unit) {
+                case 'day':
+                    baseDays = qty;
+                    unitLabel = 'day(s)';
+                    dailyRate = pricePer;
+                    basePrice = pricePer * qty;
+                    break;
+                case 'week':
+                    baseDays = qty * 7;
+                    unitLabel = 'week(s)';
+                    dailyRate = pricePer / 7;
+                    basePrice = pricePer * qty;
+                    break;
+                case 'month':
+                    baseDays = qty * 30;
+                    unitLabel = 'month(s)';
+                    dailyRate = pricePer / 30;
+                    basePrice = pricePer * qty;
+                    break;
+            }
+
+            const extraDaysPrice = dailyRate * extra;
+            const totalBasePrice = (basePrice + extraDaysPrice) * stockQty;
+
+            let html = `
+        <div class="d-flex justify-content-between small mb-2">
+            <span>
+                ${stockQty} unit${stockQty > 1 ? 's' : ''} × ${qty} ${unit}${qty > 1 ? 's' : ''}
+                @ R${pricePer.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}/${unit}
+            </span>
+            <span class="fw-semibold">R${(basePrice * stockQty).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        </div>`;
+
+            if (extra > 0) {
+                html += `
+        <div class="d-flex justify-content-between small mb-2">
+            <span>
+                ${stockQty} unit${stockQty > 1 ? 's' : ''} × ${extra} extra day${extra > 1 ? 's' : ''}
+                @ R${dailyRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}/day
+            </span>
+            <span class="fw-semibold">R${(extraDaysPrice * stockQty).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        </div>`;
+            }
+
+            // Add subtotal if multiple items
+            if (stockQty > 1 || extra > 0) {
+                html += `
+        <div class="d-flex justify-content-between small mb-2 border-top pt-2">
+            <span class="fw-semibold">Subtotal</span>
+            <span class="fw-semibold">R${totalBasePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        </div>`;
+            }
+
+            return html;
+        }
+
+        // Make sure priceForActiveUnit function is available
+        function priceForActiveUnit() {
+            const a = document.querySelector('.option-card.active');
+            const p = parseFloat(a?.getAttribute('data-price') || '0');
+            return isNaN(p) ? 0 : p;
+        }
         /* =========================
            THANK YOU MODAL
            ========================= */
@@ -2271,7 +2901,8 @@
             const tyPeriodEl = document.getElementById('tyPeriod');
             if (tyPeriodEl) tyPeriodEl.textContent = periodText;
 
-            const reference = currentBookingReference || (bookingIdField?.value ? `#${bookingIdField.value}` : 'N/A');
+            const reference = currentBookingReference || (bookingIdField?.value ?
+                `#${bookingIdField.value}` : 'N/A');
             const tyReferenceEl = document.getElementById('tyReference');
             if (tyReferenceEl) tyReferenceEl.textContent = reference;
 
@@ -2292,7 +2923,8 @@
 
             const wa = document.getElementById('tyWhatsappBtn');
             if (wa) {
-                const txt = `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
+                const txt =
+                    `Hi! I just completed my booking (Reference: ${reference}) and need assistance.`;
                 const url = new URL("https://wa.me/27612345678");
                 url.searchParams.set('text', txt);
                 wa.href = url.toString();

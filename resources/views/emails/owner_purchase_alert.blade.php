@@ -55,7 +55,7 @@
                                             </td>
                                         </tr>
 
-                                        {!! $vehicle_row ?? '{{vehicle_row}}' !!}
+                                        {!! $equipment_row ?? '{{equipment_row}}' !!}
 
                                         <tr>
                                             <td style="padding:6px 0;color:#555;">Paid Now</td>

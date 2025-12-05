@@ -125,9 +125,11 @@ public function getCustomerDetails($id)
         ->orderByDesc('sent_at')
         ->get();
 
-    $customer->total_booking_price = $customer->bookings()
-        ->where('status', 'confirmed')
-        ->sum('total_price');
+    $customer->total_booking_price = $bookings
+    ->filter(fn($b) => !in_array(strtolower($b->status), ['cancelled', 'canceled']))
+    ->sum('total_price');
+
+
 
     $customer->grand_total_spent =
         ($customer->total_booking_price ?? 0) + ($customer->total_purchase_price ?? 0);
@@ -451,33 +453,36 @@ public function updateBookingStatus(Request $request, Booking $booking)
         'customer_id' => $booking->customer_id,
     ]);
 
-    // --- Dynamic SMTP setup ---
-    $settings = SystemSetting::first(); // assuming only one row
     $customerEmail = $booking->customer?->email;
     $mailAttempted = false;
     $mailSent = false;
+
+    // --- Load system SMTP settings ---
+    $settings = SystemSetting::first();
 
     $hasSmtpConfig = $settings
         && $settings->mail_enabled
         && $customerEmail
         && filled($settings->mail_host)
-        && filled($settings->mail_port);
+        && filled($settings->mail_port)
+        && filled($settings->mail_username)
+        && filled($settings->mail_password);
 
     if ($hasSmtpConfig) {
-        Config::set('mail.default', 'smtp');
-        Config::set('mail.mailers.smtp.transport', 'smtp');
-        Config::set('mail.mailers.smtp.host', $settings->mail_host);
-        Config::set('mail.mailers.smtp.port', $settings->mail_port);
-        Config::set('mail.mailers.smtp.username', $settings->mail_username);
-        Config::set('mail.mailers.smtp.password', $settings->mail_password);
-        Config::set('mail.mailers.smtp.encryption', $settings->mail_encryption ?: null);
-        Config::set('mail.from.address', $settings->mail_from_address ?? 'no-reply@example.com');
-        Config::set('mail.from.name', $settings->mail_from_name ?? config('app.name'));
-
         try {
-            // Use explicit 'smtp' mailer
-            Mail::mailer('smtp')->to($customerEmail)
-                ->send(new BookingStatusUpdate($booking, $booking->status));
+            // Dynamic SMTP configuration
+            Config::set('mail.default', 'smtp');
+            Config::set('mail.mailers.smtp.transport', 'smtp');
+            Config::set('mail.mailers.smtp.host', $settings->mail_host);
+            Config::set('mail.mailers.smtp.port', $settings->mail_port);
+            Config::set('mail.mailers.smtp.username', $settings->mail_username);
+            Config::set('mail.mailers.smtp.password', $settings->mail_password);
+            Config::set('mail.mailers.smtp.encryption', $settings->mail_encryption ?: null);
+            Config::set('mail.from.address', $settings->mail_from_address ?? 'no-reply@example.com');
+            Config::set('mail.from.name', $settings->mail_from_name ?? config('app.name'));
+
+            // Send email
+            Mail::mailer('smtp')->to($customerEmail)->send(new BookingStatusUpdate($booking, $booking->status));
 
             $mailAttempted = true;
             $mailSent = true;
@@ -486,23 +491,26 @@ public function updateBookingStatus(Request $request, Booking $booking)
                 'booking_id' => $booking->id,
                 'status' => $booking->status,
                 'customer_email' => $customerEmail,
-            ]);
-        } catch (\Exception $e) {
-            $mailAttempted = true;
-
-            // Log full exception details for debugging
-            \Log::error('Failed to send booking status email.', [
-                'booking_id' => $booking->id,
-                'customer_email' => $customerEmail,
-                'status' => $booking->status,
                 'mail_host' => $settings->mail_host,
                 'mail_port' => $settings->mail_port,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+            ]);
+
+        } catch (\Exception $e) {
+            $mailAttempted = true;
+            $mailSent = false;
+
+            \Log::error('Failed to send booking status email.', [
+                'booking_id' => $booking->id,
+                'status' => $booking->status,
+                'customer_email' => $customerEmail,
+                'mail_host' => $settings->mail_host,
+                'mail_port' => $settings->mail_port,
+                'error_message' => $e->getMessage(),
+                'stack_trace' => $e->getTraceAsString(),
             ]);
         }
     } else {
-        \Log::warning('Skipping booking status email.', [
+        \Log::warning('Skipping booking status email due to missing SMTP config or customer email.', [
             'booking_id' => $booking->id,
             'status' => $booking->status,
             'customer_email' => $customerEmail,
@@ -533,6 +541,7 @@ public function updateBookingStatus(Request $request, Booking $booking)
 
     return back()->with('success', $message);
 }
+
 
 
 

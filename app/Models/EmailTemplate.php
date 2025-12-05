@@ -20,20 +20,18 @@ class EmailTemplate extends Model
     ];
 
     /**
-     * Quick helper: fetch a template by trigger & recipient.
+     * Fetch template by trigger & recipient type.
      */
     public static function for(string $trigger, string $recipient)
-{
-    return self::where('trigger', $trigger)
-               ->where('recipient', $recipient)
-               ->where('enabled', 1)
-               ->first();
-}
-
+    {
+        return self::where('trigger', $trigger)
+                   ->where('recipient', $recipient)
+                   ->where('enabled', 1)
+                   ->first();
+    }
 
     /**
-     * Replace placeholders (e.g. {{customer_name}}) with data.
-     * Escapes values by default (safe for HTML injection).
+     * Render placeholders in body safely.
      */
     public function renderBody(array $data = []): string
     {
@@ -45,7 +43,7 @@ class EmailTemplate extends Model
     }
 
     /**
-     * Replace placeholders in the subject.
+     * Render placeholders in subject.
      */
     public function renderSubject(array $data = []): string
     {

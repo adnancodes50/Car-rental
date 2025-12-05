@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Purchase;
+use App\Models\EquipmentPurchase;
 use App\Models\EmailTemplate;
 use Illuminate\Mail\Mailable;
 use Illuminate\Bus\Queueable;
@@ -12,41 +12,40 @@ class PurchaseReceipt extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Purchase $purchase;
+    public EquipmentPurchase $purchase;
     public float $paidNow;
 
-    public function __construct(Purchase $purchase, float $paidNow = 0.0)
+    public function __construct(EquipmentPurchase $purchase, float $paidNow = 0.0)
     {
-        $this->purchase = $purchase->loadMissing('vehicle', 'customer');
+        // Load relations
+        $this->purchase = $purchase->loadMissing('equipment', 'customer');
         $this->paidNow  = $paidNow;
     }
 
     public function build(): self
     {
         $p    = $this->purchase;
-        $v    = $p->vehicle;
+        $e    = $p->equipment;
         $cust = $p->customer;
 
-        // Escaped placeholders (plain text values)
+        // Escaped placeholders (plain text)
         $data = [
             'app_name'     => config('app.name', 'Our Site'),
             'year'         => date('Y'),
             'logo_url'     => asset('vendor/adminlte/dist/img/logo.png'),
-
             'purchase_id'  => (string) $p->id,
             'customer_name'=> $cust->name ?? 'Customer',
-
             'paid_now'     => number_format($this->paidNow, 2),
             'deposit_paid' => number_format((float) $p->deposit_paid, 2),
         ];
 
-        // Raw HTML fragments (you construct them; safe to inject)
+        // Raw HTML fragments
         $raw = [
-            'vehicle_row' => $v ? (
+            'equipment_row' => $e ? (
                 '<tr>
-                    <td style="padding:6px 0;color:#555;">Vehicle</td>
+                    <td style="padding:6px 0;color:#555;">Equipment</td>
                     <td style="padding:6px 0;text-align:right;color:#111;">'
-                    . e($v->name . (($v->year || $v->model) ? " ({$v->year} {$v->model})" : '')) .
+                    . e($e->name . (($e->year || $e->model) ? " ({$e->year} {$e->model})" : '')) .
                 '</td></tr>'
             ) : '',
             'receipt_button' => !empty($p->receipt_url)
@@ -59,30 +58,24 @@ class PurchaseReceipt extends Mailable
                 : '',
         ];
 
-        // Prefer DB template: trigger=purchase_receipt, recipient=customer
+        // DB template
         $tpl = EmailTemplate::for('purchase_receipt', 'customer');
 
         if ($tpl) {
             $subject = $this->replacePlaceholders($tpl->subject, $data);
             $body    = $this->replacePlaceholders($tpl->body, $data);
-            $body    = $this->replacePlaceholders($body, $raw, [], $escapeAll = false); // inject fragments raw
-
+            $body    = $this->replacePlaceholders($body, $raw, [], $escapeAll = false); // inject raw HTML
             return $this->subject($subject)->html($body);
         }
 
-        // Fallback to your existing Blade view
-        return $this->subject('Your Vehicle Deposit Receipt #' . $p->id)
+        // Fallback Blade
+        return $this->subject('Your Equipment Deposit Receipt #' . $p->id)
                     ->view('emails.purchase_receipt', [
                         'purchase' => $this->purchase,
                         'paidNow'  => $this->paidNow,
                     ]);
     }
 
-    /**
-     * Minimal placeholder engine:
-     * - Escapes by default (safe for HTML)
-     * - For code-built fragments, set $escapeAll=false to inject raw HTML
-     */
     protected function replacePlaceholders(
         string $text,
         array $values,
@@ -93,7 +86,6 @@ class PurchaseReceipt extends Mailable
             $replacement = (in_array($key, $rawKeys, true) || !$escapeAll)
                 ? (string) $val
                 : e((string) $val);
-
             $text = str_replace('{{' . $key . '}}', $replacement, $text);
         }
         return $text;
