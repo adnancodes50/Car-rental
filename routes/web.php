@@ -269,6 +269,10 @@ Route::group([
 
 // Route::get('/test-reminder', [reminderController::class, 'sendTestReminder']);
 
+// Add these routes
+Route::get('/purchase/{id}/restore', [EquipmentPurchaseController::class, 'restorePurchaseData']);
+Route::get('/purchase/confirmation/{id}', [EquipmentPurchaseController::class, 'showConfirmation']);
+Route::post('/clear-purchase-session', [EquipmentPurchaseController::class, 'clearSession']);
 
 
 

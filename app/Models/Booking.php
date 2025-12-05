@@ -27,8 +27,9 @@ class Booking extends Model
         'extra_days',
         'booked_stock',
     ];
-
-    protected $casts = [
+ protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
         'booked_stock' => 'integer',
     ];
 

@@ -594,7 +594,6 @@
         });
     };
 </script>
-
 <script>
     (() => {
         const TYPE = @json($type);
@@ -632,6 +631,7 @@
         const STRIPE_URL_TPL = @json($type === 'equipment' ? url('/equipment-purchase/{id}/pay-with-stripe') : url('/purchase/{id}/pay-with-stripe'));
 
         const PAYFAST_INIT_TPL = @json($type === 'equipment' ? url('/equipment-purchase/{id}/payfast/init') : url('/purchase/{id}/payfast/init'));
+        const CONFIRMATION_URL_TPL = @json(url('/purchase/confirmation/{id}'));
 
         let formRef = null;
         let selectedLocationId = '';
@@ -1099,8 +1099,7 @@
             }
         }
 
-        // Improved URL parameter handling
-        // Improved URL parameter handling
+        // Handle URL parameters on page load
         function handleUrlParameters() {
             const params = new URLSearchParams(window.location.search);
             const paymentStatus = params.get('payment_status');
@@ -1116,34 +1115,34 @@
                 allParams: Object.fromEntries(params)
             });
 
-            // If we have payment_status parameter
-            if (paymentStatus === 'success' || status === 'paid') {
-                let icon = 'success';
-                let title = 'Payment Successful!';
-                let html = `<div class="text-start">
-            <p class="mb-2">✅ Your deposit payment was successfully processed!</p>
-            ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
-            ${paymentMethod ? `<p class="mb-1"><strong>Payment Method:</strong> ${paymentMethod}</p>` : ''}
-            <p class="mb-1"><strong>Status:</strong> Paid</p>
-            <p class="mb-0"><strong>Click below to open WhatsApp chat for further instructions</strong></p>
-        </div>`;
-                let confirmButtonText = 'Open WhatsApp Chat';
-
-                // Show the success alert
+            // If we have payment_status parameter and it's success
+            if (paymentStatus === 'success' || status === 'paid' || status === 'success') {
+                // Show success message and redirect to confirmation page
                 Swal.fire({
-                    icon,
-                    title,
-                    html,
-                    confirmButtonText,
+                    icon: 'success',
+                    title: 'Payment Successful!',
+                    html: `<div class="text-start">
+                        <p class="mb-2">✅ Your deposit payment was successfully processed!</p>
+                        ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
+                        ${paymentMethod ? `<p class="mb-1"><strong>Payment Method:</strong> ${paymentMethod}</p>` : ''}
+                        <p class="mb-1"><strong>Status:</strong> Paid</p>
+                        <p class="mb-0"><strong>Redirecting to confirmation page...</strong></p>
+                    </div>`,
+                    confirmButtonText: 'View Confirmation',
                     allowOutsideClick: false,
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        openWhatsAppNewTab();
+                    if (result.isConfirmed && purchaseId) {
+                        // Redirect to confirmation page
+                        window.location.href = CONFIRMATION_URL_TPL.replace('{id}', purchaseId);
+                    } else if (purchaseId) {
+                        // Auto-redirect after 2 seconds
+                        setTimeout(() => {
+                            window.location.href = CONFIRMATION_URL_TPL.replace('{id}', purchaseId);
+                        }, 2000);
+                    } else {
+                        cleanUrlAndRedirect();
                     }
-                    // Clean URL after showing the message
-                    cleanUrlAndRedirect();
                 });
-
                 return true;
             }
 
@@ -1153,10 +1152,28 @@
                     icon: 'info',
                     title: 'Payment Processing',
                     html: `<div class="text-start">
-                <p class="mb-2">⏳ Your payment is being processed.</p>
-                ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
-                <p class="mb-0 text-muted">You will receive confirmation shortly via email.</p>
-            </div>`,
+                        <p class="mb-2">⏳ Your payment is being processed.</p>
+                        ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
+                        <p class="mb-0 text-muted">You will receive confirmation shortly via email.</p>
+                    </div>`,
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false,
+                }).then(() => {
+                    cleanUrlAndRedirect();
+                });
+                return true;
+            }
+
+            // Handle error status
+            if (paymentStatus === 'error' || paymentStatus === 'cancelled') {
+                Swal.fire({
+                    icon: 'error',
+                    title: paymentStatus === 'cancelled' ? 'Payment Cancelled' : 'Payment Error',
+                    html: `<div class="text-start">
+                        <p class="mb-2">${paymentStatus === 'cancelled' ? '❌ Payment was cancelled.' : '❌ There was an error processing your payment.'}</p>
+                        ${purchaseId ? `<p class="mb-1"><strong>Reference #:</strong> ${purchaseId}</p>` : ''}
+                        <p class="mb-0 text-muted">Please try again or contact support if the issue persists.</p>
+                    </div>`,
                     confirmButtonText: 'OK',
                     allowOutsideClick: false,
                 }).then(() => {
@@ -1181,7 +1198,7 @@
             formRef = $('purchaseForm');
             const form = formRef;
 
-            // ✅ FIX: Handle URL parameters on page load
+            // ✅ Handle URL parameters on page load
             console.log('🕒 Checking for URL parameters on page load...');
             setTimeout(() => {
                 handleUrlParameters();
@@ -1526,9 +1543,9 @@
                                 icon: 'error',
                                 title: 'PayFast Error',
                                 html: `<div class="text-start">
-                        <p class="mb-2">Unable to initialize PayFast payment:</p>
-                        <p class="text-muted small">${error.message || 'Please try again or use another payment method.'}</p>
-                    </div>`,
+                            <p class="mb-2">Unable to initialize PayFast payment:</p>
+                            <p class="text-muted small">${error.message || 'Please try again or use another payment method.'}</p>
+                        </div>`,
                                 confirmButtonText: 'OK',
                             });
                             this.checked = false;
@@ -1614,25 +1631,25 @@
                     Swal.close();
 
                     if (data?.success) {
-                        const go = data.redirect_to || '/?purchase=success';
+                        // Get confirmation URL from response or construct it
+                        const confirmationUrl = data.redirect_url || CONFIRMATION_URL_TPL.replace('{id}', data.purchase_id);
 
                         Swal.fire({
                             icon: 'success',
                             title: 'Payment Successful!',
                             html: `<div class="text-start">
-                            <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
-                            <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(data.paid ?? ITEM_DEPOSIT)}</p>
-                            <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id}</p>
-                            ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
-                        </div>
-                        <hr class="my-2">
-                        <p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>`,
+                                <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
+                                <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(data.paid ?? ITEM_DEPOSIT)}</p>
+                                <p class="mb-1"><strong>Reference:</strong> #${data.purchase_id}</p>
+                                ${data.receipt_url ? `<p class="mb-0"><a href="${data.receipt_url}" target="_blank" rel="noopener">View Stripe receipt</a></p>` : ''}
+                            </div>
+                            <hr class="my-2">
+                            <p class="mb-0"><strong>Redirecting to confirmation page...</strong></p>`,
                             showConfirmButton: true,
-                            confirmButtonText: 'Continue to WhatsApp',
+                            confirmButtonText: 'View Confirmation',
                             allowOutsideClick: false,
                         }).then(() => {
-                            openWhatsAppNewTab();
-                            window.location.href = go;
+                            window.location.href = confirmationUrl;
                         });
                         return;
                     }
@@ -1649,21 +1666,24 @@
                                 text: result.error.message,
                             });
                         } else if (result.paymentIntent?.status === 'succeeded') {
+                            // Success - redirect to confirmation page
+                            const confirmationUrl = CONFIRMATION_URL_TPL.replace('{id}', pid);
+
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Payment Successful!',
                                 html: `<div class="text-start">
-                                <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
-                                <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(ITEM_DEPOSIT)}</p>
-                            </div>
-                            <hr class="my-2">
-                            <p class="mb-0"><strong>Opening WhatsApp chat for you...</strong></p>`,
+                                    <p class="mb-1"><strong>Item:</strong> ${ITEM_NAME}</p>
+                                    <p class="mb-1"><strong>Amount paid:</strong> ${ZAR.format(ITEM_DEPOSIT)}</p>
+                                    <p class="mb-1"><strong>Reference:</strong> #${pid}</p>
+                                </div>
+                                <hr class="my-2">
+                                <p class="mb-0"><strong>Redirecting to confirmation page...</strong></p>`,
                                 showConfirmButton: true,
-                                confirmButtonText: 'Continue to WhatsApp',
+                                confirmButtonText: 'View Confirmation',
                                 allowOutsideClick: false,
                             }).then(() => {
-                                openWhatsAppNewTab();
-                                window.location.href = '/?purchase=success';
+                                window.location.href = confirmationUrl;
                             });
                         } else {
                             Swal.fire({

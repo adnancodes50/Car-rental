@@ -4,10 +4,24 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\EquipmentPurchaseController;
 use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ReminderController;
 
-    use App\Http\Controllers\ReminderController;
+// Manual email send
+Route::post('/send-email', [ReminderController::class, 'sendEmail']);
 
-    Route::post('/send-email', [ReminderController::class, 'sendEmail']);
+// Upcoming bookings next 7 days
+Route::get('/cron/booking-upcoming', [ReminderController::class, 'sendUpcomingBookingReminders']);
+
+// Completed bookings last 7 days
+Route::get('/cron/booking-complete', [ReminderController::class, 'sendCompletedBookingEmails']);
+
+// Completed bookings next 7 days (today + 6 days) with email + JSON output
+Route::get('/cron/booking-complete-next-7-days', [ReminderController::class, 'sendUpcomingCompletedBookingsEmails']);
+
+// Optional: Send email for all bookings (testing)
+Route::get('/cron/send-all-bookings-email', [ReminderController::class, 'sendEmailForAllBookings']);
+
+
 
 
 Route::post('/equipment-purchase/payfast/notify', [EquipmentPurchaseController::class, 'payfastNotify'])
